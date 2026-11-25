@@ -20,7 +20,9 @@ use crate::domain::geometry::FrameSize;
 pub struct Pass {
     pub shapes: Vec<egui::epaint::ClippedShape>,
     pub pixels_per_point: f32,
-    /// When the UI wants the next pass (`Duration::MAX`: not until something happens).
+    /// When the UI wants the next pass (`Duration::MAX`: not until something happens); the stream
+    /// loop (M2) paces by it.
+    #[allow(dead_code)]
     pub repaint_delay: Duration,
     /// Screenshot requests: the frame painted after this pass, read back.
     pub screenshots: Vec<egui::ScreenshotCallback>,

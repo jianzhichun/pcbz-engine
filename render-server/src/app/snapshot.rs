@@ -59,9 +59,7 @@ impl Snapshot {
             let began = Instant::now();
             let until = began + OPEN_WAIT;
             loop {
-                if self.frame().is_err() {
-                    return EXIT_DEVICE_LOST;
-                }
+                self.host.pass(Vec::new());
                 if !self.host.app.is_busy() {
                     break;
                 }
@@ -77,10 +75,11 @@ impl Snapshot {
                 return EXIT_OPEN;
             }
         }
+        // Passes only, nothing painted: a software adapter (WARP) draws a frame slower than a pass
+        // takes, and the first read-back would otherwise wait for every frame queued before it.
+        // The texture changes the passes make are kept and applied by the first painted frame.
         for _ in 0..options.warmup {
-            if self.frame().is_err() {
-                return EXIT_DEVICE_LOST;
-            }
+            self.host.pass(Vec::new());
             std::thread::sleep(options.gap);
         }
         let mut rows = Vec::new();
@@ -109,12 +108,14 @@ impl Snapshot {
                 })),
                 Err(e) => {
                     eprintln!("render-server: frame {n}: {e}");
+                    // what was learned so far, for a run nobody watched
+                    let _ = self.write_report(&options.dir, options, rows, device_ms, open_ms, started, Some(&e));
                     return EXIT_SETUP;
                 }
             }
             std::thread::sleep(options.gap);
         }
-        if let Err(e) = self.write_report(&options.dir, options, rows, device_ms, open_ms, started) {
+        if let Err(e) = self.write_report(&options.dir, options, rows, device_ms, open_ms, started, None) {
             eprintln!("render-server: frames.json: {e}");
             return EXIT_SETUP;
         }
@@ -134,7 +135,17 @@ impl Snapshot {
         Ok((pass.ms, paint_ms))
     }
 
-    fn write_report(&self, dir: &Path, options: &Options, frames: Vec<Value>, device_ms: f32, open_ms: Option<f32>, started: Instant) -> Result<(), String> {
+    #[allow(clippy::too_many_arguments)]
+    fn write_report(
+        &self,
+        dir: &Path,
+        options: &Options,
+        frames: Vec<Value>,
+        device_ms: f32,
+        open_ms: Option<f32>,
+        started: Instant,
+        error: Option<&str>,
+    ) -> Result<(), String> {
         let size = self.host.size();
         let report = json!({
             "adapter": self.gpu.adapter,
@@ -145,6 +156,7 @@ impl Snapshot {
             "project": options.project.as_ref().map(|p| p.display().to_string()),
             "projectOpened": self.host.app.open_revision().is_some(),
             "status": self.host.app.status_text(),
+            "error": error,
             "timing": {"deviceMs": device_ms, "openMs": open_ms, "editorAndFramesMs": started.elapsed().as_secs_f32() * 1000.0},
             "frames": frames,
         });
