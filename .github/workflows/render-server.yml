@@ -108,6 +108,12 @@ jobs:
             echo "build_seconds=$build_seconds"
             echo "binary_bytes=$size"
           } | tee ../metrics.txt
+      - name: keep the Linux binaries (host-side tests run them against lavapipe)
+        if: matrix.target == 'linux-x64'
+        shell: bash
+        run: |
+          mkdir -p bin
+          cp upstream/target/release/pcbcraft-render-server upstream/target/release/pcbcraft-cli bin/
       - name: unit tests (host loop pieces, rfd shim)
         if: matrix.target == 'linux-x64'
         shell: bash
@@ -210,6 +216,7 @@ jobs:
             build.log
             test.log
             metrics.txt
+            bin/
           if-no-files-found: warn
           retention-days: 14
       - name: the proof must have passed
