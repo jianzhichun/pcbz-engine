@@ -110,12 +110,13 @@ jobs:
             echo "build_seconds=$build_seconds"
             echo "binary_bytes=$size"
           } | tee ../metrics.txt
-      - name: keep the Linux binaries (host-side tests run them against lavapipe)
-        if: matrix.target == 'linux-x64'
+      - name: keep the binaries and their licences (the tests run them; a tag build archives them)
         shell: bash
         run: |
           mkdir -p bin
-          cp upstream/target/release/pcbcraft-render-server upstream/target/release/pcbcraft-cli bin/
+          cp "upstream/target/release/pcbcraft-render-server${{ matrix.exe }}" "upstream/target/release/pcbcraft-cli${{ matrix.exe }}" bin/
+          [ -f "upstream/target/release/pcbcraft-render-server${{ matrix.exe }}" ] || true
+          [ -f "upstream/target/release/pcbcraft-cli${{ matrix.exe }}" ] || cp upstream/target/release/pcbcraft-cli bin/ 2>/dev/null || true
           # the licence files the release archive carries beside the binary
           cp upstream/LICENSE-MIT upstream/LICENSE-APACHE upstream/ATTRIBUTION.md bin/
           cp render-server/NOTICE bin/ 2>/dev/null || true
