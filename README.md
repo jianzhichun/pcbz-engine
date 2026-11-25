@@ -56,3 +56,21 @@ Upstream patches added for it (each only adds or guards; `0001` and `0002` are u
 crate with `render-server/shims/rfd`, whose `FileDialog` asks the host process instead of the operating system, and carry the lock
 entries that follow (the new member, `rfd` as a path crate, `image`'s JPEG codec). They are not in `patches/` because `engine.yml`
 builds the CLI with `--locked` from a tree that has no render server.
+
+## Wasm page (spike, the editor as the plugin page)
+
+`web-harness/` proves the upstream browser editor (`apps/pcbcraft-web`, eframe drawing egui on a canvas, built by
+trunk for `wasm32-unknown-unknown`) can be the PCBZ page: the session's archive loads and saves through the host's
+own route instead of the browser's file dialog and download UI. `.github/workflows/wasm-page.yml` builds
+`dist/web` with trunk 0.21.14 (the version upstream CI pins) and the index.html's `wasm-opt -Oz`, then runs the
+harness in headless Chrome and reopens the saved archive with the pinned `pcbcraft-cli` from release
+`engine-a581d47aa-2`.
+
+- `patches/0011-wasm-host-bridge.patch`: the page calls `pcbz_host_open(bytes)` and `pcbz_host_save()`; saves
+  arrive at `globalThis.pcbzOnSave(bytes, name)`. Load and save reuse the editor's existing browser upload and
+  download paths, so only the edges change. `pcbz_host_command(id, params)` runs one catalog command and
+  `pcbz_host_status()` returns the editor state, both for host automation and the proof.
+- `web-harness/index.html` + `host.js` are the page: they fetch the project, call the load export, receive the
+  saved bytes and POST them to the local server. `run.mjs` serves `dist/web`, drives Chrome with WebGPU removed
+  (the editor's WebGL2 path), makes one edit (`project.rename`), saves, and writes `before.png`, `after.png`,
+  `saved.pc` and `metrics.json`. `open_check.py` opens the saved archive over MCP.

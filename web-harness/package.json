@@ -1,0 +1,10 @@
+{
+  "name": "pcbz-engine-wasm-harness",
+  "private": true,
+  "type": "module",
+  "description": "Headless proof for the PCBZ wasm page: load, edit and save the web build in Chrome.",
+  "dependencies": {
+    "playwright-core": "1.65.1",
+    "pngjs": "7.0.0"
+  }
+}

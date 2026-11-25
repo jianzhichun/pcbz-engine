@@ -1,0 +1,86 @@
+# Build the upstream browser editor (apps/pcbcraft-web: eframe drawing egui on a canvas) as
+# WebAssembly for the PCBZ page, then prove the host bridge end to end in headless Chrome:
+# serve the harness, open the sensor-node example through the page's own load export, make one
+# edit through its command export, save through its save export (patch 0011), and reopen the
+# saved archive with the pinned pcbcraft-cli. Uploads dist/web, the before/after screenshots,
+# the save diff summary, sizes and load timing.
+#
+# wasm32-unknown-unknown, trunk pinned to 0.21.14 (the version upstream CI uses) with the
+# index.html's wasm-opt -Oz, on ubuntu-24.04, which also has Chrome for playwright-core.
+# engine.yml (the CLI and its release path) is untouched.
+name: wasm-page
+on:
+  push:
+    branches: [wasm-page]
+    paths: ['patches/**', 'web-harness/**', 'UPSTREAM_COMMIT', '.github/workflows/wasm-page.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: wasm-page-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  wasm-page:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: never
+      TRUNK_VERSION: v0.21.14
+    steps:
+      - uses: actions/checkout@v4
+      - name: upstream at the pinned commit, with every patch
+        shell: bash
+        run: |
+          commit=$(tr -d '[:space:]' < UPSTREAM_COMMIT)
+          git init -q upstream
+          git -C upstream fetch -q --depth 1 https://github.com/tangency-labs/pcbcraft.git "$commit"
+          git -C upstream checkout -q FETCH_HEAD
+          [ "$(git -C upstream rev-parse HEAD)" = "$commit" ] || { echo "fetched the wrong commit"; exit 1; }
+          for p in patches/*.patch; do git -C upstream apply --verbose "../$p"; done
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: upstream
+          prefix-key: wasm-page
+          cache-on-failure: true
+      - name: Install trunk at the pinned version
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/trunk-rs/trunk/releases/download/${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          trunk --version
+      - name: Build the web app
+        working-directory: upstream/apps/pcbcraft-web
+        run: trunk build --release --locked
+      - name: Record the dist sizes
+        run: |
+          du -ab upstream/dist/web | sort -n | tail -25 | tee sizes.txt
+          find upstream/dist/web -maxdepth 1 -type f -printf '%f %s\n' | sort -k2 -n | tee -a sizes.txt
+      - name: Harness dependencies (playwright-core against the runner's Chrome, pngjs)
+        working-directory: web-harness
+        run: npm install --no-audit --no-fund --no-package-lock
+      - name: Pinned CLI from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p cli
+          gh release download engine-a581d47aa-2 -R jianzhichun/pcbz-engine -p '*linux-x64.tar.gz' -D cli
+          tar -xzf cli/*.tar.gz -C cli
+          find cli -name pcbcraft-cli -type f -exec chmod +x {} \;
+      - name: 'Headless proof: load, edit, save, reopen with the CLI'
+        run: |
+          CLI=$(find cli -name pcbcraft-cli -type f | head -1)
+          node web-harness/run.mjs --dist upstream/dist/web --project upstream/examples/sensor-node.pc --out proof --cli "$CLI"
+      - name: Upload the build and the proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-page
+          path: |
+            proof/
+            upstream/dist/web/
+            sizes.txt
+          if-no-files-found: error
+          retention-days: 7
