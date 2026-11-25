@@ -1,5 +1,5 @@
 diff --git a/crates/mcp/src/backend.rs b/crates/mcp/src/backend.rs
-index 192fea1..c8819dd 100644
+index 08ff589..3e90d91 100644
 --- a/crates/mcp/src/backend.rs
 +++ b/crates/mcp/src/backend.rs
 @@ -141,6 +141,9 @@ impl Backend for Headless {
@@ -12,7 +12,7 @@ index 192fea1..c8819dd 100644
          serve_session(&mut self.session, method, &params, self.api_version)
      }
  
-@@ -167,6 +170,33 @@ impl Backend for Headless {
+@@ -167,6 +170,32 @@ impl Backend for Headless {
      }
  }
  
@@ -20,8 +20,7 @@ index 192fea1..c8819dd 100644
 +/// the session revision it captures. The host stores it; this process writes no file.
 +fn snapshot_packed(session: &Session) -> Result<Value, Failure> {
 +    let project = session.snapshot().ok_or_else(|| Failure::new(ErrorCode::Unavailable, "no project is open"))?;
-+    let documents = pcbcraft_engine::persistence::encode_documents(project).map_err(|e| Failure::new(ErrorCode::Unavailable, e))?;
-+    let bytes = pcbcraft_engine::persistence::encode_deflated_packed_documents(documents).map_err(|e| Failure::new(ErrorCode::Unavailable, e))?;
++    let bytes = pcbcraft_engine::persistence::encode_packed(project).map_err(|e| Failure::new(ErrorCode::Unavailable, e))?;
 +    Ok(json!({"revision": session.revision(), "bytes": bytes.len(), "archive_base64": base64(&bytes)}))
 +}
 +

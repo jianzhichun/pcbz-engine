@@ -1,7 +1,7 @@
 # Build pcbcraft-cli (the headless MCP engine) from tangency-labs/pcbcraft at the commit in UPSTREAM_COMMIT,
 # with the patches in patches/, for Linux x64, macOS (Apple silicon) and Windows x64 on GitHub-hosted runners.
 # Pushes to main and manual runs produce artifacts only. A pushed tag engine-<first 9 of UPSTREAM_COMMIT>-<n>
-# (for example engine-368edff0c-1) also publishes a GitHub Release with:
+# (for example engine-a581d47aa-1) also publishes a GitHub Release with:
 #   pcbcraft-cli-<cargo version>-<commit9>-<n>-{linux-x64.tar.gz,macos-arm64.tar.gz,windows-x64.zip}
 #   SHA256SUMS.txt
 # Each archive holds one folder: the binary, <binary>.sha256, LICENSE-MIT, LICENSE-APACHE, ATTRIBUTION.md,
