@@ -20,7 +20,8 @@
     window.__pcbzApp = app;
     window.__pcbzHarness.initStarted = performance.now();
     try {
-      await init();
+      // Trunk hashes the wasm file; init must be given that path (trunk's own autoload does this).
+      await init({ module_or_path: '__WASM_URL__' });
       window.__pcbzHarness.initMs = performance.now() - window.__pcbzHarness.initStarted;
       window.__pcbzHarness.inited = true;
     } catch (error) {

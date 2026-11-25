@@ -8,8 +8,10 @@
 # drained at the start of the editor frame: load goes through ProjectFiles::open -> web::open_bytes (the
 # same validation, decoding and migration as an upload), save through ProjectFiles::save (the same encoder,
 # unchanged-byte reuse and upgrade notices as a download), and a command through PcbApp::run (the same path
-# as a menu item), so the editor itself is unchanged. The exports live in the web runner, not in the app
-# library, so a binary's wasm-bindgen glue carries them as it already carries pcbcraft_fill_worker.
+# as a menu item), so the editor itself is unchanged. A queued request also asks egui for a frame: an idle
+# page does not repaint, so without that the first host call after startup would wait forever. The exports
+# live in the web runner, not in the app library, so a binary's wasm-bindgen glue carries them as it already
+# carries pcbcraft_fill_worker.
 # Functions touched: project_files/web.rs pickProject/setUnsaved/downloadProject (inline JS guards),
 # web::open split into open + open_bytes; project_files.rs ProjectFiles::open_host added; lib.rs host_tick
 # and its call at the top of frame_inner, pub mod host; new host.rs; apps/pcbcraft-web/src/main.rs exports
@@ -58,10 +60,10 @@ index 79e786e6f95636a935e80bf50c4099101a6b9349..6ef2abd8533f8c5c7cc6b9586993a612
      eprintln!("pcbcraft-web only runs in a browser. Build it with `trunk build --release` from apps/pcbcraft-web.");
 diff --git a/crates/app/src/host.rs b/crates/app/src/host.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..aa48d681b15d18daaf15a4a1d5287b4b7777810f
+index 0000000000000000000000000000000000000000..52b4cb52d70b76f4cc713578ab9afcc7f0ffc7e1
 --- /dev/null
 +++ b/crates/app/src/host.rs
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,92 @@
 +//! The page's own project route across the WebAssembly boundary.
 +//!
 +//! Why: when this app runs as a page inside a host product, the host loads and saves the
@@ -86,12 +88,34 @@ index 0000000000000000000000000000000000000000..aa48d681b15d18daaf15a4a1d5287b4b
 +
 +static REQUESTS: Mutex<Vec<Request>> = Mutex::new(Vec::new());
 +
++/// The editor's context, kept so a request from outside a frame can ask for one.
++static REPAINT: Mutex<Option<egui::Context>> = Mutex::new(None);
++
 +/// The last editor state the page may ask for without reaching into the app.
 +static STATUS: Mutex<String> = Mutex::new(String::new());
 +
 +fn push(request: Request) {
 +    if let Ok(mut queue) = REQUESTS.lock() {
 +        queue.push(request);
++    }
++    wake();
++}
++
++/// Remember the editor context once a frame has run, so later host calls can wake it.
++pub(crate) fn remember_context(ctx: &egui::Context) {
++    if let Ok(mut slot) = REPAINT.lock()
++        && slot.is_none()
++    {
++        *slot = Some(ctx.clone());
++    }
++}
++
++/// Ask for a frame: an idle egui app repaints only when something changes or asks it to.
++fn wake() {
++    if let Ok(slot) = REPAINT.lock()
++        && let Some(ctx) = slot.as_ref()
++    {
++        ctx.request_repaint();
 +    }
 +}
 +
@@ -134,7 +158,7 @@ index 0000000000000000000000000000000000000000..aa48d681b15d18daaf15a4a1d5287b4b
 +}
 \ No newline at end of file
 diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index 0e4769ba00d104c5e30570e3284fde0fd8f5f75e..6731292c18debbcfbf39b94be638260e5d8dc551 100644
+index 0e4769ba00d104c5e30570e3284fde0fd8f5f75e..7ebcd7d2102a8ea866c684cbb4c34fa700e34854 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
 @@ -43,6 +43,8 @@ mod field_actions;
@@ -146,7 +170,7 @@ index 0e4769ba00d104c5e30570e3284fde0fd8f5f75e..6731292c18debbcfbf39b94be638260e
  mod inline_text;
  mod inspection_selection;
  mod library_editors;
-@@ -2679,6 +2681,53 @@ impl PcbApp {
+@@ -2679,6 +2681,56 @@ impl PcbApp {
          self.frame_inner(ui, false);
      }
  
@@ -155,6 +179,7 @@ index 0e4769ba00d104c5e30570e3284fde0fd8f5f75e..6731292c18debbcfbf39b94be638260e
 +    /// action uses; a request that cannot start yet stays queued for the next frame.
 +    #[cfg(target_arch = "wasm32")]
 +    fn host_tick(&mut self, ctx: &egui::Context) {
++        host::remember_context(ctx);
 +        for _ in 0..8 {
 +            let Some(request) = host::take() else { break };
 +            match request {
@@ -192,6 +217,8 @@ index 0e4769ba00d104c5e30570e3284fde0fd8f5f75e..6731292c18debbcfbf39b94be638260e
 +                "busy": self.files.busy(),
 +                "home": self.home,
 +                "project": project,
++                "message": self.message,
++                "notice": self.file_notice,
 +            })
 +            .to_string(),
 +        );
@@ -200,7 +227,7 @@ index 0e4769ba00d104c5e30570e3284fde0fd8f5f75e..6731292c18debbcfbf39b94be638260e
      /// Adopt project file results and handle Close before considering a timed Save, even in
      /// a logic-only native pass. Repaint hosts when adoption or finishing a job changes them.
      fn project_file_tick(&mut self, ctx: &egui::Context) {
-@@ -2724,6 +2773,10 @@ impl PcbApp {
+@@ -2724,6 +2776,10 @@ impl PcbApp {
      /// path uses the same monotonic clock as logic-only passes; embedded hosts use input time.
      fn frame_inner(&mut self, ui: &mut Ui, _native_framework: bool) {
          let ctx = ui.ctx().clone();

@@ -73,4 +73,4 @@ harness in headless Chrome and reopens the saved archive with the pinned `pcbcra
 - `web-harness/index.html` + `host.js` are the page: they fetch the project, call the load export, receive the
   saved bytes and POST them to the local server. `run.mjs` serves `dist/web`, drives Chrome with WebGPU removed
   (the editor's WebGL2 path), makes one edit (`project.rename`), saves, and writes `before.png`, `after.png`,
-  `saved.pc` and `metrics.json`. `open_check.py` opens the saved archive over MCP.
+  `saved.pc`, `save_diff.json` and `metrics.json`. `open_check.py` opens the saved archive over MCP.

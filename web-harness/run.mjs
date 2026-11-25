@@ -115,8 +115,12 @@ async function main() {
   await mkdir(out, { recursive: true });
 
   const files = await readdir(dist);
-  const appJs = files.find((name) => /^pcbcraft-web-[0-9a-f]+\.js$/.test(name)) || files.find((name) => /^pcbcraft-web.*\.js$/.test(name));
+  const appJs =
+    files.find((name) => /^pcbcraft-web-[0-9a-f]+\.js$/.test(name)) ||
+    files.find((name) => /^pcbcraft-web.*\.js$/.test(name) && !name.endsWith('_bg.js'));
+  const wasm = files.find((name) => name.endsWith('_bg.wasm')) || files.find((name) => name.endsWith('.wasm'));
   if (!appJs) throw new Error(`no pcbcraft-web-*.js in ${dist}`);
+  if (!wasm) throw new Error(`no wasm in ${dist}`);
   const inputBytes = await readFile(project);
   const inputSha = sha256(inputBytes);
 
@@ -135,7 +139,7 @@ async function main() {
       }
       if (url.pathname === '/' || url.pathname === '/index.html') {
         const html = await readFile(join(harness, 'index.html'), 'utf8');
-        const body = html.replace('__APP_JS__', '/dist/web/' + appJs);
+        const body = html.replace('__APP_JS__', '/dist/web/' + appJs).replace('__WASM_URL__', '/dist/web/' + wasm);
         response.writeHead(200, { 'content-type': MIME['.html'] }).end(body);
         return;
       }
@@ -247,6 +251,10 @@ async function main() {
 
     if (saved.sha !== savedSha) throw new Error(`browser saw ${saved.sha}, server wrote ${savedSha}`);
     if (saved.sha === inputSha) throw new Error('saved archive is byte-identical to the input');
+
+    const diffText = execFileSync('python3', [join(harness, 'archive_diff.py'), project, join(out, 'saved.pc')], { encoding: 'utf8' });
+    await writeFile(join(out, 'save_diff.json'), diffText);
+    metrics.save_diff = JSON.parse(diffText);
 
     metrics.sizes = await listFiles(dist);
     metrics.console = consoleLog.filter((line) => /warn|error|Gl|adapter|renderer/i.test(line)).slice(0, 80);
