@@ -108,6 +108,18 @@ jobs:
           python scripts/png_check.py out/frame-0001.png 960 600 500 2>&1 | tee -a smoke.log
           python scripts/png_check.py out/frame-0002.png 960 600 500 2>&1 | tee -a smoke.log
           cat out/frames.json
+      - name: no helper process, no dialog, no network (strace, informational)
+        if: matrix.target == 'linux-x64'
+        continue-on-error: true
+        shell: bash
+        run: |
+          sudo apt-get install -y -q strace
+          mkdir -p out-strace recovery
+          export PCBCRAFT_RECOVERY_DIR="$PWD/recovery"
+          unset DISPLAY WAYLAND_DISPLAY || true
+          strace -f -qq -e trace=execve,connect -o strace.log upstream/target/release/pcbcraft-render-server --snapshot out-strace --frames 1 --size 640x400 --adapter software --project upstream/examples/sensor-node.pc 2> strace-run.log
+          echo "execve:"; grep -c execve strace.log || true
+          grep -E 'execve|connect' strace.log | grep -vE 'ENOENT|resumed' | head -40 || true
       - name: summary
         if: always()
         shell: bash
@@ -120,6 +132,8 @@ jobs:
           path: |
             out/
             smoke.log
+            strace.log
+            strace-run.log
             build.log
             test.log
             metrics.txt
