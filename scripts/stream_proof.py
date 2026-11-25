@@ -559,6 +559,7 @@ def editable_session(args, out):
         s.press("End", "End", "end")
         s.send_input([{"e": "paste", "text": "_P"}], "paste")
         s.snap("label-typed")
+        s.check("what went out as JPEG is refined losslessly while a caret blinks", not s.display.pending, s.display.pending[:3])
         s.click(811, 378, "label-place")
         s.snap("label-after-place")
         s.click(330, 300, "label-click-sheet")

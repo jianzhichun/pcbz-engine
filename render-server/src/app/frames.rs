@@ -111,8 +111,14 @@ impl FrameStream {
         if full {
             self.lossy.clear();
         }
-        self.lossy.add(&pieces);
-        self.lossy_since = (!self.lossy.is_empty()).then(Instant::now);
+        // The wait restarts only when JPEG went out. Small raw frames (a caret blinking every 0.5 s)
+        // must not restart it: where a frame costs more than the wait (WARP reads back in ~450 ms)
+        // they would put the refinement off for as long as the caret blinks.
+        if self.lossy.add(&pieces) {
+            self.lossy_since = Some(Instant::now());
+        } else if self.lossy.is_empty() {
+            self.lossy_since = None;
+        }
         let timing = FrameTiming { pass: pass_ms, paint: paint_ms, readback, diff, encode };
         Ok(Some(self.frame(size, input_seq, full, rects, timing, payload)))
     }

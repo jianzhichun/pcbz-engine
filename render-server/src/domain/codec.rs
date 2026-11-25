@@ -48,13 +48,17 @@ pub struct LossyRegion {
 }
 
 impl LossyRegion {
-    pub fn add(&mut self, pieces: &[Piece]) {
+    /// Add what `pieces` sent as JPEG; `true` when there was any (the refinement waits again).
+    pub fn add(&mut self, pieces: &[Piece]) -> bool {
+        let before = self.rects.len();
         self.rects.extend(pieces.iter().filter(|p| p.codec == Codec::Jpeg).map(|p| p.rect));
+        let grew = self.rects.len() > before;
         // Bounded: past a few dozen, their union is as good.
         if self.rects.len() > 64 {
             let all = self.rects.iter().skip(1).fold(self.rects[0], |a, r| a.union(r));
             self.rects = vec![all];
         }
+        grew
     }
 
     pub fn is_empty(&self) -> bool {
@@ -90,9 +94,11 @@ mod tests {
     #[test]
     fn only_lossy_pieces_need_refining() {
         let mut lossy = LossyRegion::default();
-        lossy.add(&plan(&[Rect { x: 0, y: 0, w: 10, h: 10 }], false));
-        assert!(lossy.is_empty(), "raw pieces are exact");
-        lossy.add(&plan(&[Rect { x: 0, y: 0, w: 400, h: 400 }], false));
+        assert!(!lossy.add(&plan(&[Rect { x: 0, y: 0, w: 10, h: 10 }], false)), "raw pieces are exact");
+        assert!(lossy.is_empty());
+        assert!(lossy.add(&plan(&[Rect { x: 0, y: 0, w: 400, h: 400 }], false)));
+        // A caret blinking over a region still waiting for its refinement does not make it wait again.
+        assert!(!lossy.add(&plan(&[Rect { x: 50, y: 50, w: 2, h: 20 }], false)));
         assert_eq!(lossy.take().len(), 2);
         assert!(lossy.is_empty());
     }
