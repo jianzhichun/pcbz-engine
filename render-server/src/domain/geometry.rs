@@ -1,8 +1,7 @@
 //! The pane's size in CSS pixels (= UI points) and the frame's in device pixels, at most
 //! [`MAX_DEVICE_SIDE`] per side: a larger pane is drawn at a lower dpr, which frames report.
 
-/// Largest frame side, device px (a larger pane is drawn at a lower dpr).
-pub const MAX_DEVICE_SIDE: u32 = 4096;
+use super::wire::MAX_DEVICE_SIDE;
 
 /// Largest pane side in CSS px (the host's pane checks refuse more): the UI is laid out over the
 /// whole pane, so input positions keep matching it, and only the drawing dpr drops (to ≥ 0.25).

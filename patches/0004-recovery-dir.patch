@@ -1,0 +1,48 @@
+# PCBZ render server patch 0004 (U3): recovery folder named by the host.
+# Why: recovery snapshots (off by default) would go to the per-user data folder a desktop install of the app shares, and the opt-in
+# timed "save to project" would write the bound project file behind the host's lease. Embedded: the folder is the one the host passes
+# (PcbApp::set_recovery_dir, none = no recovery), the per-user folder is never used, and the timed save never runs.
+
+diff --git a/crates/app/src/autosave.rs b/crates/app/src/autosave.rs
+index b0a4bb8..33514ab 100644
+--- a/crates/app/src/autosave.rs
++++ b/crates/app/src/autosave.rs
+@@ -178,7 +178,9 @@ impl PcbApp {
+     /// format upgrade and has no other project action. Recheck once a file operation settles,
+     /// including after ordinary stale-file refusal.
+     fn timed_save(&mut self, ctx: &egui::Context, now: Duration) -> Option<Duration> {
+-        let wanted = self.preferences.save_to_project_minutes > 0
++        // Never in an embedded host: the host saves the project file, behind its own lease.
++        let wanted = !self.embedded
++            && self.preferences.save_to_project_minutes > 0
+             && self.files.dirty(&self.session)
+             && self.files.has_location(&self.session)
+             && !self.files.needs_upgrade(&self.session);
+@@ -216,7 +218,9 @@ impl PcbApp {
+         let autosave = &mut self.autosave;
+         if !autosave.resolved {
+             autosave.resolved = true;
+-            if autosave.dir.is_none() && !cfg!(test) {
++            // An embedded host names the folder itself (`set_recovery_dir`); with none there is
++            // no recovery, never the per-user folder a desktop install of the app shares.
++            if autosave.dir.is_none() && !cfg!(test) && !self.embedded {
+                 autosave.dir = recovery::default_dir();
+             }
+         }
+diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
+index 853a173..ffc371b 100644
+--- a/crates/app/src/embedded.rs
++++ b/crates/app/src/embedded.rs
+@@ -45,6 +45,12 @@ impl PcbApp {
+         self.automation_input(ctx, input);
+     }
+ 
++    /// Keep recovery snapshots (when the person turns them on) in `dir`, the host's folder, instead
++    /// of the per-user one. Without it an embedded app records nothing.
++    pub fn set_recovery_dir(&mut self, dir: std::path::PathBuf) {
++        self.autosave.dir = Some(dir);
++    }
++
+     /// A project open (the startup one included) has not finished.
+     pub fn is_busy(&self) -> bool {
+         self.startup_open.is_some() || self.files.busy()

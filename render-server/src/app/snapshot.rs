@@ -9,10 +9,11 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 
 use super::editor_host::EditorHost;
+use std::path::PathBuf;
+
 use crate::adapters::encode;
-use crate::adapters::gpu::{self, Gpu};
+use crate::adapters::gpu::{self, Gpu, Policy};
 use crate::adapters::painter::Painted;
-use crate::cli::Options;
 use crate::domain::geometry::FrameSize;
 
 pub const EXIT_OK: i32 = 0;
@@ -20,17 +21,29 @@ pub const EXIT_SETUP: i32 = 2;
 pub const EXIT_DEVICE_LOST: i32 = 3;
 pub const EXIT_OPEN: i32 = 4;
 
+pub struct SnapshotArgs {
+    pub dir: PathBuf,
+    pub frames: u32,
+    pub warmup: u32,
+    pub gap: Duration,
+    pub dark: bool,
+    pub size: FrameSize,
+    pub adapter: Policy,
+    pub project: Option<PathBuf>,
+    pub config_dir: Option<PathBuf>,
+}
+
 /// Longest wait for the project to load before giving up.
 const OPEN_WAIT: Duration = Duration::from_secs(120);
 /// Pause between passes while the project loads.
 const OPEN_POLL: Duration = Duration::from_millis(10);
 
-pub fn run(options: Options) -> i32 {
+pub fn run(options: SnapshotArgs) -> i32 {
     if let Err(e) = std::fs::create_dir_all(&options.dir) {
         eprintln!("render-server: cannot make {}: {e}", options.dir.display());
         return EXIT_SETUP;
     }
-    let size = FrameSize::new(options.css.0, options.css.1, options.dpr);
+    let size = options.size;
     let started = Instant::now();
     let gpu = match gpu::open(options.adapter) {
         Ok(gpu) => gpu,
@@ -42,7 +55,8 @@ pub fn run(options: Options) -> i32 {
     let device_ms = started.elapsed().as_secs_f32() * 1000.0;
     eprintln!("graphics: {} {} ({}, software {})", gpu.backend, gpu.adapter, gpu.device_type, gpu.software);
     let started = Instant::now();
-    let host = EditorHost::new(&gpu, options.dark, size, options.project.clone());
+    let recovery = options.config_dir.as_ref().map(|d| d.join("recovery"));
+    let host = EditorHost::new(egui::Context::default(), &gpu, options.dark, size, options.project.clone(), recovery);
     let mut run = Snapshot { gpu, host };
     run.go(&options, device_ms, started)
 }
@@ -53,7 +67,7 @@ struct Snapshot {
 }
 
 impl Snapshot {
-    fn go(&mut self, options: &Options, device_ms: f32, started: Instant) -> i32 {
+    fn go(&mut self, options: &SnapshotArgs, device_ms: f32, started: Instant) -> i32 {
         let mut open_ms = None;
         if options.project.is_some() {
             let began = Instant::now();
@@ -139,7 +153,7 @@ impl Snapshot {
     fn write_report(
         &self,
         dir: &Path,
-        options: &Options,
+        options: &SnapshotArgs,
         frames: Vec<Value>,
         device_ms: f32,
         open_ms: Option<f32>,

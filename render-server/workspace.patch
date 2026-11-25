@@ -1,0 +1,14 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 2e0dfd3..4bcffe8 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -75,6 +75,9 @@ eframe = { path = "vendor/eframe" }
+ # Empty-clipboard paste-chord completion + test seams; see vendor/egui-winit/PATCH.md.
+ egui-winit = { path = "vendor/egui-winit" }
+ 
++# PCBZ render server: every native file dialog is answered by the host process, not the OS.
++rfd = { path = "apps/pcbcraft-render-server/shims/rfd" }
++
+ # Shared viewport callbacks require SolidCraft's published renderer fixes.
+ egui-wgpu = { git = "https://github.com/tangency-labs/solidcraft.git", rev = "73bdb6cdd39efc3899fb54e7217289a630a89efe" }
+ winit = { git = "https://github.com/tangency-labs/solidcraft.git", rev = "73bdb6cdd39efc3899fb54e7217289a630a89efe" }

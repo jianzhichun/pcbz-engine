@@ -1,31 +1,56 @@
-# Build pcbcraft-render-server (the editing UI drawn with no window) from tangency-labs/pcbcraft at the commit in
-# UPSTREAM_COMMIT, with patches/, on Linux x64 (lavapipe), Windows x64 (WARP) and macOS (Apple silicon, Metal), and run
-# the M1 snapshot smoke: open examples/sensor-node.pc, write frame-0001.png.. offscreen. Artifacts only: the PNGs, the
-# logs, frames.json and the build time and binary size. engine.yml (the CLI and its release path) is not touched.
+# Build pcbcraft-render-server (the editing UI drawn with no window, speaking the wire protocol of
+# render-server/PROTOCOL.md) from tangency-labs/pcbcraft at the commit in UPSTREAM_COMMIT, with patches/, on
+# Linux x64 (lavapipe), Windows x64 (WARP) and macOS (Apple silicon, Metal). It also builds pcbcraft-cli in the same
+# run (the bridge and the editor must agree on the control protocol), then:
+#   - the M1 snapshot smoke (frame PNGs, no window);
+#   - the M2 proof: scripts/stream_proof.py is a scripted host that connects over leg A, receives frames, clicks, types,
+#     drives the control channel with `pcbcraft-cli mcp --connect` (project.rename, snapshot_project, edit.undo) and
+#     repeats an edit against a read-only session;
+# and uploads the frames, the protocol log, the timings and the logs as artifacts. engine.yml (the CLI and its release
+# path) is not touched. Run it by hand with `targets` to build only some platforms while iterating.
 name: render-server
 on:
   push:
     branches: [render-server]
-    paths: ['render-server/**', 'patches/**', 'scripts/png_check.py', 'UPSTREAM_COMMIT', '.github/workflows/render-server.yml']
+    paths: ['render-server/**', 'patches/**', 'scripts/png_check.py', 'scripts/stream_proof.py', 'UPSTREAM_COMMIT', '.github/workflows/render-server.yml']
   workflow_dispatch:
     inputs:
       profile:
         description: 'fast: no LTO, 256 codegen units (iterating); release: the repo profile (what would ship)'
         default: fast
+      targets:
+        description: 'platforms to build, any of: linux-x64 windows-x64 macos-arm64'
+        default: 'linux-x64 windows-x64 macos-arm64'
 permissions:
   contents: read
 concurrency:
   group: render-server-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        env:
+          TARGETS: ${{ github.event.inputs.targets }}
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json, os
+          every = [
+              {"os": "ubuntu-24.04", "target": "linux-x64", "exe": "", "adapter": "software"},
+              {"os": "windows-2025", "target": "windows-x64", "exe": ".exe", "adapter": "software"},
+              {"os": "macos-15", "target": "macos-arm64", "exe": "", "adapter": "auto"},
+          ]
+          want = (os.environ.get("TARGETS") or "linux-x64 windows-x64 macos-arm64").split()
+          print("matrix=" + json.dumps({"include": [m for m in every if m["target"] in want]}))
+          EOF
   snapshot:
+    needs: plan
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - { os: ubuntu-24.04, target: linux-x64, exe: '', adapter: software }
-          - { os: windows-2025, target: windows-x64, exe: '.exe', adapter: software }
-          - { os: macos-15, target: macos-arm64, exe: '', adapter: auto }
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     env:
@@ -46,15 +71,15 @@ jobs:
           [ "$(git -C upstream rev-parse HEAD)" = "$commit" ] || { echo "fetched the wrong commit"; exit 1; }
           for p in patches/*.patch; do git -C upstream apply --verbose "../$p"; done
           cp -R render-server upstream/apps/pcbcraft-render-server
-          # the new workspace member's Cargo.lock entry (kept out of patches/: engine.yml builds the CLI with --locked
-          # from a tree that has no render server)
-          rm upstream/apps/pcbcraft-render-server/Cargo.lock.patch
-          git -C upstream apply --verbose ../render-server/Cargo.lock.patch
-      - name: Linux software Vulkan (lavapipe)
+          # the workspace-level part of the render server (root Cargo.toml: the rfd shim replaces rfd). Kept out of
+          # patches/ because engine.yml builds the CLI with --locked from a tree that has no render server.
+          rm upstream/apps/pcbcraft-render-server/workspace.patch
+          git -C upstream apply --verbose ../render-server/workspace.patch
+      - name: Linux software Vulkan (lavapipe) and a Chinese font
         if: matrix.target == 'linux-x64'
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q mesa-vulkan-drivers vulkan-tools
+          sudo apt-get install -y -q mesa-vulkan-drivers vulkan-tools fonts-wqy-microhei
           vulkaninfo --summary || true
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -63,7 +88,7 @@ jobs:
           prefix-key: render-server-${{ github.event.inputs.profile || 'fast' }}
           key: ${{ matrix.target }}
           cache-on-failure: true
-      - name: build
+      - name: build (the editor and the CLI together)
         shell: bash
         working-directory: upstream
         run: |
@@ -72,7 +97,8 @@ jobs:
           fi
           rustc --version
           start=$(date +%s)
-          cargo build --locked --release -p pcbcraft-render-server 2>&1 | tee ../build.log
+          # no --locked: the rfd shim changes Cargo.lock (cargo-lock.diff is uploaded; folded into a patch later)
+          cargo build --release -p pcbcraft-cli -p pcbcraft-render-server 2>&1 | tee ../build.log
           build_seconds=$(( $(date +%s) - start ))
           bin=target/release/pcbcraft-render-server${{ matrix.exe }}
           size=$(wc -c < "$bin" | tr -d ' ')
@@ -81,14 +107,15 @@ jobs:
             echo "build_seconds=$build_seconds"
             echo "binary_bytes=$size"
           } | tee ../metrics.txt
-          git diff --stat Cargo.lock | tee ../cargo-lock.diff
-      - name: unit tests (host loop pieces)
+          git diff Cargo.lock > ../cargo-lock.diff || true
+          git diff --stat Cargo.lock
+      - name: unit tests (host loop pieces, rfd shim)
         if: matrix.target == 'linux-x64'
         shell: bash
         working-directory: upstream
         run: |
           export CARGO_PROFILE_TEST_DEBUG=0
-          cargo test --locked --release -p pcbcraft-render-server 2>&1 | tee ../test.log
+          cargo test --release -p pcbcraft-render-server -p rfd 2>&1 | tee ../test.log
       - name: snapshot smoke (sensor-node, no window)
         shell: bash
         run: |
@@ -112,6 +139,20 @@ jobs:
           "$bin" --snapshot out-640 --frames 1 --size 640x400 --adapter ${{ matrix.adapter }} \
             --project upstream/examples/sensor-node.pc 2>&1 | tee -a smoke.log
           python scripts/png_check.py out-640/frame-0001.png 640 400 500 2>&1 | tee -a smoke.log
+      - name: stream proof (a scripted host over leg A, the control channel, read-only)
+        id: proof
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p proof
+          unset DISPLAY WAYLAND_DISPLAY || true
+          mac=""
+          [ "${{ matrix.target }}" = macos-arm64 ] && mac="--mac"
+          python scripts/stream_proof.py \
+            --server "upstream/target/release/pcbcraft-render-server${{ matrix.exe }}" \
+            --cli "upstream/target/release/pcbcraft-cli${{ matrix.exe }}" \
+            --project upstream/examples/sensor-node.pc --out proof --adapter ${{ matrix.adapter }} --size 960x600 $mac 2>&1 | tee proof.log
+          exit "${PIPESTATUS[0]}"
       - name: frame cost over 20 frames (informational)
         continue-on-error: true
         shell: bash
@@ -128,7 +169,7 @@ jobs:
               v = sorted(f['timing'][k] for f in d['frames'])
               print(k, 'median %.1f ms, max %.1f ms' % (statistics.median(v), v[-1]))
           " | tee perf.txt
-      - name: no helper process, no dialog, no network (strace, informational)
+      - name: no helper process, no dialog, no network beyond loopback (strace, informational)
         if: matrix.target == 'linux-x64'
         continue-on-error: true
         shell: bash
@@ -144,7 +185,14 @@ jobs:
         if: always()
         shell: bash
         run: |
-          { echo "### ${{ matrix.target }}"; echo '```'; cat metrics.txt 2>/dev/null; tail -n 12 smoke.log 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ${{ matrix.target }}"
+            echo '```'
+            cat metrics.txt 2>/dev/null
+            tail -n 12 smoke.log 2>/dev/null
+            tail -n 45 proof.log 2>/dev/null
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -152,6 +200,8 @@ jobs:
           path: |
             out/
             out-640/
+            proof/
+            proof.log
             smoke.log
             strace.log
             perf.txt
@@ -164,3 +214,9 @@ jobs:
             cargo-lock.diff
           if-no-files-found: warn
           retention-days: 14
+      - name: the proof must have passed
+        if: steps.proof.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "the stream proof failed; see proof.log and proof/report.json in the artifact"
+          exit 1

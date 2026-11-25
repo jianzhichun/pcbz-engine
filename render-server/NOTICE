@@ -3,9 +3,12 @@ pcbcraft-render-server
 The editing UI of PCBCraft (https://github.com/tangency-labs/pcbcraft) drawn offscreen, with no window.
 
 The host loop (the headless graphics device, the egui pass, the offscreen paint, the read-back and the PNG
-encoder) is ported from SolidZ's render server, which is itself part of the SolidCraft family
-(https://github.com/tangency-labs/solidcraft), MIT OR Apache-2.0. `adapters/painter.rs`, `adapters/readback.rs`,
-`domain/damage.rs`, `domain/geometry.rs` and `build.rs` are used as they are there, with a few comments changed.
+encoder) and the stream mode (leg A framing, the wire messages, frame damage, codecs and pacing, input mapping) are
+ported from SolidZ's render server, which is itself part of the SolidCraft family
+(https://github.com/tangency-labs/solidcraft), MIT OR Apache-2.0. `adapters/{painter,readback,link,encode}.rs`,
+`domain/{damage,geometry,envelope,codec,pacing,input}.rs`, `app/{events,frames}.rs` and `build.rs` are used as they are
+there, with a few comments changed; `domain/wire.rs`, `app/stream.rs` and `app/output.rs` are adapted (PROTOCOL.md lists
+the differences). `shims/rfd` is new: a stand-in for the one `rfd` type the editor uses.
 
 Licences: MIT OR Apache-2.0 (LICENSE-MIT, LICENSE-APACHE of the upstream tree it is built in). The editor links
 SolidCraft's UI kit, look and theme through the upstream app; the licences of the third-party crates built in are in

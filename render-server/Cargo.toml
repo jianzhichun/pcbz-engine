@@ -1,6 +1,6 @@
 [package]
 name = "pcbcraft-render-server"
-description = "The editing UI drawn offscreen (no window): frames out as PNG today, streamed to an embedding host later"
+description = "The editing UI drawn offscreen (no window) and streamed to an embedding host: frames out, the user's input in, upstream's control channel on the same session"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,8 +15,14 @@ pcbcraft-app = { workspace = true }
 egui = { workspace = true }
 # Patched to SolidCraft's fork by the workspace's [patch.crates-io]; the same crate eframe draws with.
 egui-wgpu = "=0.37.0"
+serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 pollster = "1"
-# PNG for snapshots (pure Rust).
-image = { version = "0.25", default-features = false, features = ["png"] }
+# Frame stripes encoded in parallel, tile rows compared in parallel.
+rayon = "1"
+# JPEG for large changed regions, PNG for snapshots and the idle refinement (pure Rust).
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+# Every native file dialog of the editor, answered by the host: the workspace replaces this crate
+# with shims/rfd (render-server/workspace.patch, applied by the workflow).
+rfd = "=0.17.2"

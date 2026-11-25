@@ -1,0 +1,55 @@
+# PCBZ render server patch 0003 (U2): an `embedded` flag.
+# Why: the editor drawn inside a host has no operating system to give it windows, and the host (not the person) keeps the project file.
+# new_embedded sets the flag, turns on egui's embedded viewports (detached editor windows become windows inside the pane) and a "New project"
+# refusal no longer waits on an "unsaved" state that can never clear. Additive: nothing changes when the flag is false.
+
+diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
+index f763ff6..853a173 100644
+--- a/crates/app/src/embedded.rs
++++ b/crates/app/src/embedded.rs
+@@ -14,6 +14,9 @@ impl PcbApp {
+     /// has opened through the ordinary file worker on the first drawn frame.
+     pub fn new_embedded(ctx: &egui::Context, project: Option<std::path::PathBuf>) -> Self {
+         pcbcraft_chrome::install(ctx);
++        // Detached editor windows become windows inside the host's surface (egui's embedded
++        // viewports): there is no operating system to give them real ones.
++        ctx.set_embed_viewports(true);
+         let storage: Option<&dyn eframe::Storage> = None;
+         let preferences = storage.and_then(|s| s.get_string(PREFERENCES_KEY)).map(|text| Preferences::parse(&text)).unwrap_or_default();
+         let mut views = EditorViews::default();
+@@ -31,6 +34,7 @@ impl PcbApp {
+             files: project_files::ProjectFiles::with_recent(None),
+             assistant: assistant::Assistant::from_setting(None, None),
+             startup_open: project,
++            embedded: true,
+             ..Self::default()
+         }
+     }
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index 3cf45d9..fa2abeb 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -385,6 +385,9 @@ pub struct PcbApp {
+     /// Recovery snapshots of unsaved work and the opt-in timed save to the project.
+     #[cfg(not(target_arch = "wasm32"))]
+     autosave: autosave::Autosave,
++    /// A host draws this app inside its own surface (`embedded::PcbApp::new_embedded`): no OS
++    /// windows, and the host, not the person, owns the project file.
++    embedded: bool,
+ }
+ 
+ /// The Schematic workspace's ribbon tabs, in order.
+diff --git a/crates/app/src/live_control.rs b/crates/app/src/live_control.rs
+index d2e5121..d80602e 100644
+--- a/crates/app/src/live_control.rs
++++ b/crates/app/src/live_control.rs
+@@ -813,7 +813,8 @@ impl Editor for LiveEditor<'_> {
+         if app.parts.is_modal() && !matches!(command, "window.set_catalog_mode" | "window.set_panel") {
+             return Some(format!("Close the Parts Catalog or switch it to compact mode before running `{command}`"));
+         }
+-        if command == "project.new" && app.files.dirty(&app.session) {
++        // An embedded host keeps the project file itself, so nothing in the editor is "unsaved".
++        if command == "project.new" && !app.embedded && app.files.dirty(&app.session) {
+             return Some("The open project has unsaved changes. Save or discard them in the editor before starting a new project.".to_owned());
+         }
+         None

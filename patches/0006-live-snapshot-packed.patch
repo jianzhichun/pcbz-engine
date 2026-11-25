@@ -1,0 +1,66 @@
+# PCBZ render server patch 0006 (U5): the live control server answers project.snapshot_packed.
+# Why: patch 0001 gave the headless engine a snapshot_project tool (method project.snapshot_packed). `pcbcraft-cli mcp --connect` serves the same
+# tool list, so against a live editor it needs the live server to answer the same method, with the same reply. Also PcbApp::start_control:
+# start the live endpoint from the host (loopback, request wait chosen by the host) and hand back (port, secret); no token or discovery file.
+
+diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
+index 0810f8e..d680fa4 100644
+--- a/crates/app/src/embedded.rs
++++ b/crates/app/src/embedded.rs
+@@ -60,6 +60,17 @@ impl PcbApp {
+         self.message = reason.map(str::to_owned);
+     }
+ 
++    /// Start the live control endpoint on a loopback port of its own and return `(port, secret)`
++    /// for the host to give `pcbcraft-cli mcp --connect`. Requests may wait `wait` for the editor
++    /// (the default two seconds would drop the reply of a command that outlives it, after the edit
++    /// applied). No token or discovery file is written. Starting it again replaces the endpoint.
++    pub fn start_control(&mut self, ctx: &egui::Context, wait: std::time::Duration) -> Result<(u16, String), String> {
++        let control = live_control::LiveControl::start_with_wait(ctx, wait).map_err(|e| e.to_string())?;
++        let endpoint = (control.port(), control.secret().to_owned());
++        self.live_control = Some(control);
++        Ok(endpoint)
++    }
++
+     /// A project open (the startup one included) has not finished.
+     pub fn is_busy(&self) -> bool {
+         self.startup_open.is_some() || self.files.busy()
+diff --git a/crates/mcp/src/backend.rs b/crates/mcp/src/backend.rs
+index 3e90d91..ae0b888 100644
+--- a/crates/mcp/src/backend.rs
++++ b/crates/mcp/src/backend.rs
+@@ -172,7 +172,7 @@ impl Backend for Headless {
+ 
+ /// The open project as the portable `.pc` archive the desktop app writes, base64-encoded, with
+ /// the session revision it captures. The host stores it; this process writes no file.
+-fn snapshot_packed(session: &Session) -> Result<Value, Failure> {
++pub(crate) fn snapshot_packed(session: &Session) -> Result<Value, Failure> {
+     let project = session.snapshot().ok_or_else(|| Failure::new(ErrorCode::Unavailable, "no project is open"))?;
+     let bytes = pcbcraft_engine::persistence::encode_packed(project).map_err(|e| Failure::new(ErrorCode::Unavailable, e))?;
+     Ok(json!({"revision": session.revision(), "bytes": bytes.len(), "archive_base64": base64(&bytes)}))
+diff --git a/crates/mcp/src/live.rs b/crates/mcp/src/live.rs
+index 32946ad..8b18ef1 100644
+--- a/crates/mcp/src/live.rs
++++ b/crates/mcp/src/live.rs
+@@ -13,7 +13,10 @@ use serde_json::{Value, json};
+ 
+ use crate::{
+     Failure,
+-    backend::{Backend, api_metadata, call_session, command_id, describe_engine_commands, execute_warnings, is_window_command, legacy_api_metadata},
++    backend::{
++        Backend, api_metadata, call_session, command_id, describe_engine_commands, execute_warnings, is_window_command, legacy_api_metadata,
++        snapshot_packed,
++    },
+ };
+ 
+ /// Environment variable used by the desktop configuration and the MCP CLI.
+@@ -309,6 +312,9 @@ fn call_editor_with_package_commit_limit(
+         }
+         "project.inspect" | "project.cross_probe" | "project.resolve_counterparts" => call_session(editor.session(), method, params),
+         "editor.inspect" => Ok(editor.inspect()),
++        // As the headless engine answers it (patch 0001): the open project as a `.pc` archive, for a
++        // host that keeps the file. Not a command, so no dialog or text edit holds it back.
++        "project.snapshot_packed" => snapshot_packed(editor.session()),
+         "engine.execute" => {
+             let id = command_id(params)?;
+             if id.starts_with("ui.") {

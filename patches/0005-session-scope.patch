@@ -1,0 +1,45 @@
+# PCBZ render server patch 0005 (U4): host-set read-only scope for a running session.
+# Why: a licence that lapses or a lease another process takes must turn a LIVE session read-only; Session::with_scope only sets it at
+# construction. Session::set_scope is a host method, not a command, so no protocol request reaches it. PcbApp::set_read_only(reason)
+# wraps it and shows the reason on the status bar.
+
+diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
+index ffc371b..0810f8e 100644
+--- a/crates/app/src/embedded.rs
++++ b/crates/app/src/embedded.rs
+@@ -51,6 +51,15 @@ impl PcbApp {
+         self.autosave.dir = Some(dir);
+     }
+ 
++    /// Make the live session read-only with `reason` (shown on the status bar), or editable again
++    /// with `None`. Commands that change the project are then refused, whoever sends them: the
++    /// editor's own tools, the control channel, undo and redo.
++    pub fn set_read_only(&mut self, reason: Option<&str>) {
++        use pcbcraft_engine::SessionScope;
++        self.session.set_scope(if reason.is_some() { SessionScope::ReadOnly } else { SessionScope::Edit });
++        self.message = reason.map(str::to_owned);
++    }
++
+     /// A project open (the startup one included) has not finished.
+     pub fn is_busy(&self) -> bool {
+         self.startup_open.is_some() || self.files.busy()
+diff --git a/crates/engine/src/session_scope.rs b/crates/engine/src/session_scope.rs
+index 228f957..557fb17 100644
+--- a/crates/engine/src/session_scope.rs
++++ b/crates/engine/src/session_scope.rs
+@@ -33,7 +33,14 @@ impl Session {
+         Self { scope, ..Self::default() }
+     }
+ 
+-    /// The access scope this session was created with, independent of its open project.
++    /// Change the scope of a running session. Only the host that owns the session can call this
++    /// (a licence that lapses, a lease another process took); it is not a command, so no
++    /// protocol request reaches it.
++    pub fn set_scope(&mut self, scope: SessionScope) {
++        self.scope = scope;
++    }
++
++    /// The access scope this session has, independent of its open project.
+     pub const fn scope(&self) -> SessionScope {
+         self.scope
+     }

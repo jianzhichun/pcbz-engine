@@ -1,0 +1,409 @@
+# PCBZ render server patch 0008 (U7): the product name a user sees is PCBZ.
+# Why: customer-visible text must not carry the upstream product name. Strings only (app-bar wordmark, About, window title, menus, dialogs,
+# status and settings text, file filter names, window command summaries) and the upstream tests that assert them. Identifiers, storage keys,
+# licence texts and the engine crate's own messages are not touched.
+
+diff --git a/crates/app/src/assistant.rs b/crates/app/src/assistant.rs
+index a9d2af9..8eeebe0 100644
+--- a/crates/app/src/assistant.rs
++++ b/crates/app/src/assistant.rs
+@@ -754,7 +754,7 @@ impl Assistant {
+                                 ui.label(dim(format!("{}: sign in from a terminal, then Retry.", method.name)));
+                             }
+                             craft_agents::acp::AuthKind::EnvVar { vars } => {
+-                                ui.label(dim(format!("{}: set {} before starting PCBCraft.", method.name, vars.join(", "))));
++                                ui.label(dim(format!("{}: set {} before starting PCBZ.", method.name, vars.join(", "))));
+                             }
+                         }
+                     }
+diff --git a/crates/app/src/assistant/settings.rs b/crates/app/src/assistant/settings.rs
+index 7a7172f..c5824c5 100644
+--- a/crates/app/src/assistant/settings.rs
++++ b/crates/app/src/assistant/settings.rs
+@@ -147,8 +147,8 @@ impl Assistant {
+                 }
+             });
+             let mut automatic = self.settings.agents.auto_approve_bridge;
+-            let auto = ui.checkbox(&mut automatic, "Approve agents' requests to use PCBCraft's tools automatically").on_hover_text(
+-                "PCBCraft still applies the permission mode to every command. Turn this off to also confirm each \
++            let auto = ui.checkbox(&mut automatic, "Approve agents' requests to use PCBZ's tools automatically").on_hover_text(
++                "PCBZ still applies the permission mode to every command. Turn this off to also confirm each \
+                      request in the agent's own words, which shows that the call comes from it, at the cost of a \
+                      second question for commands the mode asks about.",
+             );
+@@ -424,7 +424,7 @@ impl Assistant {
+                 ui.label(dim("A program that speaks the Agent Client Protocol, with its arguments. It runs without a shell."));
+             } else {
+                 ui.label(dim(
+-                    "PCBCraft runs the conversation itself and gives the model the project tools. A key is kept in the system keychain and only sent over HTTPS or to this computer.",
++                    "PCBZ runs the conversation itself and gives the model the project tools. A key is kept in the system keychain and only sent over HTTPS or to this computer.",
+                 ));
+                 if form.key_stored {
+                     pcbcraft_chrome::controls::checkbox(ui, &mut form.forget_key, "Remove the stored key");
+@@ -542,7 +542,7 @@ mod tests {
+             assistant,
+         );
+         h.run();
+-        for label in [Mode::All.label(), "Approve agents' requests to use PCBCraft's tools automatically"] {
++        for label in [Mode::All.label(), "Approve agents' requests to use PCBZ's tools automatically"] {
+             let at = h.get_by_label(label).rect().center();
+             pcbcraft_chrome::automation::mark_synthetic_input(&h.ctx, true);
+             h.input_mut().events.extend([
+diff --git a/crates/app/src/board_setup/profile_io.rs b/crates/app/src/board_setup/profile_io.rs
+index 62ad19b..8b2436a 100644
+--- a/crates/app/src/board_setup/profile_io.rs
++++ b/crates/app/src/board_setup/profile_io.rs
+@@ -108,7 +108,7 @@ fn native(save: Option<(String, Vec<u8>)>) -> Result<Outcome, String> {
+         let Some(path) = rfd::FileDialog::new()
+             .set_title("Export setup profile to a new file")
+             .set_file_name(name)
+-            .add_filter("PCBcraft setup profile", &["json"])
++            .add_filter("PCBZ setup profile", &["json"])
+             .save_file()
+         else {
+             return Ok(Outcome::Cancelled);
+@@ -116,7 +116,7 @@ fn native(save: Option<(String, Vec<u8>)>) -> Result<Outcome, String> {
+         publish(&path, &bytes)?;
+         Ok(Outcome::Exported)
+     } else {
+-        let Some(path) = rfd::FileDialog::new().set_title("Import setup profile").add_filter("PCBcraft setup profile", &["json"]).pick_file() else {
++        let Some(path) = rfd::FileDialog::new().set_title("Import setup profile").add_filter("PCBZ setup profile", &["json"]).pick_file() else {
+             return Ok(Outcome::Cancelled);
+         };
+         read(&path).map(|profile| Outcome::Imported(Box::new(profile)))
+diff --git a/crates/app/src/editor_windows.rs b/crates/app/src/editor_windows.rs
+index 85ae49d..ae251e3 100644
+--- a/crates/app/src/editor_windows.rs
++++ b/crates/app/src/editor_windows.rs
+@@ -29,7 +29,7 @@ pub(super) struct EditorWindows {
+ }
+ 
+ /// The application name in native window titles, shown alone or after the window's document.
+-pub const APP_TITLE: &str = "PCBCraft";
++pub const APP_TITLE: &str = "PCBZ";
+ 
+ /// The smallest client size of the main native window, in logical points.
+ pub const MAIN_WINDOW_MIN_SIZE: [f32; 2] = [640.0, 400.0];
+diff --git a/crates/app/src/home.rs b/crates/app/src/home.rs
+index 9981185..ec15c65 100644
+--- a/crates/app/src/home.rs
++++ b/crates/app/src/home.rs
+@@ -70,7 +70,7 @@ impl PcbApp {
+         let first_save = 3;
+         let first_app = rows.len();
+         rows.push(("home:preferences", "Preferences", ui.ctx().format_shortcut(&COMMAND_COMMA), true, Some(Action::Preferences)));
+-        rows.push(("home:about", "About PCBCraft", String::new(), true, Some(Action::About)));
++        rows.push(("home:about", "About PCBZ", String::new(), true, Some(Action::About)));
+         #[cfg(not(target_arch = "wasm32"))]
+         rows.push(("home:connect", "Connect AI assistants…", String::new(), true, Some(Action::Connect)));
+         for (index, (id, label, shortcut, enabled, picked)) in rows.into_iter().enumerate() {
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index fa2abeb..f0938b2 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -159,7 +159,7 @@ const IN_BROWSER: bool = cfg!(target_arch = "wasm32");
+ /// Connect AI assistants is desktop only: the browser can't host a local connection.
+ fn help_menu(ui: &mut Ui) -> Option<Help> {
+     let mut pick = None;
+-    if MenuItem::new("About PCBCraft").icon(MenuIcon::Help).show(ui) {
++    if MenuItem::new("About PCBZ").icon(MenuIcon::Help).show(ui) {
+         pick = Some(Help::About);
+     }
+     if MenuItem::new("Keyboard Shortcuts").icon(MenuIcon::Keyboard).show(ui) {
+@@ -2555,8 +2555,8 @@ impl PcbApp {
+             }
+             Dialog::About => {
+                 let mut close = false;
+-                let closing = shell::dialog(ctx, "about_dialog", "About PCBCraft", |ui| {
+-                    ui.label(format!("PCBCraft {VERSION}"));
++                let closing = shell::dialog(ctx, "about_dialog", "About PCBZ", |ui| {
++                    ui.label(format!("PCBZ {VERSION}"));
+                     ui.label("Electronics design for people and AI agents working together on the same board.");
+                     ui.label(dim("MIT OR Apache-2.0. Third-party notices are in ATTRIBUTION.md."));
+                     workspace::ribbon_licenses(ui);
+diff --git a/crates/app/src/library_editors/io.rs b/crates/app/src/library_editors/io.rs
+index f6fa6cf..22de19b 100644
+--- a/crates/app/src/library_editors/io.rs
++++ b/crates/app/src/library_editors/io.rs
+@@ -85,7 +85,7 @@ impl Files {
+         std::thread::Builder::new()
+             .name("library-bundle".into())
+             .spawn(move || {
+-                let dialog = rfd::FileDialog::new().set_title("Export library to a new file").add_filter("PCBcraft library bundle", &["json"]);
++                let dialog = rfd::FileDialog::new().set_title("Export library to a new file").add_filter("PCBZ library bundle", &["json"]);
+                 finish(match dialog.set_file_name(&export.file_name).save_file() {
+                     Some(path) => publish(&path, &export.bytes).map(|()| Outcome::Exported(export.report)),
+                     None => Ok(Outcome::Cancelled),
+@@ -139,7 +139,7 @@ fn publish(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+ #[cfg(not(target_arch = "wasm32"))]
+ fn native(save: Option<(u64, Arc<Item>, bool)>) -> Result<Outcome, String> {
+     match save {
+-        None => match rfd::FileDialog::new().set_title("Open library item").add_filter("PCBcraft library item", &["json"]).pick_file() {
++        None => match rfd::FileDialog::new().set_title("Open library item").add_filter("PCBZ library item", &["json"]).pick_file() {
+             Some(path) => read(&path).map(|item| Outcome::Opened(Box::new(item))),
+             None => Ok(Outcome::Cancelled),
+         },
+diff --git a/crates/app/src/manufacturing.rs b/crates/app/src/manufacturing.rs
+index 627eced..3f7616e 100644
+--- a/crates/app/src/manufacturing.rs
++++ b/crates/app/src/manufacturing.rs
+@@ -177,7 +177,7 @@ impl PcbApp {
+         let docked = self.views.host == self.views.main;
+         let ready = !self.manufacturing_files.busy();
+         let latest = self.fabrication_exports.latest(&self.session).map(std::path::Path::to_owned);
+-        let mut open = vec![tool(ToolIcon::Shared("folder"), "Open ZIP", "Open a PCBcraft fabrication ZIP", ready)];
++        let mut open = vec![tool(ToolIcon::Shared("folder"), "Open ZIP", "Open a PCBZ fabrication ZIP", ready)];
+         if latest.is_some() {
+             open.push(tool(ToolIcon::Outputs, "Last export", "Open the last saved fabrication ZIP", ready));
+         }
+diff --git a/crates/app/src/manufacturing/pane.rs b/crates/app/src/manufacturing/pane.rs
+index 6e3e2a7..92abaf3 100644
+--- a/crates/app/src/manufacturing/pane.rs
++++ b/crates/app/src/manufacturing/pane.rs
+@@ -16,7 +16,7 @@ impl PcbApp {
+         let reading = self.manufacturing_files.reading(id, &state.binding);
+         let Some(opened) = state.opened.as_ref() else {
+             ui.painter().rect_filled(ui.max_rect(), 0, tokens.board_canvas);
+-            let label = if reading { "Opening fabrication ZIP…" } else { state.failure.as_deref().unwrap_or("Open a PCBcraft fabrication ZIP") };
++            let label = if reading { "Opening fabrication ZIP…" } else { state.failure.as_deref().unwrap_or("Open a PCBZ fabrication ZIP") };
+             ui.centered_and_justified(|ui| {
+                 ui.add(egui::Label::new(RichText::new(label).color(tokens.board_ink)).wrap());
+             });
+@@ -40,7 +40,7 @@ impl PcbApp {
+                 egui::Frame::new().inner_margin(tokens.space_8).show(ui, |ui| {
+                     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                         ui.add(egui::Label::new(RichText::new(&opened.name).strong()).truncate()).on_hover_text(&opened.name);
+-                        ui.label(format!("PCBcraft {} · SHA-256 verified", opened.package.generator_version));
++                        ui.label(format!("PCBZ {} · SHA-256 verified", opened.package.generator_version));
+                         ui.label("Source revision unavailable");
+                         if reading {
+                             ui.label("Opening fabrication ZIP…");
+diff --git a/crates/app/src/native_sources.rs b/crates/app/src/native_sources.rs
+index af00106..91936f9 100644
+--- a/crates/app/src/native_sources.rs
++++ b/crates/app/src/native_sources.rs
+@@ -157,7 +157,7 @@ impl Sources {
+             .name("pcbcraft-library-picker".into())
+             .spawn(move || {
+                 let result = rfd::FileDialog::new()
+-                    .set_title("Native PCBcraft library folder")
++                    .set_title("Native PCBZ library folder")
+                     .pick_folder()
+                     .map(|path| {
+                         let locator = path.to_str().ok_or("Library folder path is not valid UTF-8")?.to_owned();
+@@ -195,7 +195,7 @@ impl Sources {
+             .spawn(move || {
+                 use std::io::Read;
+                 let result = rfd::FileDialog::new()
+-                    .add_filter("PCBcraft library bundle", &["json"])
++                    .add_filter("PCBZ library bundle", &["json"])
+                     .pick_file()
+                     .map(|path| {
+                         let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+diff --git a/crates/app/src/preferences.rs b/crates/app/src/preferences.rs
+index c1e95bd..b8513fd 100644
+--- a/crates/app/src/preferences.rs
++++ b/crates/app/src/preferences.rs
+@@ -561,7 +561,7 @@ const INTERVAL_CHOICES: [(u8, &str); 4] = [(0, "Off"), (1, "1 min"), (5, "5 min"
+ /// Recovery snapshots of unsaved work, and the opt-in timed save to the project folder.
+ #[cfg(not(target_arch = "wasm32"))]
+ fn saving(ui: &mut Ui, data: &mut PageData<'_>) {
+-    settings::heading(ui, "Saving", "How PCBCraft keeps unsaved work safe.");
++    settings::heading(ui, "Saving", "How PCBZ keeps unsaved work safe.");
+     let effective = (data.preferences.autosave_minutes, data.preferences.save_to_project_minutes);
+     let mut draft = data.saving.unwrap_or(effective);
+     settings::section(ui, "Recovery", |ui| {
+@@ -615,7 +615,7 @@ fn paper_color(ui: &mut Ui, name: &str, saved: &mut Option<[u8; 3]>, theme_color
+ /// Theme, scale, panel style, grid display, schematic paper/canvas colours and units.
+ /// The PCB style reflects effective visibility; choosing dots or lines restores a hidden grid.
+ fn appearance(ui: &mut Ui, data: &mut PageData<'_>) {
+-    settings::heading(ui, "Appearance", "How PCBCraft looks. Cancel restores your previous settings.");
++    settings::heading(ui, "Appearance", "How PCBZ looks. Cancel restores your previous settings.");
+     let preferences = &mut *data.preferences;
+     settings::section(ui, "Theme", |ui| {
+         settings::row(ui, "Theme", |ui| {
+@@ -802,7 +802,7 @@ fn ai_page(ui: &mut Ui, data: &mut PageData<'_>) {
+ 
+ /// The keys PCBCraft answers to, grouped as in the menus. Read-only for now.
+ fn shortcuts_page(ui: &mut Ui, data: &mut PageData<'_>) {
+-    settings::heading(ui, "Shortcuts", "The keys PCBCraft answers to. They can't be changed yet.");
++    settings::heading(ui, "Shortcuts", "The keys PCBZ answers to. They can't be changed yet.");
+     let mut sections: Vec<&str> = Vec::new();
+     for (section, _, _) in data.shortcuts {
+         if !sections.contains(section) {
+diff --git a/crates/app/src/project_files/abandon.rs b/crates/app/src/project_files/abandon.rs
+index 63c14fc..6042013 100644
+--- a/crates/app/src/project_files/abandon.rs
++++ b/crates/app/src/project_files/abandon.rs
+@@ -35,14 +35,14 @@ impl ProjectFiles {
+             }
+             Some(job) if job.operation != "open" => {
+                 return Err(
+-                    "A save can't be abandoned while it may still be writing. Wait for it, or close PCBCraft without waiting in the editor.".into()
++                    "A save can't be abandoned while it may still be writing. Wait for it, or close PCBZ without waiting in the editor.".into()
+                 );
+             }
+             Some(_) => {}
+         }
+         self.release_stalled();
+         if self.stalled.len() >= MAX_STALLED {
+-            return Err("Too many earlier opens are still stalled. Wait for one to end, or restart PCBCraft.".into());
++            return Err("Too many earlier opens are still stalled. Wait for one to end, or restart PCBZ.".into());
+         }
+         let Job { receiver, operation, destination, .. } = self.job.take().ok_or("No file operation is running.")?;
+         self.stalled.push(receiver);
+diff --git a/crates/app/src/project_files/native.rs b/crates/app/src/project_files/native.rs
+index 1c65e03..b0447ed 100644
+--- a/crates/app/src/project_files/native.rs
++++ b/crates/app/src/project_files/native.rs
+@@ -74,7 +74,7 @@ fn snapshot_needs_layout_upgrade(snapshot: &Project) -> bool {
+ 
+ /// Pick and fully validate a project before making it available to the editor.
+ pub(super) fn open(pick_folder: bool) -> Result<Outcome, String> {
+-    let dialog = rfd::FileDialog::new().add_filter("PCBCraft project", &["pc", "json", "zip"]);
++    let dialog = rfd::FileDialog::new().add_filter("PCBZ project", &["pc", "json", "zip"]);
+     let Some(path) = (if pick_folder { dialog.pick_folder() } else { dialog.pick_file() }) else {
+         return Ok(Outcome::Cancelled);
+     };
+@@ -171,7 +171,7 @@ pub(super) fn save(snapshot: Arc<Project>, previous: Option<(Arc<Project>, Targe
+     let format = format.unwrap_or_default();
+     let path = match format {
+         SaveFormat::Folder => dialog.set_title("Create project folder").set_file_name(suggestion).save_file(),
+-        SaveFormat::Archive => dialog.add_filter("Packed PCBCraft project", &["pc"]).set_file_name(format!("{suggestion}.pc")).save_file(),
++        SaveFormat::Archive => dialog.add_filter("Packed PCBZ project", &["pc"]).set_file_name(format!("{suggestion}.pc")).save_file(),
+     };
+     let Some(path) = path else {
+         return Ok(Outcome::Cancelled);
+diff --git a/crates/app/src/properties/fields.rs b/crates/app/src/properties/fields.rs
+index e753be6..f5a0e5f 100644
+--- a/crates/app/src/properties/fields.rs
++++ b/crates/app/src/properties/fields.rs
+@@ -244,7 +244,7 @@ impl Edit {
+         pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_board, "Exclude from board");
+         pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_simulation, "Exclude from simulation");
+         pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_position_files, "Exclude from pick-and-place files")
+-            .on_hover_text("Omit from assembly position exports. PCBcraft stores this setting; export generation is not implemented yet.");
++            .on_hover_text("Omit from assembly position exports. PCBZ stores this setting; export generation is not implemented yet.");
+     }
+ }
+ 
+diff --git a/crates/app/src/tests.rs b/crates/app/src/tests.rs
+index b55e3c5..e819f90 100644
+--- a/crates/app/src/tests.rs
++++ b/crates/app/src/tests.rs
+@@ -358,7 +358,7 @@ fn app_bar_brand_aligns_with_the_controls() {
+     let harness = harness();
+     let center = |label| harness.get_by_label(label).rect().center().y;
+     let file = center("File");
+-    assert!((center("PCBCraft") - file).abs() <= 1.0);
++    assert!((center("PCBZ") - file).abs() <= 1.0);
+     assert!((center("Save Project") - file).abs() <= 1.0);
+     assert!((center("Preferences") - file).abs() <= 1.0);
+ }
+@@ -667,7 +667,7 @@ fn narrow_bars_reach_help_rows_from_home() {
+     harness.run();
+     assert!(harness.query_by_label("Help").is_none());
+     open_home(&mut harness);
+-    harness.get_by_label("About PCBCraft");
++    harness.get_by_label("About PCBZ");
+     click(&mut harness, "Connect AI assistants…");
+     assert!(matches!(harness.state().dialog, Dialog::LocalMcp { .. }));
+ }
+@@ -765,9 +765,9 @@ fn narrow_app_bar_keeps_the_unsaved_marker() {
+     assert!(marker.right() <= preferences.left(), "{marker:?} overlaps {preferences:?}");
+     assert!(preferences.right() <= width, "{preferences:?} extends past the window");
+     // About moves from the narrow bar to the Home rail, which keeps it inside the window.
+-    assert!(harness.query_by_label("About PCBCraft").is_none());
++    assert!(harness.query_by_label("About PCBZ").is_none());
+     open_home(&mut harness);
+-    assert!(harness.get_by_label("About PCBCraft").rect().right() <= width);
++    assert!(harness.get_by_label("About PCBZ").rect().right() <= width);
+     harness.key_press(Key::Escape);
+     harness.run();
+ 
+@@ -876,7 +876,7 @@ fn preferences_change_the_palette_and_the_scale_and_the_about_box_opens() {
+     click(&mut harness, "OK");
+     assert!(matches!(harness.state().dialog, Dialog::None));
+     assert_eq!(harness.state().preferences().scale_percent, 125);
+-    choose(&mut harness, "Help", "About PCBCraft");
++    choose(&mut harness, "Help", "About PCBZ");
+     harness.get_by_label("Close").click();
+     harness.run();
+     assert!(harness.query_by_label("Close").is_none());
+diff --git a/crates/app/src/tests/app_bar_utilities.rs b/crates/app/src/tests/app_bar_utilities.rs
+index 2e4619e..5abadb8 100644
+--- a/crates/app/src/tests/app_bar_utilities.rs
++++ b/crates/app/src/tests/app_bar_utilities.rs
+@@ -72,7 +72,7 @@ fn library_workspace_utilities_open_the_assistant_preferences_and_help() {
+         h.state_mut().dialog = Dialog::None;
+         h.run();
+ 
+-        choose(&mut h, "Help", "About PCBCraft");
++        choose(&mut h, "Help", "About PCBZ");
+         assert!(matches!(h.state().dialog, Dialog::About), "{workspace}");
+         h.state_mut().dialog = Dialog::None;
+         h.run();
+diff --git a/crates/app/src/tests/detached_editors.rs b/crates/app/src/tests/detached_editors.rs
+index d6aea91..f73fb06 100644
+--- a/crates/app/src/tests/detached_editors.rs
++++ b/crates/app/src/tests/detached_editors.rs
+@@ -2112,9 +2112,9 @@ fn main_window_title_names_its_document_like_a_detached_window() {
+     focus_host(&mut h, &peers, HostId::ROOT);
+     let document = h.state().view_title(h.state().views.hosts[&HostId::ROOT].focused);
+     assert!(document.starts_with(&h.state().session.project().unwrap().name), "{document}");
+-    let titled = format!("{document} — PCBCraft");
++    let titled = format!("{document} — PCBZ");
+     h.get_by_label("Home").click();
+-    assert_eq!(root_titles_over(&mut h, 3), ["PCBCraft"]);
++    assert_eq!(root_titles_over(&mut h, 3), ["PCBZ"]);
+     assert!(h.state().home);
+     let back = format!("Back to {}", h.state().session.project().unwrap().name);
+     h.get_by_label(&back).click();
+diff --git a/crates/app/src/unsaved.rs b/crates/app/src/unsaved.rs
+index cb76357..1618c1e 100644
+--- a/crates/app/src/unsaved.rs
++++ b/crates/app/src/unsaved.rs
+@@ -83,7 +83,7 @@ impl PcbApp {
+         }
+         if self.files.busy() {
+             self.waiting = Some(Waiting::ToDecide(Then::Close));
+-            self.file_notice = Some("PCBCraft will close when the file operation finishes".to_owned());
++            self.file_notice = Some("PCBZ will close when the file operation finishes".to_owned());
+         } else if self.files.dirty(&self.session) {
+             ctx.send_viewport_cmd_to(crate::editor_windows::viewport(self.views.main), ViewportCommand::Focus);
+             self.dialog = Dialog::SaveChanges(Then::Close);
+diff --git a/crates/app/src/window_commands.rs b/crates/app/src/window_commands.rs
+index 42d58d0..3d00d36 100644
+--- a/crates/app/src/window_commands.rs
++++ b/crates/app/src/window_commands.rs
+@@ -503,7 +503,7 @@ mod live {
+         WindowCommand {
+             id: "app.open_fabrication_package",
+             title: "Open Fabrication Package",
+-            summary: "Start reading a PCBcraft fabrication ZIP in the addressed Manufacturing pane. Inspect the pane for the verified package or a read error.",
++            summary: "Start reading a PCBZ fabrication ZIP in the addressed Manufacturing pane. Inspect the pane for the verified package or a read error.",
+             params: &[VIEW, Param { name: "path", summary: "Absolute path of the fabrication ZIP", required: true, kind: Kind::Path }],
+         },
+         WindowCommand {
+@@ -1296,7 +1296,7 @@ mod live {
+         WindowCommand {
+             id: "file.abandon",
+             title: "Stop waiting",
+-            summary: "Stop waiting for a running open, such as one stalled on an unresponsive disk, so other commands can run. Its late result is discarded and the current project is unchanged; file.last reports it abandoned. Saves are refused, since they may still be writing; the person can close PCBCraft without waiting in the editor.",
++            summary: "Stop waiting for a running open, such as one stalled on an unresponsive disk, so other commands can run. Its late result is discarded and the current project is unchanged; file.last reports it abandoned. Saves are refused, since they may still be writing; the person can close PCBZ without waiting in the editor.",
+             params: &[Param {
+                 name: "operation",
+                 summary: "The file.operation.id inspect_editor reported for the stalled open; a different running job is left alone",
+diff --git a/crates/chrome/src/shell.rs b/crates/chrome/src/shell.rs
+index fe00b65..cc8271b 100644
+--- a/crates/chrome/src/shell.rs
++++ b/crates/chrome/src/shell.rs
+@@ -125,7 +125,7 @@ fn brand(ui: &mut Ui, t: Tokens, show_name: bool) -> egui::Rect {
+     }
+     ui.add_space(t.space_3);
+     let font = fonts::interface_heading(ui, t.font_button);
+-    let name = ui.label(RichText::new("PCBCraft").font(font).color(t.text)).rect;
++    let name = ui.label(RichText::new("PCBZ").font(font).color(t.text)).rect;
+     ui.add_space(t.space_4);
+     rect.union(name)
+ }

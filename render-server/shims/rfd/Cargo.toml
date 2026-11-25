@@ -1,0 +1,9 @@
+[package]
+name = "rfd"
+description = "A drop-in for the one rfd type the editor uses (FileDialog): every dialog is asked of the host process instead of the operating system"
+# Cargo's patch needs the version of the crate it replaces (=0.17.2 in crates/app).
+version = "0.17.2"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+# Own fields, not the workspace's: this crate sits in the workspace's directory but is only ever a patch.

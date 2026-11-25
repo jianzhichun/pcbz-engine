@@ -1,0 +1,86 @@
+# PCBZ render server patch 0009 (U9): Chinese text draws.
+# Why: the chrome font set has Plex, a Hebrew fallback and emoji only, so Chinese net, part and project names draw as boxes. The first system
+# font that has the Han characters (Microsoft YaHei, PingFang, Noto CJK, WenQuanYi, ...) goes in behind Plex in every family.
+
+diff --git a/crates/chrome/src/fonts.rs b/crates/chrome/src/fonts.rs
+index 3b03ed0..1ca503a 100644
+--- a/crates/chrome/src/fonts.rs
++++ b/crates/chrome/src/fonts.rs
+@@ -17,10 +17,20 @@ pub fn install(ctx: &egui::Context) {
+         fonts.font_data.insert(hebrew.into(), Arc::clone(font));
+     }
+     fonts.font_data.insert(emoji.into(), Arc::new(FontData::from_static(EMOJI)));
++    // Chinese (and Japanese, Korean) text in net, part and project names draws as boxes with Plex
++    // alone: the first system font that has the Han characters goes in behind Plex.
++    let cjk = "pcbcraft-cjk";
++    let han = cjk_fallback();
++    if let Some(font) = han {
++        fonts.font_data.insert(cjk.into(), Arc::clone(font));
++    }
+     for family in fonts.families.values_mut() {
+         if fallback.is_some() {
+             family.push(hebrew.into());
+         }
++        if han.is_some() {
++            family.push(cjk.into());
++        }
+         family.push(emoji.into());
+     }
+     solidcraft_look::fonts::apply(ctx, fonts);
+@@ -33,6 +43,56 @@ pub(crate) fn hebrew_fallback() -> Option<&'static Arc<FontData>> {
+     FALLBACK.get_or_init(load_hebrew_fallback).as_ref()
+ }
+ 
++/// The system font that covers Han characters, probed once like the Hebrew one.
++fn cjk_fallback() -> Option<&'static Arc<FontData>> {
++    static FALLBACK: OnceLock<Option<Arc<FontData>>> = OnceLock::new();
++    FALLBACK.get_or_init(load_cjk_fallback).as_ref()
++}
++
++/// Whether the first face of `bytes` has common Han characters (a collection's first face is the
++/// one egui reads).
++#[cfg(not(target_arch = "wasm32"))]
++fn covers_han(bytes: &[u8]) -> bool {
++    ttf_parser::Face::parse(bytes, 0).is_ok_and(|face| ['中', '文', '网', '电', '路'].into_iter().all(|c| face.glyph_index(c).is_some()))
++}
++
++/// The first of the desktop's own Chinese fonts that opens and covers Han characters.
++fn load_cjk_fallback() -> Option<Arc<FontData>> {
++    #[cfg(not(target_arch = "wasm32"))]
++    {
++        const CANDIDATES: &[&str] = &[
++            // Windows
++            r"C:\Windows\Fonts\msyh.ttc",
++            r"C:\Windows\Fonts\msyh.ttf",
++            r"C:\Windows\Fonts\Deng.ttf",
++            r"C:\Windows\Fonts\simsun.ttc",
++            r"C:\Windows\Fonts\simhei.ttf",
++            // macOS
++            "/System/Library/Fonts/PingFang.ttc",
++            "/System/Library/Fonts/STHeiti Medium.ttc",
++            "/System/Library/Fonts/STHeiti Light.ttc",
++            "/System/Library/Fonts/Hiragino Sans GB.ttc",
++            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
++            "/Library/Fonts/Arial Unicode.ttf",
++            // Linux
++            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
++            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
++            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
++            "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
++            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
++            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
++            "/usr/share/fonts/wenquanyi/wqy-microhei/wqy-microhei.ttc",
++            "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
++        ];
++        CANDIDATES.iter().filter_map(|path| std::fs::read(path).ok()).find(|bytes| covers_han(bytes)).map(FontData::from_owned).map(Arc::new)
++    }
++
++    #[cfg(target_arch = "wasm32")]
++    {
++        None
++    }
++}
++
+ /// Return whether `bytes` parses as a font whose primary face covers Hebrew letters.
+ #[cfg(all(not(has_hebrew_craft_font), not(target_arch = "wasm32")))]
+ fn covers_hebrew(bytes: &[u8]) -> bool {
