@@ -255,8 +255,9 @@ jobs:
           COPYFILE_DISABLE: '1'
         run: |
           set -euo pipefail
-          commit=$(tr -d '[:space:]' < UPSTREAM_COMMIT)
-          tag=${GITHUB_REF_NAME}          # engine-<commit9>-<n>
+          # no checkout in this job: the tag names the commit (engine-<commit9>-<n>)
+          tag=${GITHUB_REF_NAME}
+          commit=${tag#engine-}; commit=${commit%-*}
           n=${tag##*-}                    # the build number
           case "$n" in ''|*[!0-9]*) echo "tag $tag does not end in a number"; exit 1;; esac
           mkdir -p dist
