@@ -1,0 +1,75 @@
+diff --git a/crates/mcp/src/backend.rs b/crates/mcp/src/backend.rs
+index 192fea1..c8819dd 100644
+--- a/crates/mcp/src/backend.rs
++++ b/crates/mcp/src/backend.rs
+@@ -141,6 +141,9 @@ impl Backend for Headless {
+         if method == "engine.commands" {
+             return Ok(Value::Array(describe_engine_commands(self.deprecations)));
+         }
++        if method == "project.snapshot_packed" {
++            return snapshot_packed(&self.session);
++        }
+         serve_session(&mut self.session, method, &params, self.api_version)
+     }
+ 
+@@ -167,6 +170,33 @@ impl Backend for Headless {
+     }
+ }
+ 
++/// The open project as the portable `.pc` archive the desktop app writes, base64-encoded, with
++/// the session revision it captures. The host stores it; this process writes no file.
++fn snapshot_packed(session: &Session) -> Result<Value, Failure> {
++    let project = session.snapshot().ok_or_else(|| Failure::new(ErrorCode::Unavailable, "no project is open"))?;
++    let documents = pcbcraft_engine::persistence::encode_documents(project).map_err(|e| Failure::new(ErrorCode::Unavailable, e))?;
++    let bytes = pcbcraft_engine::persistence::encode_deflated_packed_documents(documents).map_err(|e| Failure::new(ErrorCode::Unavailable, e))?;
++    Ok(json!({"revision": session.revision(), "bytes": bytes.len(), "archive_base64": base64(&bytes)}))
++}
++
++/// Standard base64 with padding (RFC 4648 section 4).
++fn base64(bytes: &[u8]) -> String {
++    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
++    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
++    for chunk in bytes.chunks(3) {
++        let b = [chunk[0], chunk.get(1).copied().unwrap_or(0), chunk.get(2).copied().unwrap_or(0)];
++        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
++        for (i, shift) in [18u32, 12, 6, 0].into_iter().enumerate() {
++            if i <= chunk.len() {
++                out.push(char::from(ALPHABET[((n >> shift) & 63) as usize]));
++            } else {
++                out.push('=');
++            }
++        }
++    }
++    out
++}
++
+ /// Run an operation against the supplied session. Its owner controls execution policy.
+ /// Window commands and editor inspection fail with a reason instead of silently succeeding,
+ /// because a bare session has no window to act on. Clipboard/export queries, provisional
+diff --git a/crates/mcp/src/tools.rs b/crates/mcp/src/tools.rs
+index 6036524..b92fdf9 100644
+--- a/crates/mcp/src/tools.rs
++++ b/crates/mcp/src/tools.rs
+@@ -81,6 +81,14 @@ pub fn tool_definitions() -> Vec<Value> {
+             &[],
+             Effect::ReadOnly,
+         ),
++        tool(
++            "snapshot_project",
++            "Snapshot the project",
++            "The open headless project as a portable .pc archive (base64) with its revision, for the host to store. Writes no file and changes nothing. Headless sessions only.",
++            json!({}),
++            &[],
++            Effect::ReadOnly,
++        ),
+     ]
+ }
+ 
+@@ -206,6 +214,7 @@ pub fn call_tool(backend: &mut dyn Backend, name: &str, args: &Value) -> Value {
+         "resolve_counterparts" => backend.call("project.resolve_counterparts", args.clone()),
+         "inspect_project" => backend.call("project.inspect", json!({})),
+         "inspect_editor" => backend.call("editor.inspect", json!({})),
++        "snapshot_project" => backend.call("project.snapshot_packed", json!({})),
+         _ => Err(Failure::new(ErrorCode::InvalidRequest, format!("unknown tool `{name}`"))),
+     };
+     match result {
