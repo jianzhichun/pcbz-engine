@@ -1,7 +1,9 @@
 # PCBZ render server patch 0003 (U2): an `embedded` flag.
 # Why: the editor drawn inside a host has no operating system to give it windows, and the host (not the person) keeps the project file.
-# new_embedded sets the flag, turns on egui's embedded viewports (detached editor windows become windows inside the pane) and a "New project"
-# refusal no longer waits on an "unsaved" state that can never clear. Additive: nothing changes when the flag is false.
+# new_embedded sets the flag, turns on egui's embedded viewports (detached editor windows become windows inside the pane), a "New project"
+# refusal no longer waits on an "unsaved" state that can never clear, and a plain Save (File > Save, the app bar icon, Ctrl+S, file.save) writes
+# nothing: it would overwrite the file the project was opened from, behind the host's lease. Save As still goes through the file dialog.
+# Additive: nothing changes when the flag is false.
 
 diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
 index f763ff6..853a173 100644
@@ -26,7 +28,7 @@ index f763ff6..853a173 100644
          }
      }
 diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index 3cf45d9..fa2abeb 100644
+index 3cf45d9..aa08346 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
 @@ -385,6 +385,9 @@ pub struct PcbApp {
@@ -39,6 +41,20 @@ index 3cf45d9..fa2abeb 100644
  }
  
  /// The Schematic workspace's ribbon tabs, in order.
+@@ -720,6 +723,13 @@ impl PcbApp {
+ 
+     /// Start a save or download for the current snapshot and report setup failures.
+     fn save_project_file(&mut self, encoding: Option<SaveFormat>, ctx: &egui::Context) {
++        // An embedded host keeps the project file itself: a plain Save would write the file the
++        // project was opened from, behind the host's lease. Save As (a format chosen) goes through
++        // the file dialog, which the host answers with a place of its own.
++        if self.embedded && encoding.is_none() {
++            self.message = Some("PCBZ saves the project itself".to_owned());
++            return;
++        }
+         self.message = self.files.save(&self.session, encoding, ctx).err();
+         self.file_notice = None;
+     }
 diff --git a/crates/app/src/live_control.rs b/crates/app/src/live_control.rs
 index d2e5121..d80602e 100644
 --- a/crates/app/src/live_control.rs

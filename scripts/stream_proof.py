@@ -326,8 +326,11 @@ class Session:
         env = {k: v for k, v in os.environ.items() if k not in ("DISPLAY", "WAYLAND_DISPLAY")}
         env.update(PCBZ_RENDER_TOKEN=token, PCBZ_RENDER_LOG="info")
         self.config_dir = pathlib.Path(tempfile.mkdtemp(prefix="pcbz-cfg-", dir=self.out)).resolve()
+        import shutil
+        self.project_file = self.out / f"project-{self.name}.pc"
+        shutil.copyfile(self.args.project, self.project_file)
         cmd = [self.args.server, "--stream", f"127.0.0.1:{listener.getsockname()[1]}", "--session", self.name, "--size", self.args.size,
-               "--adapter", self.args.adapter, "--project", self.args.project, "--config-dir", str(self.config_dir)]
+               "--adapter", self.args.adapter, "--project", str(self.project_file), "--config-dir", str(self.config_dir)]
         self.errlog = open(self.out / f"server-{self.name}.log", "w", encoding="utf-8")
         t0 = time.perf_counter()
         self.proc = subprocess.Popen(cmd, env=env, stdout=self.errlog, stderr=subprocess.STDOUT)
@@ -504,9 +507,15 @@ class Session:
 
 
 # ------------------------------------------------------------------------------------- flows
+def sha256(path):
+    import hashlib
+    return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+
+
 def editable_session(args, out):
     s = Session(args, out, "edit", False).start()
-    cmd_key = "Meta" if args.mac else "Control"
+    cmd = {"alt": False, "ctrl": not args.mac, "shift": False, "meta": bool(args.mac)}
+    project_hash = sha256(s.project_file)
     try:
         before = s.snap("before")
         s.check("first frame is the whole pane", s.display.w > 0 and (s.display.w, s.display.h) == tuple(int(x) for x in args.size.split("x")), (s.display.w, s.display.h))
@@ -519,48 +528,56 @@ def editable_session(args, out):
         ws, _ = s.workspaces()
         s.check("the editor starts in the schematic workspace", "schematic" in ws, ws)
 
-        # --- exploration frames (soft): what the pane looks like under a menu and a picker
-        s.click(146, 16, "file-menu")
+        # --- the product name and the File menu; Save must not write the file the project came from
+        s.click(124, 16, "file-menu")
         s.snap("file-menu")
         s.press("Escape", "Escape", "escape-1")
-        s.click(53, 135, "workspace-picker")
-        s.snap("workspace-picker")
+        s.click(156, 16, "save-icon")
+        s.settle()
+        s.check("a plain Save writes nothing (the host keeps the file)", sha256(s.project_file) == project_hash, "project file changed")
+
+        # --- key, click and text: the net label dialog (key L), its Net name field, a replacement name, Place
+        rev_ui = s.revision
+        s.press("l", "KeyL", "key-l")
+        s.snap("label-dialog")
+        s.click(400, 264, "label-name-field")
+        s.press("a", "KeyA", "select-all", cmd)
+        row = s.type_text("NETZ1", "label-text")
+        s.check("typing into the Net name field redraws the pane", row is not None, row)
+        s.snap("label-typed")
+        s.click(811, 378, "label-place")
+        s.snap("label-after-place")
+        s.click(330, 300, "label-click-sheet")
+        s.snap("label-click")
+        s.check("the UI edit moved the revision (design_changed)", s.revision is not None and rev_ui is not None and s.revision > rev_ui, (rev_ui, s.revision), required=False)
         s.press("Escape", "Escape", "escape-2")
 
-        # --- key and text: the net label tool (key L), a click on the sheet, the label's text, Enter
-        rev_ui = s.revision
-        s.click(350, 300, "sheet-focus")
-        s.press("l", "KeyL", "key-l")
-        s.snap("label-tool")
-        s.click(360, 310, "label-place")
-        s.snap("label-edit")
-        row = s.type_text("NETZ1", "label-text")
-        s.check("typing a net label name redraws the pane", row is not None, row, required=False)
-        s.snap("label-typed")
-        s.press("Enter", "Enter", "label-enter")
-        s.settle()
-        s.snap("label-placed")
-        s.check("the UI edit moved the revision (design_changed)", s.revision is not None and rev_ui is not None and s.revision > rev_ui, (rev_ui, s.revision), required=False)
-        s.press("Escape", "Escape", "escape-3")
-
-        # --- a click on the pane: the Board workspace, opened from the browser tree
-        row = s.click(114, 418, "board-open", double=True)
+        # --- a click on the Board workspace: the workspace picker, then PCB Layout
+        row = s.click(53, 135, "workspace-picker")
+        s.snap("workspace-picker")
+        row = s.click(190, 300, "board-open")
         s.check("the click redraws the pane", row is not None, row)
         after_click = s.snap("board")
         ws, _ = s.workspaces()
-        s.check("a double click on Board opens the Board workspace", "board" in ws, ws)
+        s.check("a click on PCB Layout opens the Board workspace", "board" in ws, ws)
         s.check("the frame changed after the click", s.display.differs_from(before) > 2000, s.display.differs_from(before))
 
-        # --- control channel: rename, snapshot, undo, on the revision stream the pane shares
+        # --- Save As: the encoding chooser (exploration)
+        s.press("s", "KeyS", "save-as", dict(cmd, shift=True))
+        s.snap("save-as-dialog")
+        s.press("Escape", "Escape", "escape-3")
+
+        # --- control channel: rename (with Chinese text, for the font), snapshot, undo, on the revision stream the pane shares
         s.settle()
         rev0 = s.revision
-        err, reply = s.bridge_call(lambda: s.bridge.execute("project.rename", {"name": "Renamed over MCP"}))
+        new_name = "Renamed 中文网络 over MCP"
+        err, reply = s.bridge_call(lambda: s.bridge.execute("project.rename", {"name": new_name}))
         s.check("execute project.rename through the bridge", not err, reply)
         s.settle()
         s.check("design_changed announced the rename with a higher revision", s.revision is not None and rev0 is not None and s.revision > rev0, (rev0, s.revision))
         renamed, _ = s.snapshot_name()
-        s.check("snapshot_project returns an archive whose project name changed", renamed == "Renamed over MCP", (original, renamed))
-        shot_renamed = s.snap("renamed")
+        s.check("snapshot_project returns an archive whose project name changed", renamed == new_name, (original, renamed))
+        s.snap("renamed")
         s.check("the title in the pane was redrawn", s.display.differs_from(after_click) > 100, s.display.differs_from(after_click))
         rev1 = s.revision
         err, reply = s.bridge_call(lambda: s.bridge.execute("edit.undo"))
@@ -570,6 +587,7 @@ def editable_session(args, out):
         s.check("edit.undo gave the old name back", undone == original, (original, undone))
         s.check("undo moved the revision too", s.revision is not None and rev1 is not None and s.revision != rev1, (rev1, s.revision))
         s.snap("undone")
+        s.check("the editor wrote nothing to the project file", sha256(s.project_file) == project_hash, "project file changed")
     finally:
         s.stop()
     return s
@@ -577,6 +595,7 @@ def editable_session(args, out):
 
 def read_only_session(args, out):
     s = Session(args, out, "readonly", True).start()
+    cmd = {"alt": False, "ctrl": not args.mac, "shift": False, "meta": bool(args.mac)}
     try:
         s.snap("readonly-before")
         s.open_bridge()
@@ -591,7 +610,26 @@ def read_only_session(args, out):
         s.check("the revision did not move", s.revision == rev0, (rev0, s.revision))
         err, reply = s.bridge_call(lambda: s.bridge.execute("edit.undo"))
         s.check("a read-only editor refuses edit.undo", err, reply)
+        # a UI edit is refused too: the label dialog's Place does nothing
+        s.press("l", "KeyL", "key-l")
+        s.click(811, 378, "label-place")
+        s.settle()
+        s.check("a UI edit does not move the revision either", s.revision == rev0, (rev0, s.revision))
         s.snap("readonly-after")
+        # File > Open (Ctrl+O) asks the host for a file: answer with another project
+        asks_before = len(s.asks)
+        s.press("o", "KeyO", "open", cmd)
+        s.settle(quiet=1.5)
+        opens = [a for a in s.asks[asks_before:] if a["k"] == "ask_open"]
+        s.check("Ctrl+O asks the host for a file (ask_open)", bool(opens), s.asks[asks_before:], required=False)
+        if opens:
+            s.check("ask_open names the project file types", {"pc"} <= set(opens[0].get("exts", [])), opens[0], required=False)
+            s.leg.send({"k": "answer", "ask": opens[0]["ask"], "path": str(pathlib.Path(args.project2).resolve())})
+            s.settle(quiet=2.0)
+            name2, _ = s.snapshot_name()
+            s.check("answering the ask opened the other project", bool(name2) and name2 != original, (original, name2), required=False)
+            s.check("ask_done followed the open", any(a["k"] == "ask_done" and a["ask"] == opens[0]["ask"] for a in s.asks), s.asks[-3:], required=False)
+        s.snap("readonly-opened")
     finally:
         s.stop()
     return s
@@ -602,6 +640,7 @@ def main():
     ap.add_argument("--server", required=True)
     ap.add_argument("--cli", required=True)
     ap.add_argument("--project", required=True)
+    ap.add_argument("--project2", required=True, help="another project, offered when the editor asks for a file")
     ap.add_argument("--out", required=True)
     ap.add_argument("--adapter", default="auto")
     ap.add_argument("--size", default="960x600")

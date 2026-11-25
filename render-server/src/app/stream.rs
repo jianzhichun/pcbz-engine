@@ -129,6 +129,7 @@ pub fn run(args: StreamArgs) -> i32 {
         visible: true,
         control: (control_port, control_secret),
         ready: false,
+        read_only: None,
         revision: None,
         project: args.project,
         stopping: false,
@@ -195,6 +196,9 @@ struct Stream {
     control: (u16, String),
     /// `ready` has been sent.
     ready: bool,
+    /// The host's read-only reason, said again once the startup open is over (opening a project
+    /// replaces the status line the reason was written on).
+    read_only: Option<String>,
     /// The project revision last announced with `design_changed`.
     revision: Option<u64>,
     /// The project the process was started on, if any.
@@ -230,6 +234,9 @@ impl Stream {
         if self.project.is_some() && self.ui.app.open_revision().is_none() {
             let why = self.ui.app.status_text().unwrap_or("no reason given").to_string();
             return End::bye(EXIT_OPEN, ByeWhy::Error, Some(format!("the project did not open: {why}")));
+        }
+        if let Some(reason) = self.read_only.clone() {
+            self.ui.app.set_read_only(Some(&reason));
         }
         if let Some(end) = self.pass(Mode::First) {
             return end;
@@ -342,6 +349,7 @@ impl Stream {
                 let reason = read_only.map(|r| r.trim().to_string()).filter(|r| !r.is_empty());
                 log::info!("policy: read-only {reason:?}");
                 self.ui.app.set_read_only(reason.as_deref());
+                self.read_only = reason;
                 self.schedule.want();
             }
             HostMsg::Answer { ask, path } => {

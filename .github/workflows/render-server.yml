@@ -151,7 +151,7 @@ jobs:
           python scripts/stream_proof.py \
             --server "upstream/target/release/pcbcraft-render-server${{ matrix.exe }}" \
             --cli "upstream/target/release/pcbcraft-cli${{ matrix.exe }}" \
-            --project upstream/examples/sensor-node.pc --out proof --adapter ${{ matrix.adapter }} --size 960x600 $mac 2>&1 | tee proof.log
+            --project upstream/examples/sensor-node.pc --project2 upstream/examples/dual-led.pc --out proof --adapter ${{ matrix.adapter }} --size 960x600 $mac 2>&1 | tee proof.log
           exit "${PIPESTATUS[0]}"
       - name: frame cost over 20 frames (informational)
         continue-on-error: true

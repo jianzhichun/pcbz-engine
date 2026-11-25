@@ -98,7 +98,7 @@ index 9981185..ec15c65 100644
          rows.push(("home:connect", "Connect AI assistants…", String::new(), true, Some(Action::Connect)));
          for (index, (id, label, shortcut, enabled, picked)) in rows.into_iter().enumerate() {
 diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index fa2abeb..f0938b2 100644
+index aa08346..6363f15 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
 @@ -159,7 +159,7 @@ const IN_BROWSER: bool = cfg!(target_arch = "wasm32");
@@ -110,7 +110,7 @@ index fa2abeb..f0938b2 100644
          pick = Some(Help::About);
      }
      if MenuItem::new("Keyboard Shortcuts").icon(MenuIcon::Keyboard).show(ui) {
-@@ -2555,8 +2555,8 @@ impl PcbApp {
+@@ -2562,8 +2562,8 @@ impl PcbApp {
              }
              Dialog::About => {
                  let mut close = false;
