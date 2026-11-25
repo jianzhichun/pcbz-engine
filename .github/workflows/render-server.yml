@@ -108,6 +108,10 @@ jobs:
           python scripts/png_check.py out/frame-0001.png 960 600 500 2>&1 | tee -a smoke.log
           python scripts/png_check.py out/frame-0002.png 960 600 500 2>&1 | tee -a smoke.log
           cat out/frames.json
+          # the small pane the M1 check names (640x400), checked the same way
+          "$bin" --snapshot out-640 --frames 1 --size 640x400 --adapter ${{ matrix.adapter }} \
+            --project upstream/examples/sensor-node.pc 2>&1 | tee -a smoke.log
+          python scripts/png_check.py out-640/frame-0001.png 640 400 500 2>&1 | tee -a smoke.log
       - name: frame cost over 20 frames (informational)
         continue-on-error: true
         shell: bash
@@ -147,6 +151,7 @@ jobs:
           name: render-server-${{ matrix.target }}
           path: |
             out/
+            out-640/
             smoke.log
             strace.log
             perf.txt
