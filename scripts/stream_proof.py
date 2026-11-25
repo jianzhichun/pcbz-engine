@@ -562,9 +562,32 @@ def editable_session(args, out):
         s.check("a click on PCB Layout opens the Board workspace", "board" in ws, ws)
         s.check("the frame changed after the click", s.display.differs_from(before) > 2000, s.display.differs_from(before))
 
-        # --- Save As: the encoding chooser (exploration)
+        # --- Save As: the encoding chooser. "Project folder..." names a new folder: cancelled with a notice.
+        # "Packed project (.pc)..." is a file dialog: ask_save goes to the host, which answers with a place of its own.
+        mark = len(s.asks)
         s.press("s", "KeyS", "save-as", dict(cmd, shift=True))
         s.snap("save-as-dialog")
+        s.click(360, 289, "save-as-folder")
+        s.settle(quiet=1.2)
+        notices = [a for a in s.asks[mark:] if a["k"] == "notice"]
+        s.check("a folder save is cancelled with a notice", bool(notices) and not any(a["k"] == "ask_save" for a in s.asks[mark:]), s.asks[mark:])
+        s.press("s", "KeyS", "save-as-2", dict(cmd, shift=True))
+        s.click(378, 320, "save-as-pc")
+        s.settle(quiet=1.5)
+        saves = [a for a in s.asks[mark:] if a["k"] == "ask_save"]
+        s.check("Save As > Packed project asks the host where (ask_save)", bool(saves), s.asks[mark:])
+        if saves:
+            s.check("ask_save names a .pc file and its type", saves[0]["name"].endswith(".pc") and saves[0]["exts"] == ["pc"], saves[0])
+            staging = out / "staging"
+            staging.mkdir(exist_ok=True)
+            target = staging / "exported.pc"
+            s.leg.send({"k": "answer", "ask": saves[0]["ask"], "path": str(target.resolve())})
+            s.settle(quiet=2.0)
+            s.check("the editor wrote the archive where the host said", target.exists() and target.read_bytes()[:2] == b"PK", target.exists())
+            s.check("ask_done followed the save", any(a["k"] == "ask_done" and a["ask"] == saves[0]["ask"] and a["ok"] for a in s.asks[mark:]), s.asks[mark:][-3:])
+            exported = headless_name(args.cli, target.read_bytes(), out) if target.exists() else {}
+            s.check("the exported archive is the edited project", bool(exported.get("project", {}).get("name")), exported.get("project", {}).get("name"))
+        s.snap("after-save-as")
         s.press("Escape", "Escape", "escape-3")
 
         # --- control channel: rename (with Chinese text, for the font), snapshot, undo, on the revision stream the pane shares
@@ -619,16 +642,19 @@ def read_only_session(args, out):
         # File > Open (Ctrl+O) asks the host for a file: answer with another project
         asks_before = len(s.asks)
         s.press("o", "KeyO", "open", cmd)
+        s.snap("open-dialog")
+        s.click(380, 289, "open-file")
         s.settle(quiet=1.5)
         opens = [a for a in s.asks[asks_before:] if a["k"] == "ask_open"]
-        s.check("Ctrl+O asks the host for a file (ask_open)", bool(opens), s.asks[asks_before:], required=False)
+        s.check("Open > Project file asks the host for a file (ask_open)", bool(opens), s.asks[asks_before:])
         if opens:
-            s.check("ask_open names the project file types", {"pc"} <= set(opens[0].get("exts", [])), opens[0], required=False)
+            s.check("ask_open names the project file types", {"pc"} <= set(opens[0].get("exts", [])), opens[0])
             s.leg.send({"k": "answer", "ask": opens[0]["ask"], "path": str(pathlib.Path(args.project2).resolve())})
             s.settle(quiet=2.0)
             name2, _ = s.snapshot_name()
-            s.check("answering the ask opened the other project", bool(name2) and name2 != original, (original, name2), required=False)
-            s.check("ask_done followed the open", any(a["k"] == "ask_done" and a["ask"] == opens[0]["ask"] for a in s.asks), s.asks[-3:], required=False)
+            s.check("answering the ask opened the other project", bool(name2) and name2 != original, (original, name2))
+            s.check("ask_done followed the open", any(a["k"] == "ask_done" and a["ask"] == opens[0]["ask"] for a in s.asks), s.asks[-3:])
+        s.check("the opened project announced its revision", s.revision is not None and s.revision != rev0, (rev0, s.revision), required=False)
         s.snap("readonly-opened")
     finally:
         s.stop()
