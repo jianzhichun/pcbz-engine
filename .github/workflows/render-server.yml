@@ -6,6 +6,7 @@ name: render-server
 on:
   push:
     branches: [render-server]
+    paths: ['render-server/**', 'patches/**', 'scripts/png_check.py', 'UPSTREAM_COMMIT', '.github/workflows/render-server.yml']
   workflow_dispatch:
     inputs:
       profile:
@@ -14,7 +15,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: render-server-${{ github.ref }}
+  group: render-server-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 jobs:
   snapshot:
@@ -45,6 +46,10 @@ jobs:
           [ "$(git -C upstream rev-parse HEAD)" = "$commit" ] || { echo "fetched the wrong commit"; exit 1; }
           for p in patches/*.patch; do git -C upstream apply --verbose "../$p"; done
           cp -R render-server upstream/apps/pcbcraft-render-server
+          # the new workspace member's Cargo.lock entry (kept out of patches/: engine.yml builds the CLI with --locked
+          # from a tree that has no render server)
+          rm upstream/apps/pcbcraft-render-server/Cargo.lock.patch
+          git -C upstream apply --verbose ../render-server/Cargo.lock.patch
       - name: Linux software Vulkan (lavapipe)
         if: matrix.target == 'linux-x64'
         run: |
@@ -67,8 +72,7 @@ jobs:
           fi
           rustc --version
           start=$(date +%s)
-          # no --locked: the new package is not in Cargo.lock yet; the lock hunk is uploaded below
-          cargo build --release -p pcbcraft-render-server 2>&1 | tee ../build.log
+          cargo build --locked --release -p pcbcraft-render-server 2>&1 | tee ../build.log
           build_seconds=$(( $(date +%s) - start ))
           bin=target/release/pcbcraft-render-server${{ matrix.exe }}
           size=$(wc -c < "$bin" | tr -d ' ')
@@ -77,14 +81,14 @@ jobs:
             echo "build_seconds=$build_seconds"
             echo "binary_bytes=$size"
           } | tee ../metrics.txt
-          git diff Cargo.lock > ../cargo-lock.diff || true
+          git diff --stat Cargo.lock | tee ../cargo-lock.diff
       - name: unit tests (host loop pieces)
         if: matrix.target == 'linux-x64'
         shell: bash
         working-directory: upstream
         run: |
           export CARGO_PROFILE_TEST_DEBUG=0
-          cargo test --release -p pcbcraft-render-server 2>&1 | tee ../test.log
+          cargo test --locked --release -p pcbcraft-render-server 2>&1 | tee ../test.log
       - name: snapshot smoke (sensor-node, no window)
         shell: bash
         run: |
