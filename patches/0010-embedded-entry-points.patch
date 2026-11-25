@@ -1,0 +1,103 @@
+# PCBZ render server patch 0010 (U2, the rest): the entry points an embedded host owns.
+# Why: the M2 review drove the pane and found three one-click ways around the host. File > New Project, Ctrl+N, Open, Open
+# recent and the Home tiles replaced the host's project (the host saves what the editor holds, so the replacement would be written
+# over the bound file); Help > Connect AI assistants > Disable connection dropped the control endpoint the host's chat uses (and
+# Enable would start one the host does not know); the Assistant button, its shortcut and the AI preferences page started a second
+# model client (agent probes, keychain, HTTPS). Embedded: those actions show a status line instead, the AI features stay off, the
+# status bar drops "Local MCP enabled". Guards only: nothing changes when the flag is false.
+
+diff --git a/crates/app/src/assistant/settings.rs b/crates/app/src/assistant/settings.rs
+index c5824c5..a76f61e 100644
+--- a/crates/app/src/assistant/settings.rs
++++ b/crates/app/src/assistant/settings.rs
+@@ -116,6 +116,13 @@ impl Assistant {
+     /// Keep permission policy and agent configuration under human control, including popups
+     /// that were opened before a synthetic input pass began.
+     fn settings_contents(&mut self, ui: &mut Ui) -> Option<Request> {
++        // An embedded editor (PCBZ, patch 0010): the chat beside it is the assistant.
++        if crate::embedded::ASSISTANT_OFF.load(std::sync::atomic::Ordering::Relaxed) {
++            ui.heading("AI");
++            ui.separator();
++            ui.label("The chat beside this editor is its assistant.");
++            return None;
++        }
+         let mut request = None;
+         if self.settings.show_features {
+             self.ensure_detection(ui.ctx());
+diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
+index c9a59a8..33b43d1 100644
+--- a/crates/app/src/embedded.rs
++++ b/crates/app/src/embedded.rs
+@@ -8,6 +8,11 @@
+ 
+ use super::*;
+ 
++/// Set by `new_embedded` (patch 0010): the AI features stay off for the life of the process, and
++/// the AI preferences page cannot turn them on (it would start agent probes, keychain and HTTPS
++/// clients beside the host's own chat).
++pub(crate) static ASSISTANT_OFF: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
+ impl PcbApp {
+     /// What `new` builds when there is no storage: installs the fonts and icons on `ctx`, default
+     /// preferences, Home until `project` (a `.pc` archive, a project folder or its `project.json`)
+@@ -19,6 +24,8 @@ impl PcbApp {
+         ctx.set_embed_viewports(true);
+         // No `gio`, `osascript` or `powershell` for the person's files from inside a host.
+         pcbcraft_storage::library::refuse_system_trash();
++        // The host's chat is the assistant: no second model client (agent probes, keys, HTTPS).
++        ASSISTANT_OFF.store(true, std::sync::atomic::Ordering::Relaxed);
+         let storage: Option<&dyn eframe::Storage> = None;
+         let preferences = storage.and_then(|s| s.get_string(PREFERENCES_KEY)).map(|text| Preferences::parse(&text)).unwrap_or_default();
+         let mut views = EditorViews::default();
+@@ -34,7 +41,7 @@ impl PcbApp {
+             routing_presets: board_presets::Presets::from_storage(storage.and_then(|s| s.get_string(board_presets::STORAGE_KEY))),
+             views,
+             files: project_files::ProjectFiles::with_recent(None),
+-            assistant: assistant::Assistant::from_setting(None, None),
++            assistant: assistant::Assistant::from_setting(None, Some(r#"{"show_features":false}"#)),
+             startup_open: project,
+             embedded: true,
+             ..Self::default()
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index 6363f15..cdf9eee 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -1609,7 +1609,7 @@ impl PcbApp {
+                     ui.label(dim(text)).on_hover_text("Pointer position on the grid");
+                 }
+                 #[cfg(not(target_arch = "wasm32"))]
+-                if self.live_control.is_some() {
++                if self.live_control.is_some() && !self.embedded {
+                     ui.label(dim("Local MCP enabled"));
+                 }
+             },
+@@ -2596,6 +2596,12 @@ impl PcbApp {
+     /// Synthetic input may still revoke the endpoint or close this dialog.
+     #[cfg(not(target_arch = "wasm32"))]
+     fn local_mcp_dialog(&mut self, ctx: &egui::Context, mut error: Option<String>, mut copied: bool) {
++        // An embedded host owns this editor's one connection (patch 0010): Disable would cut its
++        // chat off, and Enable would start an endpoint the host does not know.
++        if self.embedded {
++            self.message = Some("The chat is already connected to this editor".to_owned());
++            return;
++        }
+         let mut close = false;
+         let dismissed = shell::dialog(ctx, "local_mcp", "Connect AI assistants", |ui| {
+             if let Some(control) = &self.live_control {
+diff --git a/crates/app/src/unsaved.rs b/crates/app/src/unsaved.rs
+index 1618c1e..702e1ff 100644
+--- a/crates/app/src/unsaved.rs
++++ b/crates/app/src/unsaved.rs
+@@ -42,6 +42,12 @@ impl PcbApp {
+     /// Carry out `then` at once when nothing unsaved would be lost, otherwise ask first.
+     /// Displacing a remap form retires its review without editing either document.
+     pub(crate) fn unless_unsaved(&mut self, then: Then, ctx: &egui::Context) {
++        // An embedded host keeps one project per conversation (patch 0010): New, New board, Open
++        // and Open recent would replace it, and the host would then save the replacement over it.
++        if self.embedded {
++            self.message = Some("PCBZ opens and starts projects from the chat".to_owned());
++            return;
++        }
+         self.dismiss_library_pin_remap();
+         if self.files.dirty(&self.session) {
+             self.dialog = Dialog::SaveChanges(then);

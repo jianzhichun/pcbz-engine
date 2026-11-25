@@ -1,7 +1,9 @@
 # PCBZ render server patch 0008 (U7): the product name a user sees is PCBZ.
 # Why: customer-visible text must not carry the upstream product name. Strings only (app-bar wordmark, About, window title, menus, dialogs,
-# status and settings text, file filter names, window command summaries) and the upstream tests that assert them. Identifiers, storage keys,
-# licence texts and the engine crate's own messages are not touched.
+# status and settings text, file filter names, window command summaries, the engine messages the editor shows: a paste that is not a
+# design fragment, a ZIP that is not a fabrication package, an original part's provenance) and the upstream tests that assert them.
+# Identifiers, storage keys, licence texts, file headers and the engine's other messages (which only the model reads, through the plugin's
+# wording) are not touched.
 
 diff --git a/crates/app/src/assistant.rs b/crates/app/src/assistant.rs
 index a9d2af9..8eeebe0 100644
@@ -71,6 +73,19 @@ index 62ad19b..8b2436a 100644
              return Ok(Outcome::Cancelled);
          };
          read(&path).map(|profile| Outcome::Imported(Box::new(profile)))
+diff --git a/crates/app/src/clipboard/tests.rs b/crates/app/src/clipboard/tests.rs
+index 8db14ec..70e54af 100644
+--- a/crates/app/src/clipboard/tests.rs
++++ b/crates/app/src/clipboard/tests.rs
+@@ -113,7 +113,7 @@ fn invalid_clipboard_text_is_rejected_without_a_partial_edit() {
+     let before = h.state().session.snapshot().unwrap();
+     h.event(Event::Paste("{invalid native clipboard JSON}".into()));
+     h.run();
+-    assert!(h.state().message.as_ref().is_some_and(|s| s.contains("supported PCBcraft")));
++    assert!(h.state().message.as_ref().is_some_and(|s| s.contains("supported PCBZ")));
+     assert!(!h.state().views.active.schematic.clipboard.active());
+     assert!(Arc::ptr_eq(&before, &h.state().session.snapshot().unwrap()));
+ }
 diff --git a/crates/app/src/editor_windows.rs b/crates/app/src/editor_windows.rs
 index 85ae49d..ae251e3 100644
 --- a/crates/app/src/editor_windows.rs
@@ -407,3 +422,81 @@ index fe00b65..cc8271b 100644
      ui.add_space(t.space_4);
      rect.union(name)
  }
+diff --git a/crates/engine/src/board/clipboard.rs b/crates/engine/src/board/clipboard.rs
+index 2c49720..33dede5 100644
+--- a/crates/engine/src/board/clipboard.rs
++++ b/crates/engine/src/board/clipboard.rs
+@@ -451,7 +451,7 @@ impl BoardFragment {
+             return Err(invalid("clipboard exceeds the 8 MiB limit"));
+         }
+         let envelope: Envelope =
+-            serde_json::from_str(text).map_err(|_| invalid("Clipboard does not contain a supported PCBcraft board fragment."))?;
++            serde_json::from_str(text).map_err(|_| invalid("Clipboard does not contain a supported PCBZ board fragment."))?;
+         if envelope.footprints.iter().any(|footprint| footprint.locked) {
+             return Err(invalid("footprint locks are not supported by the board clipboard format"));
+         }
+diff --git a/crates/engine/src/board/fabrication/review.rs b/crates/engine/src/board/fabrication/review.rs
+index 2a388d9..041063b 100644
+--- a/crates/engine/src/board/fabrication/review.rs
++++ b/crates/engine/src/board/fabrication/review.rs
+@@ -181,7 +181,7 @@ impl Package {
+                 members.push((name, content));
+             }
+         }
+-        let manifest = manifest.ok_or("This ZIP has no PCBcraft fabrication manifest.")?;
++        let manifest = manifest.ok_or("This ZIP has no PCBZ fabrication manifest.")?;
+         if manifest.files.len() != members.len() || members.is_empty() {
+             return Err("Fabrication manifest and ZIP member lists differ.".into());
+         }
+diff --git a/crates/engine/src/board/fabrication/review/gerber.rs b/crates/engine/src/board/fabrication/review/gerber.rs
+index 9943137..e4b3158 100644
+--- a/crates/engine/src/board/fabrication/review/gerber.rs
++++ b/crates/engine/src/board/fabrication/review/gerber.rs
+@@ -71,7 +71,7 @@ pub(super) fn read(text: &str, budget: &mut usize) -> Result<(Layer, CoordinateF
+     let frame = plot.frame.ok_or("Gerber coordinate frame is missing")?;
+     let is_mask = matches!(role, LayerRole::TopMask | LayerRole::BottomMask);
+     if lines.next().is_some() || plot.region.is_some() || !plot.ready() || plot.polarity != Some(!is_mask) {
+-        return Err("Incomplete or unsupported PCBcraft Gerber plot".into());
++        return Err("Incomplete or unsupported PCBZ Gerber plot".into());
+     }
+     Ok((Layer { name: String::new(), role, marks: plot.marks, tools: Vec::new() }, frame))
+ }
+diff --git a/crates/engine/src/board/lock_storage_tests.rs b/crates/engine/src/board/lock_storage_tests.rs
+index 2176b85..b98a680 100644
+--- a/crates/engine/src/board/lock_storage_tests.rs
++++ b/crates/engine/src/board/lock_storage_tests.rs
+@@ -768,7 +768,7 @@ fn clipboard_refuses_active_footprint_locks_without_changing_unlocked_fragments(
+         envelope["footprints"][1]["locked"] = malformed;
+         let error = BoardFragment::from_text(&serde_json::to_string(&envelope).unwrap()).unwrap_err();
+         assert!(matches!(&error, crate::CommandError::InvalidParams(_)), "{error}");
+-        assert!(error.to_string().contains("Clipboard does not contain a supported PCBcraft board fragment"));
++        assert!(error.to_string().contains("Clipboard does not contain a supported PCBZ board fragment"));
+     }
+ }
+ 
+diff --git a/crates/engine/src/clipboard.rs b/crates/engine/src/clipboard.rs
+index d8d7b16..1915ae2 100644
+--- a/crates/engine/src/clipboard.rs
++++ b/crates/engine/src/clipboard.rs
+@@ -244,7 +244,7 @@ impl Fragment {
+             return Err(invalid("clipboard exceeds the 8 MiB limit"));
+         }
+         let envelope: Envelope =
+-            serde_json::from_str(text).map_err(|_| invalid("Clipboard does not contain a supported PCBcraft design fragment."))?;
++            serde_json::from_str(text).map_err(|_| invalid("Clipboard does not contain a supported PCBZ design fragment."))?;
+         let lock_capable =
+             matches!(envelope.format.as_str(), DESIGNATOR_LOCK_FORMAT | NPTH_FORMAT | SLOT_FORMAT | RATED_PART_FORMAT | RATED_SLOT_FORMAT);
+         if !(lock_capable || matches!(envelope.format.as_str(), FORMAT | HIERARCHY_FORMAT))
+diff --git a/crates/engine/src/part_authoring.rs b/crates/engine/src/part_authoring.rs
+index 2fe828f..ced8ba8 100644
+--- a/crates/engine/src/part_authoring.rs
++++ b/crates/engine/src/part_authoring.rs
+@@ -160,7 +160,7 @@ fn new_identity() -> Result<uuid::Uuid, String> {
+ }
+ /// New authored records carry original provenance rather than an invented provider address.
+ fn original_source() -> Source {
+-    Source { kind: "original".into(), reference: "Original PCBcraft part".into(), locator: "PCBcraft part document".into() }
++    Source { kind: "original".into(), reference: "Original PCBZ part".into(), locator: "PCBZ part document".into() }
+ }
+ 
+ /// A captured part document has its own history and never mutates a project or source.

@@ -21,9 +21,9 @@ marked **changed**. The host keeps the same kinds as TypeScript types in its own
 | `--config-dir DIR` | SolidCraft's per-user folders | recovery snapshots go to `DIR/recovery`; with no flag there is **no** recovery (never the per-user folder); the editor keeps no other file (no settings, no token file, no discovery file) |
 | `ready` | `controlPort` | adds `controlSecret: string` (64 hex): give it to `pcbcraft-cli mcp --connect PORT` in `PCBCRAFT_CONTROL_TOKEN`. `samples` is always 1. `ready` comes after the startup project opened |
 | `design_changed` (server → host) | none (the host followed `document.revision` itself) | `{revision: u64}`: the open project's revision moved (an edit, undo or redo, from the pane or the control channel); sent after `ready` for the opened project, then once per pass whose revision differs from the last sent. Revisions only grow within a session |
-| `notice` (server → host) | host ↔ page only | the server may also send `{level: "info"\|"warn", text}` (a Chinese sentence for the user): today only "folders cannot be picked" |
+| `notice` (server → host) | host ↔ page only | the server may also send `{level: "info"\|"warn", text}` (a Chinese sentence for the user): today "folders cannot be picked" and "the copy is too big for the clipboard" |
 | `paste_request` (server → host) | none | a Paste button in the editor was pressed: the host answers with `input` `paste {text}` (the clipboard is the host's) |
-| `copied` | sent after the render server put the text on the system clipboard (arboard) | sent for every copy, **the render server never touches the system clipboard** (no arboard): the host puts `text` on the user's clipboard |
+| `copied` | sent after the render server put the text on the system clipboard (arboard) | sent for every copy, **the render server never touches the system clipboard** (no arboard): the host puts `text` on the user's clipboard. A copy whose `copied` header would pass 1 MiB (the host's limit; a big board selection) is not sent: a `notice` says so |
 | `ask_open` / `ask_save` / `ask_done` / `answer` | `Services::pick_*` futures polled by the UI each pass | the `rfd` crate is replaced by a shim: each of the editor's 13 file dialogs blocks its own worker thread until `answer` (the UI loop never waits). `ask_open.exts` is every extension of every filter (no dot); `ask_save.name` is the suggested name, `exts` the filters'. **Folder picks and saves with no filter (a new project or library folder) are cancelled at once with a `notice`**. `ask_done {ask, ok}` is sent when the thread that got the answer ends (the editor's save worker has written the file and reported): `ok` = the answer named a path. A thread that never ends sends none |
 | `policy` | host read-only hook + `document.import` backstop | `Session::set_scope` (upstream patch 0005): the engine refuses every command that changes the project, from the pane, the control channel, undo and redo; reading, selecting, exporting stay. The reason is shown on the editor's status bar. `null` makes the session editable again |
 | Product name | SolidZ | PCBZ (`PCBCraft`/`PCBcraft` in every string the editor shows: app bar, About, window title, menus, dialogs, settings text, file filter names) |
@@ -206,10 +206,18 @@ documentation, release and bug-report links are not opened (`OpenUrl` is ignored
 no flag for it. The UI is English (upstream's catalog); Chinese text in names draws with the first system CJK font
 (patch 0009).
 
+## What the pane cannot do (patch 0010)
+
+The host keeps one project per conversation and is the editor's only control client. In the pane, File > New Project, Ctrl+N,
+Open, Ctrl+O, Open recent and the Home tiles that would replace the project, and Help > Connect AI assistants (whose Disable would
+cut the host's channel), only put a line on the status bar. The Assistant and every AI feature are off (no agent probes, keychain
+or HTTPS client); the AI preferences page says the chat beside the editor is the assistant. A model's `project.new` through the
+control channel still works: the host owns that decision.
+
 ## What the render server does with the platform output
 
 - `cursor_icon` → `cursor` (on change). `ime` → `ime` (on change).
-- `OutputCommand::CopyText(t)` → `copied` (always). `CopyImage`, `OpenUrl` and `TextSelectionSettled` → ignored (logged).
+- `OutputCommand::CopyText(t)` → `copied`, or a `notice` when its header would pass 1 MiB. `CopyImage`, `OpenUrl` and `TextSelectionSettled` → ignored (logged).
 - `ViewportCommand::RequestPaste` → `paste_request`.
 - Other viewport commands: `Close`, `Minimized`, `Maximized`, `BeginResize`, `StartDrag`, `Title`, `Focus`,
   `CursorPosition` are ignored; the pane is not a window. Detached editor windows are windows inside the pane (egui's
@@ -219,7 +227,7 @@ no flag for it. The UI is English (upstream's catalog); Chinese text in names dr
 
 `readOnly: "<reason>"` makes the live session read-only (`Session::set_scope(ReadOnly)`): every command that
 changes the project is refused with `out_of_scope` ("`project.rename` cannot run in a read-only session"), whoever sends
-it (the pane's tools, the control channel's `execute`, undo and redo); opening a project, looking, selecting, measuring and
+it (the pane's tools, the control channel's `execute`, undo and redo); looking, selecting, measuring, reviewing a fabrication ZIP and
 exporting stay. `project.snapshot_packed` (the bridge's `snapshot_project`) stays: saving what is there is reading.
 The reason shows on the editor's status bar. `null` makes the session editable again.
 

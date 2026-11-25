@@ -32,8 +32,10 @@ the upstream editor with no window, offscreen on a headless wgpu device.
   the protocol and lists every difference from SolidZ's.
 
 The workflow builds the editor and the CLI together for Linux x64 (lavapipe), Windows x64 (WARP, static C runtime) and macOS
-(Apple silicon, Metal), runs the snapshot smoke and `scripts/stream_proof.py` (a scripted host: frames, a click, a key and
-text, `project.rename`, `snapshot_project`, `edit.undo`, a read-only session that refuses an edit), and uploads the frame PNGs,
+(Apple silicon, Metal), runs the snapshot smoke and `scripts/stream_proof.py` (a scripted host: frames, clicks, keys, text, IME, copy and paste,
+`project.rename`, `snapshot_project`, `edit.undo`, the pane's Undo of a model edit, New/Open/Connect refused, a read-only session
+whose UI edits leave the snapshot byte for byte, file dialogs asked of the host; on Linux under strace: no other program, no
+network beyond loopback), and uploads the frame PNGs,
 the protocol log, the timings and the logs. `workflow_dispatch` takes `targets` to build only some platforms.
 
 Upstream patches added for it (each only adds or guards; `0001` and `0002` are unchanged):
@@ -46,8 +48,9 @@ Upstream patches added for it (each only adds or guards; `0001` and `0002` are u
 | `0005-session-scope.patch` | `Session::set_scope` and `PcbApp::set_read_only`: a running session turned read-only by the host |
 | `0006-live-snapshot-packed.patch` | the live control server answers `project.snapshot_packed` as the headless engine does; `PcbApp::start_control` |
 | `0007-trash-guard.patch` | no system trash (no `gio`/`osascript`/`powershell`) from the embedded app |
-| `0008-product-name.patch` | the name a user sees is PCBZ (strings only) |
+| `0008-product-name.patch` | the name a user sees is PCBZ (strings only, the engine messages the editor shows included) |
 | `0009-cjk-fonts.patch` | a system CJK font behind Plex, so Chinese draws |
+| `0010-embedded-entry-points.patch` | embedded: New/Open/Open recent, Help > Connect AI assistants and the Assistant (AI features) do nothing but say why; no "Local MCP enabled" |
 
 `render-server/workspace.patch` and `render-server/Cargo.lock.patch` (applied by the render-server workflow only) replace the `rfd`
 crate with `render-server/shims/rfd`, whose `FileDialog` asks the host process instead of the operating system, and carry the lock

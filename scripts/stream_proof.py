@@ -3,12 +3,13 @@
 session through the control channel with `pcbcraft-cli mcp --connect`.
 
 Usage: python stream_proof.py --server BIN --cli BIN --project FILE --out DIR [--adapter software|auto]
-                              [--size 960x600] [--mac]
+                              [--size 960x600] [--mac] [--strace]
 
-Two sessions: an editable one (frames, click on the Board workspace, key + text, project.rename,
-snapshot_project, edit.undo, a UI edit that the control channel sees as one revision stream) and a
-read-only one (policy at start: an edit through the control channel is refused, a UI edit does not
-move the revision). Writes frames/*.png, protocol.log (one JSON line per message), timings.json,
+Two sessions: an editable one (frames, click on the Board workspace, key + text + IME + copy/paste, project.rename,
+snapshot_project, edit.undo, the app bar's Undo of a model edit, a UI edit that the control channel sees as one revision
+stream, New/Ctrl+N/Connect AI assistants refused) and a read-only one (policy at start: an edit through the control channel
+is refused, UI edits leave the snapshot byte for byte, Ctrl+O asks nothing, Open ZIP asks the host). `--strace` (Linux):
+the server must start no other program and connect to nothing beyond loopback. Writes frames/*.png, protocol.log (one JSON line per message), timings.json,
 report.json, server-*.log, mcp-*.log into DIR. Exit 0 only when every required check passed.
 """
 import argparse
@@ -329,7 +330,8 @@ class Session:
         import shutil
         self.project_file = self.out / f"project-{self.name}.pc"
         shutil.copyfile(self.args.project, self.project_file)
-        cmd = [self.args.server, "--stream", f"127.0.0.1:{listener.getsockname()[1]}", "--session", self.name, "--size", self.args.size,
+        trace = [] if not getattr(self.args, "strace", False) else ["strace", "-f", "-qq", "-e", "trace=execve,connect", "-o", str(self.out / f"strace-{self.name}.log")]
+        cmd = trace + [self.args.server, "--stream", f"127.0.0.1:{listener.getsockname()[1]}", "--session", self.name, "--size", self.args.size,
                "--adapter", self.args.adapter, "--project", str(self.project_file), "--config-dir", str(self.config_dir)]
         self.errlog = open(self.out / f"server-{self.name}.log", "w", encoding="utf-8")
         t0 = time.perf_counter()
@@ -544,13 +546,27 @@ def editable_session(args, out):
         s.press("a", "KeyA", "select-all", cmd)
         row = s.type_text("NETZ1", "label-text")
         s.check("typing into the Net name field redraws the pane", row is not None, row)
+        # IME: a composition, then its commit in Chinese (patch 0009 draws the glyphs)
+        s.send_input([{"e": "preedit", "text": "wang", "range": [4, 4]}], "ime-preedit")
+        s.send_input([{"e": "commit", "text": "网络"}], "ime-commit")
+        # copy: the field's text goes to the host (`copied`); paste: the host's text lands in the field
+        mark = len(s.asks)
+        s.press("a", "KeyA", "select-all-2", cmd)
+        s.send_input([{"e": "copy"}], "copy")
+        s.pump(1.0)
+        copied = [a for a in s.asks[mark:] if a["k"] == "copied"]
+        s.check("copy in the field hands the text to the host (copied)", bool(copied) and copied[-1]["text"] == "NETZ1网络", s.asks[mark:])
+        s.press("End", "End", "end")
+        s.send_input([{"e": "paste", "text": "_P"}], "paste")
         s.snap("label-typed")
         s.click(811, 378, "label-place")
         s.snap("label-after-place")
         s.click(330, 300, "label-click-sheet")
         s.snap("label-click")
-        s.check("the UI edit moved the revision (design_changed)", s.revision is not None and rev_ui is not None and s.revision > rev_ui, (rev_ui, s.revision), required=False)
+        s.check("the UI edit moved the revision (design_changed)", s.revision is not None and rev_ui is not None and s.revision > rev_ui, (rev_ui, s.revision))
         s.press("Escape", "Escape", "escape-2")
+        err, info = s.bridge_call(lambda: s.bridge.tool("inspect_project"))
+        s.check("the placed label has the typed, IME-committed and pasted name", not err and "NETZ1网络_P" in json.dumps(info, ensure_ascii=False), str(info)[:300])
 
         # --- a click on the Board workspace: the workspace picker, then PCB Layout
         row = s.click(53, 135, "workspace-picker")
@@ -610,6 +626,39 @@ def editable_session(args, out):
         s.check("edit.undo gave the old name back", undone == original, (original, undone))
         s.check("undo moved the revision too", s.revision is not None and rev1 is not None and s.revision != rev1, (rev1, s.revision))
         s.snap("undone")
+
+        # --- one history: the model's edit, undone from the pane (the app bar's Undo)
+        err, reply = s.bridge_call(lambda: s.bridge.execute("project.rename", {"name": "Model edit 模型"}))
+        s.settle()
+        rev2 = s.revision
+        s.click(182, 16, "undo-icon")
+        s.settle()
+        name, _ = s.snapshot_name()
+        s.check("the app bar's Undo undid the model's edit", not err and name == original and s.revision != rev2, (original, name, rev2, s.revision))
+
+        # --- what the host owns (patch 0010): New Project, Ctrl+N, Help > Connect AI assistants
+        s.click(124, 16, "file-menu-2")
+        s.settle()
+        s.click(177, 52, "file-new-project")
+        s.settle()
+        s.press("n", "KeyN", "ctrl-n", cmd)
+        s.settle()
+        name, _ = s.snapshot_name()
+        s.check("File > New Project and Ctrl+N leave the host's project in place", name == original, (original, name))
+        s.snap("new-refused")
+        s.press("Escape", "Escape", "escape-4")
+        s.click(940, 16, "help-menu")
+        s.snap("help-menu")
+        s.click(817, 151, "connect-ai")
+        s.settle()
+        s.snap("connect-refused")
+        s.click(498, 325, "disable-connection")
+        s.settle()
+        try:
+            err, info = s.bridge_call(lambda: s.bridge.tool("inspect_project"))
+        except Exception as e:
+            err, info = True, e
+        s.check("the control channel survives Help > Connect AI assistants", not err, str(info)[:200])
         s.check("the editor wrote nothing to the project file", sha256(s.project_file) == project_hash, "project file changed")
     finally:
         s.stop()
@@ -633,29 +682,57 @@ def read_only_session(args, out):
         s.check("the revision did not move", s.revision == rev0, (rev0, s.revision))
         err, reply = s.bridge_call(lambda: s.bridge.execute("edit.undo"))
         s.check("a read-only editor refuses edit.undo", err, reply)
-        # a UI edit is refused too: the label dialog's Place does nothing
+        # UI edits are refused too: a net label placed on the sheet, select all + Delete, the app bar's Undo.
+        # The snapshot stays byte for byte.
+        err, snap0 = s.bridge_call(lambda: s.bridge.tool("snapshot_project"))
         s.press("l", "KeyL", "key-l")
         s.click(811, 378, "label-place")
+        s.click(330, 300, "label-click-sheet")
+        s.press("Escape", "Escape", "escape-label")
+        s.click(480, 470, "sheet")
+        s.press("a", "KeyA", "select-all", cmd)
+        s.press("Delete", "Delete", "delete")
+        s.click(182, 16, "undo-icon")
         s.settle()
-        s.check("a UI edit does not move the revision either", s.revision == rev0, (rev0, s.revision))
+        s.check("UI edits do not move the revision either", s.revision == rev0, (rev0, s.revision))
+        err1, snap1 = s.bridge_call(lambda: s.bridge.tool("snapshot_project"))
+        same = not err and not err1 and snap0.get("archive_base64") == snap1.get("archive_base64")
+        s.check("the snapshot is byte for byte the same after the UI edits", same, (err, err1))
         s.snap("readonly-after")
-        # File > Open (Ctrl+O) asks the host for a file: answer with another project
+        # File > Open (Ctrl+O) would replace the host's project: refused, no dialog (patch 0010)
         asks_before = len(s.asks)
+        s.press("Escape", "Escape", "escape-select")
         s.press("o", "KeyO", "open", cmd)
-        s.snap("open-dialog")
-        s.click(380, 289, "open-file")
-        s.settle(quiet=1.5)
-        opens = [a for a in s.asks[asks_before:] if a["k"] == "ask_open"]
-        s.check("Open > Project file asks the host for a file (ask_open)", bool(opens), s.asks[asks_before:])
-        if opens:
-            s.check("ask_open names the project file types", {"pc"} <= set(opens[0].get("exts", [])), opens[0])
-            s.leg.send({"k": "answer", "ask": opens[0]["ask"], "path": str(pathlib.Path(args.project2).resolve())})
-            s.settle(quiet=2.0)
-            name2, _ = s.snapshot_name()
-            s.check("answering the ask opened the other project", bool(name2) and name2 != original, (original, name2))
-            s.check("ask_done followed the open", any(a["k"] == "ask_done" and a["ask"] == opens[0]["ask"] for a in s.asks), s.asks[-3:])
-        s.check("the opened project announced its revision", s.revision is not None and s.revision != rev0, (rev0, s.revision), required=False)
-        s.snap("readonly-opened")
+        s.settle()
+        s.click(380, 289, "open-project-file")
+        s.settle()
+        asked = [a for a in s.asks[asks_before:] if a["k"] == "ask_open"]
+        for a in asked:
+            s.leg.send({"k": "answer", "ask": a["ask"], "path": None})
+        s.settle()
+        name, _ = s.snapshot_name()
+        s.check("Ctrl+O asks nothing and leaves the host's project", name == original and not asked, (original, name, asked))
+        # a file the editor reads is asked of the host: Manufacturing > Open ZIP (review is reading, so read-only allows it)
+        s.click(53, 135, "workspace-picker")
+        s.snap("readonly-workspace-picker")
+        s.click(190, 300, "board-open")
+        s.settle()
+        s.click(321, 57, "manufacture-tab")
+        s.settle()
+        s.click(230, 105, "manufacturing")
+        s.snap("readonly-manufacturing")
+        for answer in (None, str(pathlib.Path(args.project2).resolve())):
+            asks_before = len(s.asks)
+            s.click(152, 105, "open-zip")
+            s.settle(quiet=1.5)
+            opens = [a for a in s.asks[asks_before:] if a["k"] == "ask_open"]
+            s.check("Open ZIP asks the host for a file (ask_open, zip)", bool(opens) and opens[0].get("exts") == ["zip"], s.asks[asks_before:])
+            if opens:
+                s.leg.send({"k": "answer", "ask": opens[0]["ask"], "path": answer})
+                s.settle(quiet=1.5)
+                done = [a for a in s.asks[asks_before:] if a["k"] == "ask_done" and a["ask"] == opens[0]["ask"]]
+                s.check(f"ask_done follows ({'cancel' if answer is None else 'a file'}): ok {answer is not None}", bool(done) and done[0]["ok"] is (answer is not None), s.asks[asks_before:])
+        s.snap("readonly-open-zip")
     finally:
         s.stop()
     return s
@@ -671,6 +748,7 @@ def main():
     ap.add_argument("--adapter", default="auto")
     ap.add_argument("--size", default="960x600")
     ap.add_argument("--mac", action="store_true", help="the command key is Meta (macOS)")
+    ap.add_argument("--strace", action="store_true", help="Linux: run the server under strace; it must start no other program")
     args = ap.parse_args()
     out = pathlib.Path(args.out)
     (out / "frames").mkdir(parents=True, exist_ok=True)
@@ -683,6 +761,13 @@ def main():
             traceback.print_exc()
             failed = f"{flow.__name__}: {e!r}"
             break
+    if args.strace:
+        for s in sessions:
+            log = (out / f"strace-{s.name}.log").read_text(encoding="utf-8", errors="replace").splitlines()
+            started = [line for line in log if "execve(" in line and "= 0" in line]
+            inet = [line for line in log if "connect(" in line and "AF_INET" in line and "127.0.0.1" not in line]
+            s.check("the server started no other program (strace execve)", len(started) == 1, started[:4])
+            s.check("the server connected to nothing beyond loopback (strace connect)", not inet, inet[:4])
     checks = [c for s in sessions for c in s.checks]
     timings = [dict(session=s.name, **t) for s in sessions for t in s.timings]
     steps = [t for t in timings if t["step"] not in ("start-to-ready",) and "ms" in t]
