@@ -1,0 +1,77 @@
+diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
+new file mode 100644
+index 0000000..f763ff6
+--- /dev/null
++++ b/crates/app/src/embedded.rs
+@@ -0,0 +1,58 @@
++//! PCBZ render server patch (0002): the editor with no window.
++//!
++//! `PcbApp::new` needs eframe's `CreationContext` (storage, a window's context) and the crate keeps
++//! its fields private, so a host that draws the app itself (`ctx.run_ui(raw, |ui| app.frame(ui))`,
++//! as `performance/project.rs` does) has no way to build the app the way `new` does, nor to tell
++//! when its startup open has finished. This file adds exactly that, as new inherent methods:
++//! nothing existing is changed or read differently.
++
++use super::*;
++
++impl PcbApp {
++    /// What `new` builds when there is no storage: installs the fonts and icons on `ctx`, default
++    /// preferences, Home until `project` (a `.pc` archive, a project folder or its `project.json`)
++    /// has opened through the ordinary file worker on the first drawn frame.
++    pub fn new_embedded(ctx: &egui::Context, project: Option<std::path::PathBuf>) -> Self {
++        pcbcraft_chrome::install(ctx);
++        let storage: Option<&dyn eframe::Storage> = None;
++        let preferences = storage.and_then(|s| s.get_string(PREFERENCES_KEY)).map(|text| Preferences::parse(&text)).unwrap_or_default();
++        let mut views = EditorViews::default();
++        views.set_grid_defaults(preferences.schematic_grid_nm, preferences.board_grid_nm);
++        Self {
++            library_sources: native_sources::Sources::restore(storage.and_then(|s| s.get_string(native_sources::STORAGE_KEY))),
++            home: true,
++            properties_open: true,
++            arrangements: arrangements::Arrangements::from_storage(storage.and_then(|s| s.get_string(arrangements::STORAGE_KEY))),
++            preferences,
++            library_preferences: placement_filters::Settings::parse(storage.and_then(|s| s.get_string(placement_filters::STORAGE_KEY))),
++            board_appearance: board_appearance::Appearance::from_storage(storage.and_then(|s| s.get_string(board_appearance::STORAGE_KEY))),
++            routing_presets: board_presets::Presets::from_storage(storage.and_then(|s| s.get_string(board_presets::STORAGE_KEY))),
++            views,
++            files: project_files::ProjectFiles::with_recent(None),
++            assistant: assistant::Assistant::from_setting(None, None),
++            startup_open: project,
++            ..Self::default()
++        }
++    }
++
++    /// Deliver the control channel's synthetic input before egui builds its pointer and keyboard
++    /// state: what `eframe::App::raw_input_hook` does, for a host that has no `eframe::Frame`.
++    pub fn prepare_input(&mut self, ctx: &egui::Context, input: &mut egui::RawInput) {
++        self.automation_input(ctx, input);
++    }
++
++    /// A project open (the startup one included) has not finished.
++    pub fn is_busy(&self) -> bool {
++        self.startup_open.is_some() || self.files.busy()
++    }
++
++    /// The session's revision while a project is loaded, `None` before one is.
++    pub fn open_revision(&self) -> Option<u64> {
++        self.session.snapshot().map(|_| self.session.revision())
++    }
++
++    /// The last failure or notice the status bar shows, for a host with no one to read the bar.
++    pub fn status_text(&self) -> Option<&str> {
++        self.message.as_deref().or(self.file_notice.as_deref())
++    }
++}
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index 0e4769b..3cf45d9 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -38,6 +38,8 @@ mod editor_layout;
+ mod editor_view;
+ mod editor_windows;
+ mod editor_workspace;
++#[cfg(not(target_arch = "wasm32"))]
++mod embedded;
+ mod external_clipboard;
+ mod field_actions;
+ mod footprint_assignment;

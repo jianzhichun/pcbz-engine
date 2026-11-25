@@ -1,0 +1,124 @@
+# Build pcbcraft-render-server (the editing UI drawn with no window) from tangency-labs/pcbcraft at the commit in
+# UPSTREAM_COMMIT, with patches/, on Linux x64 (lavapipe), Windows x64 (WARP) and macOS (Apple silicon, Metal), and run
+# the M1 snapshot smoke: open examples/sensor-node.pc, write frame-0001.png.. offscreen. Artifacts only: the PNGs, the
+# logs, frames.json and the build time and binary size. engine.yml (the CLI and its release path) is not touched.
+name: render-server
+on:
+  push:
+    branches: [render-server]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'fast: no LTO, 256 codegen units (iterating); release: the repo profile (what would ship)'
+        default: fast
+permissions:
+  contents: read
+concurrency:
+  group: render-server-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  snapshot:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, target: linux-x64, exe: '', adapter: software }
+          - { os: windows-2025, target: windows-x64, exe: '.exe', adapter: software }
+          - { os: macos-15, target: macos-arm64, exe: '', adapter: auto }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: '-C target-feature=+crt-static'
+      PCBZ_RENDER_LOG: info
+    steps:
+      - uses: actions/checkout@v4
+      - name: upstream at the pinned commit, patched, with the render server
+        shell: bash
+        run: |
+          commit=$(tr -d '[:space:]' < UPSTREAM_COMMIT)
+          git init -q upstream
+          git -C upstream fetch -q --depth 1 https://github.com/tangency-labs/pcbcraft.git "$commit"
+          git -C upstream checkout -q FETCH_HEAD
+          [ "$(git -C upstream rev-parse HEAD)" = "$commit" ] || { echo "fetched the wrong commit"; exit 1; }
+          for p in patches/*.patch; do git -C upstream apply --verbose "../$p"; done
+          cp -R render-server upstream/apps/pcbcraft-render-server
+      - name: Linux software Vulkan (lavapipe)
+        if: matrix.target == 'linux-x64'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q mesa-vulkan-drivers vulkan-tools
+          vulkaninfo --summary || true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: upstream
+          prefix-key: render-server-${{ github.event.inputs.profile || 'fast' }}
+          key: ${{ matrix.target }}
+          cache-on-failure: true
+      - name: build
+        shell: bash
+        working-directory: upstream
+        run: |
+          if [ "${{ github.event.inputs.profile || 'fast' }}" = fast ]; then
+            export CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=256
+          fi
+          rustc --version
+          start=$(date +%s)
+          # no --locked: the new package is not in Cargo.lock yet; the lock hunk is uploaded below
+          cargo build --release -p pcbcraft-render-server 2>&1 | tee ../build.log
+          build_seconds=$(( $(date +%s) - start ))
+          bin=target/release/pcbcraft-render-server${{ matrix.exe }}
+          size=$(wc -c < "$bin" | tr -d ' ')
+          {
+            echo "target=${{ matrix.target }} profile=${{ github.event.inputs.profile || 'fast' }}"
+            echo "build_seconds=$build_seconds"
+            echo "binary_bytes=$size"
+          } | tee ../metrics.txt
+          git diff Cargo.lock > ../cargo-lock.diff || true
+      - name: unit tests (host loop pieces)
+        if: matrix.target == 'linux-x64'
+        shell: bash
+        working-directory: upstream
+        run: |
+          export CARGO_PROFILE_TEST_DEBUG=0
+          cargo test --release -p pcbcraft-render-server 2>&1 | tee ../test.log
+      - name: snapshot smoke (sensor-node, no window)
+        shell: bash
+        run: |
+          mkdir -p out recovery
+          export PCBCRAFT_RECOVERY_DIR="$PWD/recovery"
+          unset DISPLAY WAYLAND_DISPLAY || true
+          bin="upstream/target/release/pcbcraft-render-server${{ matrix.exe }}"
+          "$bin" --version 2>&1 | tee smoke.log
+          set +e
+          "$bin" --snapshot out --frames 2 --size 960x600 --adapter ${{ matrix.adapter }} \
+            --project upstream/examples/sensor-node.pc 2>&1 | tee -a smoke.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "exit=$code" | tee -a smoke.log
+          [ "$code" = 0 ]
+          ls -l out
+          python scripts/png_check.py out/frame-0001.png 960 600 500 2>&1 | tee -a smoke.log
+          python scripts/png_check.py out/frame-0002.png 960 600 500 2>&1 | tee -a smoke.log
+          cat out/frames.json
+      - name: summary
+        if: always()
+        shell: bash
+        run: |
+          { echo "### ${{ matrix.target }}"; echo '```'; cat metrics.txt 2>/dev/null; tail -n 12 smoke.log 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: render-server-${{ matrix.target }}
+          path: |
+            out/
+            smoke.log
+            build.log
+            test.log
+            metrics.txt
+            cargo-lock.diff
+          if-no-files-found: warn
+          retention-days: 14

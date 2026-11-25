@@ -1,0 +1,22 @@
+[package]
+name = "pcbcraft-render-server"
+description = "The editing UI drawn offscreen (no window): frames out as PNG today, streamed to an embedding host later"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+pcbcraft-app = { workspace = true }
+egui = { workspace = true }
+# Patched to SolidCraft's fork by the workspace's [patch.crates-io]; the same crate eframe draws with.
+egui-wgpu = "=0.37.0"
+serde_json = { workspace = true }
+log = { workspace = true }
+pollster = "1"
+# PNG for snapshots (pure Rust).
+image = { version = "0.25", default-features = false, features = ["png"] }
