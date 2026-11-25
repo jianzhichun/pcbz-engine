@@ -121,5 +121,9 @@ jobs:
           [ "$(ls | wc -l)" = 3 ] || { ls; echo "expected three archives"; exit 1; }
           sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --title "$GITHUB_REF_NAME" --notes "pcbcraft-cli built from tangency-labs/pcbcraft at the commit in UPSTREAM_COMMIT, with patches/. See SOURCE.txt in each archive." *
+          # the render server's workflow releases the same tag: create the release if it is missing, else add to it
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME" \
+              --notes "pcbcraft-cli built from tangency-labs/pcbcraft at the commit in UPSTREAM_COMMIT, with patches/. See SOURCE.txt in each archive." || true
+          fi
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber *
