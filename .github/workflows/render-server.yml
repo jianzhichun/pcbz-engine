@@ -71,10 +71,12 @@ jobs:
           [ "$(git -C upstream rev-parse HEAD)" = "$commit" ] || { echo "fetched the wrong commit"; exit 1; }
           for p in patches/*.patch; do git -C upstream apply --verbose "../$p"; done
           cp -R render-server upstream/apps/pcbcraft-render-server
-          # the workspace-level part of the render server (root Cargo.toml: the rfd shim replaces rfd). Kept out of
-          # patches/ because engine.yml builds the CLI with --locked from a tree that has no render server.
-          rm upstream/apps/pcbcraft-render-server/workspace.patch
+          # the workspace-level part of the render server: the root Cargo.toml (the rfd shim replaces rfd) and the lock entries
+          # that follow from it and from the new member. Kept out of patches/ because engine.yml builds the CLI with --locked
+          # from a tree that has no render server.
+          rm upstream/apps/pcbcraft-render-server/workspace.patch upstream/apps/pcbcraft-render-server/Cargo.lock.patch
           git -C upstream apply --verbose ../render-server/workspace.patch
+          git -C upstream apply --verbose ../render-server/Cargo.lock.patch
       - name: Linux software Vulkan (lavapipe) and a Chinese font
         if: matrix.target == 'linux-x64'
         run: |
@@ -97,8 +99,7 @@ jobs:
           fi
           rustc --version
           start=$(date +%s)
-          # no --locked: the rfd shim changes Cargo.lock (cargo-lock.diff is uploaded; folded into a patch later)
-          cargo build --release -p pcbcraft-cli -p pcbcraft-render-server 2>&1 | tee ../build.log
+          cargo build --locked --release -p pcbcraft-cli -p pcbcraft-render-server 2>&1 | tee ../build.log
           build_seconds=$(( $(date +%s) - start ))
           bin=target/release/pcbcraft-render-server${{ matrix.exe }}
           size=$(wc -c < "$bin" | tr -d ' ')
@@ -107,15 +108,13 @@ jobs:
             echo "build_seconds=$build_seconds"
             echo "binary_bytes=$size"
           } | tee ../metrics.txt
-          git diff Cargo.lock > ../cargo-lock.diff || true
-          git diff --stat Cargo.lock
       - name: unit tests (host loop pieces, rfd shim)
         if: matrix.target == 'linux-x64'
         shell: bash
         working-directory: upstream
         run: |
           export CARGO_PROFILE_TEST_DEBUG=0
-          cargo test --release -p pcbcraft-render-server -p rfd 2>&1 | tee ../test.log
+          cargo test --locked --release -p pcbcraft-render-server -p rfd 2>&1 | tee ../test.log
       - name: snapshot smoke (sensor-node, no window)
         shell: bash
         run: |
@@ -211,7 +210,6 @@ jobs:
             build.log
             test.log
             metrics.txt
-            cargo-lock.diff
           if-no-files-found: warn
           retention-days: 14
       - name: the proof must have passed

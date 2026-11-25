@@ -49,6 +49,7 @@ Upstream patches added for it (each only adds or guards; `0001` and `0002` are u
 | `0008-product-name.patch` | the name a user sees is PCBZ (strings only) |
 | `0009-cjk-fonts.patch` | a system CJK font behind Plex, so Chinese draws |
 
-`render-server/workspace.patch` (applied by the render-server workflow only) replaces the `rfd` crate with `render-server/shims/rfd`,
-whose `FileDialog` asks the host process instead of the operating system. It is not in `patches/` because `engine.yml` builds the
-CLI with `--locked` from a tree that has no render server.
+`render-server/workspace.patch` and `render-server/Cargo.lock.patch` (applied by the render-server workflow only) replace the `rfd`
+crate with `render-server/shims/rfd`, whose `FileDialog` asks the host process instead of the operating system, and carry the lock
+entries that follow (the new member, `rfd` as a path crate, `image`'s JPEG codec). They are not in `patches/` because `engine.yml`
+builds the CLI with `--locked` from a tree that has no render server.
