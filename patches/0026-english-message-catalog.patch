@@ -1,8 +1,8 @@
 diff --git a/crates/chrome/assets/shared-ui/en.json b/crates/chrome/assets/shared-ui/en.json
-index 212df46..9bed77c 100644
+index 212df46..2604ec0 100644
 --- a/crates/chrome/assets/shared-ui/en.json
 +++ b/crates/chrome/assets/shared-ui/en.json
-@@ -102,5 +102,392 @@
+@@ -102,5 +102,395 @@
    "ui.viewport_status_summary_more": "+{count}",
    "ui.workspace_available": "Available",
    "ui.workspace_current": "Current",
@@ -393,6 +393,9 @@ index 212df46..9bed77c 100644
 +  "fragment.local_files": "Local files",
 +  "fragment.schematic": "schematic",
 +  "fragment.pcb_canvas": "PCB canvas",
++  "fragment.resize_height": "height",
++  "fragment.resize_width_left": "width from left",
++  "fragment.resize_width": "width",
 +  "fragment.not_recorded": "Not recorded",
 +  "fragment.invalid_library_documents": "Invalid library documents"
  }

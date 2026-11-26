@@ -2,7 +2,7 @@ diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
 index d01981d..09ccb36 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
-@@ -2786,6 +2786,20 @@ impl PcbApp {
+@@ -2786,7 +2786,22 @@ impl PcbApp {
                  }
              }
          }
@@ -23,7 +23,9 @@ index d01981d..09ccb36 100644
          let project = self.session.project().map(|project| project.name.clone());
          host::publish_status(
              json!({
-@@ -2805,13 +2819,6 @@ impl PcbApp {
++                "pass_complete": true,
+                 "revision": self.session.revision(),
+@@ -2805,13 +2820,6 @@ impl PcbApp {
              })
              .to_string(),
          );
@@ -37,7 +39,7 @@ index d01981d..09ccb36 100644
      }
  
      /// Adopt project file results and handle Close before considering a timed Save, even in
-@@ -2926,6 +2933,11 @@ impl PcbApp {
+@@ -2926,6 +2934,11 @@ impl PcbApp {
          if before != (self.session.revision(), self.preferences, std::mem::discriminant(&self.dialog), self.home, self.library_editors.stamp()) {
              self.repaint_editors(&ctx);
          }

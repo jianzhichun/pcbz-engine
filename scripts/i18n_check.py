@@ -72,7 +72,7 @@ def main():
         for word in FORBIDDEN:
             if word.lower() in low:
                 problems.append(f"zh.json[{key!r}] names {word!r}: {value!r}")
-        if re.search(r"\{[^}]*\}", en.get(key, "")) and sorted(re.findall(r"\{[^}]*\}", en.get(key, ""))) != sorted(re.findall(r"\{[^}]*\}", value)):
+        if key in en and sorted(re.findall(r"\{[^}]*\}", en.get(key, ""))) != sorted(re.findall(r"\{[^}]*\}", value)):
             problems.append(f"zh.json[{key!r}] changed the placeholders of {en.get(key)!r}")
 
     remaining = []
@@ -98,9 +98,14 @@ def main():
 
     from collections import Counter
     exceptions = json.loads(pathlib.Path(__file__).with_name("i18n_non_ui.json").read_text(encoding="utf-8"))
+    ARG_TOKENS = re.compile(r'"(?:[^"\\]|\\.)*"|[][(){}]')
+    ARG_NAME = re.compile(r'\s*"(\w+)"\s*,')
     fmt = []
     used = set()
     dynamic = {k for k in en if k.startswith("dynamic.")}
+    contract = {k for k in zh if k.startswith(("dynamic.", "fragment."))}
+    for key in sorted(contract - en.keys()):
+        problems.append(f"missing English fallback: {key}")
     for key in dynamic:
         if not zh.get(key) or zh[key] == en[key]:
             problems.append(f"missing Chinese dynamic translation: {key}")
@@ -111,7 +116,31 @@ def main():
                 text = path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            used.update(re.findall(r'i18n::format\(\s*"(dynamic\.[^"]+)"', text))
+            for call in re.finditer(r'i18n::format\(\s*"(dynamic\.[^"]+)"', text):
+                key = call[1]
+                used.add(key)
+                # Generated dynamic calls pass a literal slice of (name, value) tuples.
+                # Ignore nested indexing and quoted brackets in expressions such as min[0].
+                args = re.match(r'\s*,\s*&\[', text[call.end():])
+                if args is None:
+                    problems.append(f"{path.name}: expected named arguments for {key}")
+                    continue
+                start = call.end() + args.end()
+                depth = 1
+                names = []
+                for token in ARG_TOKENS.finditer(text, start):
+                    if token[0] in ("[", "(", "{"):
+                        depth += 1
+                        if depth == 2 and token[0] == "(":
+                            name = ARG_NAME.match(text, token.end())
+                            if name:
+                                names.append(name[1])
+                    elif token[0] in ("]", ")", "}"):
+                        depth -= 1
+                        if depth == 0:
+                            break
+                if sorted(names) != sorted(set(re.findall(r"\{([^{}]+)\}", en.get(key, "")))):
+                    problems.append(f"{path.name}: argument mismatch for {key}: {names}")
             allowance = Counter(exceptions.get(path.relative_to(root / "upstream").as_posix(), {}))
             for match in FMT.finditer(text):
                 template = match.group(1)

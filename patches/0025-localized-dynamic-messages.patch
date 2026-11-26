@@ -1024,7 +1024,7 @@ index 5771852..da467cc 100644
          })
          .collect()
 diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index 09ccb36..41e2861 100644
+index 09ccb36..3ecc028 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
 @@ -1522,14 +1522,9 @@ impl PcbApp {
@@ -1104,7 +1104,31 @@ index 09ccb36..41e2861 100644
          }
          request.answer(result);
          self.repaint_editors(ctx);
-@@ -3142,11 +3137,11 @@ fn shortcut_list(ctx: &egui::Context, navigation: Navigation) -> Vec<(&'static s
+@@ -2858,6 +2853,7 @@ impl PcbApp {
+     /// Native timers must run even when the window has no paint pass.
+     #[cfg(not(target_arch = "wasm32"))]
+     fn native_project_tick(&mut self, ctx: &egui::Context, now: std::time::Duration) {
++        let _language_scope = pcbcraft_chrome::i18n::scope(self.preferences.language);
+         self.project_file_tick(ctx);
+         self.autosave_tick(ctx, now);
+     }
+@@ -2866,6 +2862,7 @@ impl PcbApp {
+     /// path uses the same monotonic clock as logic-only passes; embedded hosts use input time.
+     fn frame_inner(&mut self, ui: &mut Ui, _native_framework: bool) {
+         let ctx = ui.ctx().clone();
++        let _language_scope = pcbcraft_chrome::i18n::scope(self.preferences.language);
+         // Requests the page queued across the wasm boundary run before this frame's file poll,
+         // through the same open, save and catalog-command paths as the menus below.
+         #[cfg(target_arch = "wasm32")]
+@@ -2875,7 +2872,6 @@ impl PcbApp {
+         self.poll_library_sources(&ctx);
+         let before = (self.session.revision(), self.preferences, std::mem::discriminant(&self.dialog), self.home, self.library_editors.stamp());
+         self.sync_style(&ctx);
+-        let _language_scope = pcbcraft_chrome::i18n::scope(self.preferences.language);
+         self.checkpoint_arrangements();
+         self.library_editors.poll();
+         self.poll_library_publication(&ctx);
+@@ -3142,11 +3138,11 @@ fn shortcut_list(ctx: &egui::Context, navigation: Navigation) -> Vec<(&'static s
      }
      let zoom_wheel = if wheel_pans {
          let command = if ctx.os() == egui::os::OperatingSystem::Mac { "⌘" } else { "Ctrl" };
@@ -3085,7 +3109,7 @@ index 3d00d36..4e8400c 100644
              debug_assert!(self.views.host == self.views.main);
              self.sync_library_focus();
 diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
-index 920ae27..f63a951 100644
+index 920ae27..23613f8 100644
 --- a/crates/chrome/assets/shared-ui/zh.json
 +++ b/crates/chrome/assets/shared-ui/zh.json
 @@ -964,7 +964,7 @@
@@ -3097,7 +3121,7 @@ index 920ae27..f63a951 100644
   "An arrangement collection can contain up to 32 arrangements.": "一个布局集合最多可包含 32 个布局。",
   "External clipboard text exceeds 64 KiB.": "剪贴板文本超过 64 KiB。",
   "Hierarchical sheet symbols and interfaces retain their orientation.": "层次图纸符号和接口保持其方向。",
-@@ -1019,5 +1019,392 @@
+@@ -1019,5 +1019,395 @@
   "Undo Library Edit": "撤销库编辑",
   "Unsaved library items": "未保存的库条目",
   "Vertex X (mm)": "顶点 X（mm）",
@@ -3488,6 +3512,9 @@ index 920ae27..f63a951 100644
 + "fragment.local_files": "本地文件",
 + "fragment.schematic": "原理图",
 + "fragment.pcb_canvas": "PCB 画布",
++ "fragment.resize_height": "高度",
++ "fragment.resize_width_left": "左侧宽度",
++ "fragment.resize_width": "宽度",
 + "fragment.not_recorded": "未记录",
 + "fragment.invalid_library_documents": "库文档无效"
  }
@@ -4014,7 +4041,7 @@ index df6af13..9bb3995 100644
  
  /// Find the largest rectangular space clear of every visible card, including cards floating
 diff --git a/crates/chrome/src/workspace/panels.rs b/crates/chrome/src/workspace/panels.rs
-index ae0996e..6843d5b 100644
+index ae0996e..78c7312 100644
 --- a/crates/chrome/src/workspace/panels.rs
 +++ b/crates/chrome/src/workspace/panels.rs
 @@ -142,16 +142,13 @@ impl Panel {
@@ -4024,7 +4051,7 @@ index ae0996e..6843d5b 100644
 -            let label = format!(
 -                "Resize {title} {}",
 -                if horizontal {
-+            let label = crate::i18n::format("dynamic.resize_83adf80", &[("title", &format!("{}", title)), ("arg1", &format!("{}", if horizontal {
++            let label = crate::i18n::format("dynamic.resize_83adf80", &[("title", &format!("{}", title)), ("arg1", crate::i18n::tr_label(if horizontal {
                      "height"
                  } else if leading {
                      "width from left"
