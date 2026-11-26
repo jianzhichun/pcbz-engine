@@ -128,6 +128,13 @@ jobs:
         run: |
           export CARGO_PROFILE_TEST_DEBUG=0
           cargo test --locked --release -p pcbcraft-render-server -p rfd 2>&1 | tee ../test.log
+      - name: Chinese catalog, scope and label translation (unit)
+        if: matrix.target == 'linux-x64'
+        shell: bash
+        working-directory: upstream
+        run: |
+          export CARGO_PROFILE_TEST_DEBUG=0
+          cargo test --locked --release -p pcbcraft-chrome i18n 2>&1 | tee ../i18n-test.log
       - name: snapshot smoke (sensor-node, no window)
         shell: bash
         run: |
@@ -282,6 +289,7 @@ jobs:
             strace-run.log
             build.log
             test.log
+            i18n-test.log
             metrics.txt
             bin/
           if-no-files-found: warn
