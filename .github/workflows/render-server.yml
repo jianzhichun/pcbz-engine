@@ -135,6 +135,7 @@ jobs:
         run: |
           export CARGO_PROFILE_TEST_DEBUG=0
           cargo test --locked --release -p pcbcraft-chrome i18n 2>&1 | tee ../i18n-test.log
+          cargo test --locked --release -p pcbcraft-app --lib thermal_and_insulation_reports_are_listed_and_kept_by_revisions 2>&1 | tee -a ../i18n-test.log
       - name: snapshot smoke (sensor-node, no window)
         shell: bash
         run: |

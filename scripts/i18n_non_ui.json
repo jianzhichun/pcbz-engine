@@ -42,10 +42,10 @@
   },
   "crates/app/src/board_setup/materials.rs": {
     " · {m}": 1,
-    "CTE {} ppm/K · {}{region}{range} · {:?}{}": 1,
-    "CTI {value}{group} · {:?}{}": 1,
+    "CTE {} ppm/K · {}{region}{range} · {}{}": 1,
+    "CTI {value}{group} · {}{}": 1,
     "Dk {}  ·  Df {}  ·  {}": 1,
-    "Tg  {} °C · {} · {:?}": 1,
+    "Tg  {} °C · {} · {}": 1,
     "{f} Hz": 1,
     "{v} V": 1,
     "{} · Synthetic method A": 1,

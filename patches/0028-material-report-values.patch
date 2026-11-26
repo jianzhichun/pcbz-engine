@@ -1,0 +1,200 @@
+# Translate the display values in material measurements, leaving source documents and units unchanged.
+diff --git a/crates/app/src/board_setup/materials.rs b/crates/app/src/board_setup/materials.rs
+index fde35b0..7989c1b 100644
+--- a/crates/app/src/board_setup/materials.rs
++++ b/crates/app/src/board_setup/materials.rs
+@@ -1,6 +1,7 @@
+ //! Sourced Tg/Dk/Df editing retains immutable material revisions and report conditions; thermal
+ //! and insulation reports are shown and carried into new revisions.
+ use super::*;
++use pcbcraft_chrome::i18n::tr_label;
+ use pcbcraft_engine::board::materials::{DielectricReport, DielectricValueKind, MeasurementAxis, ReportBasis, Source, TgMethod, TgRegion, TgReport};
+ 
+ /// One new material or revision; existing reports survive while new characterization is appended.
+@@ -34,23 +35,38 @@ fn text(value: &str) -> Option<String> {
+     (!value.is_empty()).then(|| value.to_owned())
+ }
+ 
++/// The report basis is a model enum; translate its caption, never its serialized value.
++fn report_basis(basis: ReportBasis) -> &'static str {
++    tr_label(match basis {
++        ReportBasis::Typical => "Typical",
++        ReportBasis::Minimum => "Minimum",
++        ReportBasis::Maximum => "Maximum",
++        ReportBasis::Measured => "Measured",
++    })
++}
++
+ /// Read-only summaries include each reported method when present, followed by its source.
+ /// Missing axes and CTI values are labelled unspecified; other absent conditions are omitted,
+ /// never defaulted.
+ fn thermal_and_insulation_lines(material: &Material) -> Vec<String> {
+-    let axis = |axis: Option<MeasurementAxis>| axis.map(|a| format!("{a:?}-axis")).unwrap_or_else(|| "axis unspecified".into());
++    let axis = |axis| tr_label(match axis {
++        Some(MeasurementAxis::X) => "X-axis",
++        Some(MeasurementAxis::Y) => "Y-axis",
++        Some(MeasurementAxis::Z) => "Z-axis",
++        None => "axis unspecified",
++    });
+     let celsius = |milli_c: i64| milli_c as f64 / 1000.;
+     let method = |value: &Option<String>| value.as_ref().map(|m| format!(" · {m}")).unwrap_or_default();
+     let mut lines = Vec::new();
+     for report in &material.thermal_conductivity {
+         let temperature = report.temperature_milli_c.map(|t| pcbcraft_chrome::i18n::format("dynamic.at_c_71ad18b", &[("arg1", &format!("{}", celsius(t)))])).unwrap_or_default();
+-        lines.push(pcbcraft_chrome::i18n::format("dynamic.thermal_conductivity_w_m_k_37b295d", &[("arg1", &format!("{}", report.conductivity_mw_per_m_k as f64 / 1000.)), ("arg2", &format!("{}", axis(report.axis))), ("temperature", &format!("{}", temperature)), ("arg3", &format!("{:?}", report.basis)), ("arg4", &format!("{}", method(&report.method)))]));
++        lines.push(pcbcraft_chrome::i18n::format("dynamic.thermal_conductivity_w_m_k_37b295d", &[("arg1", &format!("{}", report.conductivity_mw_per_m_k as f64 / 1000.)), ("arg2", axis(report.axis)), ("temperature", &format!("{}", temperature)), ("arg3", report_basis(report.basis)), ("arg4", &format!("{}", method(&report.method)))]));
+         lines.push(report.source.document.clone());
+     }
+     for report in &material.cte {
+         let region = match report.region {
+-            Some(TgRegion::BelowTg) => " · below Tg",
+-            Some(TgRegion::AboveTg) => " · above Tg",
++            Some(TgRegion::BelowTg) => tr_label(" · below Tg"),
++            Some(TgRegion::AboveTg) => tr_label(" · above Tg"),
+             None => "",
+         };
+         let range = match (report.from_milli_c, report.to_milli_c) {
+@@ -58,22 +74,22 @@ fn thermal_and_insulation_lines(material: &Material) -> Vec<String> {
+             _ => String::new(),
+         };
+         lines.push(format!(
+-            "CTE {} ppm/K · {}{region}{range} · {:?}{}",
++            "CTE {} ppm/K · {}{region}{range} · {}{}",
+             report.cte_ppb_per_k as f64 / 1000.,
+             axis(report.axis),
+-            report.basis,
++            report_basis(report.basis),
+             method(&report.method)
+         ));
+         lines.push(report.source.document.clone());
+     }
+     for report in &material.dielectric_strength {
+-        lines.push(pcbcraft_chrome::i18n::format("dynamic.dielectric_strength_kv_at_mm_8d409fa", &[("arg1", &format!("{}", report.breakdown_v as f64 / 1000.)), ("arg2", &format!("{}", report.specimen_thickness_nm as f64 / 1_000_000.)), ("arg3", &format!("{}", axis(report.axis))), ("arg4", &format!("{:?}", report.basis)), ("arg5", &format!("{}", method(&report.method)))]));
++        lines.push(pcbcraft_chrome::i18n::format("dynamic.dielectric_strength_kv_at_mm_8d409fa", &[("arg1", &format!("{}", report.breakdown_v as f64 / 1000.)), ("arg2", &format!("{}", report.specimen_thickness_nm as f64 / 1_000_000.)), ("arg3", axis(report.axis)), ("arg4", report_basis(report.basis)), ("arg5", &format!("{}", method(&report.method)))]));
+         lines.push(report.source.document.clone());
+     }
+     for report in &material.cti {
+-        let value = report.cti_v.map(|v| format!("{v} V")).unwrap_or_else(|| "value unspecified".into());
++        let value = report.cti_v.map(|v| format!("{v} V")).unwrap_or_else(|| tr_label("value unspecified").into());
+         let group = report.material_group.map(|g| pcbcraft_chrome::i18n::format("dynamic.group_0600afe", &[("arg1", &format!("{}", g.name()))])).unwrap_or_default();
+-        lines.push(format!("CTI {value}{group} · {:?}{}", report.basis, method(&report.method)));
++        lines.push(format!("CTI {value}{group} · {}{}", report_basis(report.basis), method(&report.method)));
+         lines.push(report.source.document.clone());
+     }
+     lines
+@@ -194,7 +210,7 @@ impl Edit {
+         form::text(ui, "Family", &mut self.family);
+         form::text(ui, "Manufacturer", &mut self.manufacturer);
+         form::text(ui, "Product", &mut self.product);
+-        ui.collapsing("Technical properties", |ui| {
++        ui.collapsing(tr_label("Technical properties"), |ui| {
+             form::text(ui, "Tg (°C)", &mut self.tg);
+             form::field(ui, "Tg method", |ui| {
+                 pcbcraft_chrome::controls::Choice::from_id_salt("tg_method")
+@@ -202,7 +218,7 @@ impl Edit {
+                         Some(TgMethod::Dsc) => "DSC",
+                         Some(TgMethod::Tma) => "TMA",
+                         Some(TgMethod::Dma) => "DMA",
+-                        None => "Choose method",
++                        None => tr_label("Choose method"),
+                     })
+                     .show_ui(ui, |ui| {
+                         for (value, name) in [(TgMethod::Dsc, "DSC"), (TgMethod::Tma, "TMA"), (TgMethod::Dma, "DMA")] {
+@@ -217,10 +233,10 @@ impl Edit {
+             form::text(ui, "Frequency (Hz)", &mut self.frequency);
+             form::field(ui, "Basis", |ui| {
+                 pcbcraft_chrome::controls::Choice::from_id_salt("report_basis")
+-                    .selected_text(self.basis.map(|b| format!("{b:?}")).unwrap_or_else(|| "Choose basis".into()))
++                    .selected_text(self.basis.map(report_basis).unwrap_or_else(|| tr_label("Choose basis")))
+                     .show_ui(ui, |ui| {
+                         for value in [ReportBasis::Typical, ReportBasis::Minimum, ReportBasis::Maximum, ReportBasis::Measured] {
+-                            ui.selectable_value(&mut self.basis, Some(value), format!("{value:?}"));
++                            ui.selectable_value(&mut self.basis, Some(value), report_basis(value));
+                         }
+                     })
+                     .response
+@@ -229,7 +245,7 @@ impl Edit {
+             form::text(ui, "Source document", &mut self.document);
+             form::text(ui, "Source revision", &mut self.revision);
+             form::text(ui, "Source locator", &mut self.locator);
+-            ui.collapsing("Measurement conditions", |ui| {
++            ui.collapsing(tr_label("Measurement conditions"), |ui| {
+                 form::text(ui, "Test method / standard", &mut self.method);
+                 form::text(ui, "Temperature (°C)", &mut self.temperature);
+                 form::text(ui, "Specimen glass construction", &mut self.specimen_glass);
+@@ -333,20 +349,20 @@ impl super::Edit {
+                     if !used && can_use && pcbcraft_chrome::controls::button(ui, "Use for stackup").clicked() {
+                         use_material = Some(material.reference());
+                     }
+-                    ui.collapsing("Technical details", |ui| {
++                    ui.collapsing(tr_label("Technical details"), |ui| {
+                         if let Some(source) = &material.source {
+                             ui.label(&source.document);
+                         }
+                         for report in &material.tg {
+                             ui.label(format!(
+-                                "Tg  {} °C · {} · {:?}",
++                                "Tg  {} °C · {} · {}",
+                                 report.temperature_milli_c as f64 / 1000.,
+                                 match report.method {
+                                     TgMethod::Dsc => "DSC",
+                                     TgMethod::Tma => "TMA",
+                                     TgMethod::Dma => "DMA",
+                                 },
+-                                report.basis
++                                report_basis(report.basis)
+                             ));
+                             ui.label(&report.source.document);
+                         }
+@@ -355,7 +371,7 @@ impl super::Edit {
+                                 "Dk {}  ·  Df {}  ·  {}",
+                                 report.dk_millionths.map(|n| (n as f64 / 1_000_000.).to_string()).unwrap_or_else(|| "—".into()),
+                                 report.df_millionths.map(|n| (n as f64 / 1_000_000.).to_string()).unwrap_or_else(|| "—".into()),
+-                                report.frequency_hz.map(|f| format!("{f} Hz")).unwrap_or_else(|| "Frequency unspecified".into())
++                                report.frequency_hz.map(|f| format!("{f} Hz")).unwrap_or_else(|| tr_label("Frequency unspecified").into())
+                             ));
+                             ui.label(&report.source.document);
+                         }
+@@ -467,6 +483,15 @@ mod tests {
+                 "Synthetic report",
+             ]
+         );
++        {
++            let _scope = pcbcraft_chrome::i18n::scope(pcbcraft_chrome::i18n::LanguageChoice::Chinese);
++            let lines = thermal_and_insulation_lines(&material);
++            assert_eq!(lines[0], "导热系数 1 W/(m·K) · Z 轴 · 典型值");
++            assert_eq!(lines[2], "CTE 50 ppm/K · Z 轴 · 低于 Tg · 典型值");
++            assert_eq!(lines[4], "介电强度：厚度为 1 mm 时为 40 kV · 未指定方向 · 最小值");
++            assert_eq!(lines[6], "CTI 未指定数值 · 组 IIIa · 最小值");
++            assert!(lines.iter().skip(1).step_by(2).all(|s| s == "Synthetic report"));
++        }
+         let mut edit = Edit::new(material.clone(), true).unwrap();
+         edit.product = "Revised".into();
+         let revised = edit.value().unwrap();
+diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
+index 3a9ddf9..7a1bdf3 100644
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -1418,5 +1418,22 @@
+  "Remove from all on Apply": "应用时从全部所选网络移除",
+  "Set wire color": "设置导线颜色",
+  "Set wire width": "设置导线宽度",
++ "Typical": "典型值",
++ "Minimum": "最小值",
++ "Maximum": "最大值",
++ "Measured": "实测值",
++ "X-axis": "X 轴",
++ "Y-axis": "Y 轴",
++ "Z-axis": "Z 轴",
++ "axis unspecified": "未指定方向",
++ " · below Tg": " · 低于 Tg",
++ " · above Tg": " · 高于 Tg",
++ "value unspecified": "未指定数值",
++ "Frequency unspecified": "未指定频率",
++ "Choose basis": "选择依据",
++ "Choose method": "选择方法",
++ "Technical details": "技术详情",
++ "Technical properties": "技术属性",
++ "Measurement conditions": "测量条件",
+  "fragment.invalid_library_documents": "库文档无效"
+ }
