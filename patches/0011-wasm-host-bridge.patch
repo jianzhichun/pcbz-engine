@@ -1,0 +1,316 @@
+# PCBZ wasm page patch 0011: the page's own project route across the WebAssembly boundary.
+# Why: the PCBZ page runs upstream's browser editor (apps/pcbcraft-web, eframe on a canvas) inside the
+# product pane. The host must load and save the session's .pcbz through the plugin's routes instead of
+# the browser's file dialog and download UI. The editor already has one browser edge for each: pickProject
+# (a file input) and downloadProject (an anchor download) in crates/app/src/project_files/web.rs. This patch
+# keeps both as the plain-browser fallback and, when the host page provides globalThis.pcbzHostPick /
+# globalThis.pcbzOnSave, routes through those instead. A small queue in the new crates/app/src/host.rs is
+# drained at the start of the editor frame: load goes through ProjectFiles::open -> web::open_bytes (the
+# same validation, decoding and migration as an upload), save through ProjectFiles::save (the same encoder,
+# unchanged-byte reuse and upgrade notices as a download), and a command through PcbApp::run (the same path
+# as a menu item), so the editor itself is unchanged. A queued request also asks egui for a frame: an idle
+# page does not repaint, so without that the first host call after startup would wait forever. The exports
+# live in the web runner, not in the app library, so a binary's wasm-bindgen glue carries them as it already
+# carries pcbcraft_fill_worker.
+# Functions touched: project_files/web.rs pickProject/setUnsaved/downloadProject (inline JS guards),
+# web::open split into open + open_bytes; project_files.rs ProjectFiles::open_host added; lib.rs host_tick
+# and its call at the top of frame_inner, pub mod host; new host.rs; apps/pcbcraft-web/src/main.rs exports
+# pcbz_host_open, pcbz_host_save, pcbz_host_command, pcbz_host_status.
+
+diff --git a/apps/pcbcraft-web/src/main.rs b/apps/pcbcraft-web/src/main.rs
+index 79e786e6f95636a935e80bf50c4099101a6b9349..6ef2abd8533f8c5c7cc6b9586993a6124fdead5e 100644
+--- a/apps/pcbcraft-web/src/main.rs
++++ b/apps/pcbcraft-web/src/main.rs
+@@ -43,6 +43,36 @@ pub fn pcbcraft_fill_worker(request: &str, progress: &js_sys::Function) -> Strin
+     })
+ }
+ 
++/// Load a project the host page fetched from its own route. The bytes open through the same
++/// browser upload path; the page keeps the file dialog only for a plain browser.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_host_open(bytes: &[u8]) {
++    pcbcraft_app::host::queue_open(bytes);
++}
++
++/// Save the open project. The bytes arrive at the page's `globalThis.pcbzOnSave(bytes, name)`
++/// callback, which writes them through the host's route.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_host_save() {
++    pcbcraft_app::host::queue_save();
++}
++
++/// Run one catalog command as a menu item would, with JSON parameters, for host automation.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_host_command(id: &str, params: &str) {
++    pcbcraft_app::host::queue_command(id, params);
++}
++
++/// The editor state the page polls between load, edit and save, as JSON.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_host_status() -> String {
++    pcbcraft_app::host::status()
++}
++
+ #[cfg(not(target_arch = "wasm32"))]
+ fn main() {
+     eprintln!("pcbcraft-web only runs in a browser. Build it with `trunk build --release` from apps/pcbcraft-web.");
+diff --git a/crates/app/src/host.rs b/crates/app/src/host.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..52b4cb52d70b76f4cc713578ab9afcc7f0ffc7e1
+--- /dev/null
++++ b/crates/app/src/host.rs
+@@ -0,0 +1,92 @@
++//! The page's own project route across the WebAssembly boundary.
++//!
++//! Why: when this app runs as a page inside a host product, the host loads and saves the
++//! session's project through its own routes instead of the browser's file dialog and download
++//! UI. The page calls the `pcbz_host_*` exports of `apps/pcbcraft-web`; each queues one request
++//! here and the editor's next frame handles it through the same paths a menu action would. A
++//! plain browser build keeps the file dialog and the download as fallbacks, so only the edges
++//! differ from the desktop behaviour.
++
++use std::sync::{Arc, Mutex};
++
++/// One request from the page, handled on the editor thread.
++#[derive(Debug)]
++pub(crate) enum Request {
++    /// Project bytes the host pushed; they open through the browser upload path.
++    Open(Arc<[u8]>),
++    /// Start the browser save; its bytes go to the host's `pcbzOnSave` callback.
++    Save,
++    /// Run a catalog command, exactly as a menu item does.
++    Command { id: String, params: String },
++}
++
++static REQUESTS: Mutex<Vec<Request>> = Mutex::new(Vec::new());
++
++/// The editor's context, kept so a request from outside a frame can ask for one.
++static REPAINT: Mutex<Option<egui::Context>> = Mutex::new(None);
++
++/// The last editor state the page may ask for without reaching into the app.
++static STATUS: Mutex<String> = Mutex::new(String::new());
++
++fn push(request: Request) {
++    if let Ok(mut queue) = REQUESTS.lock() {
++        queue.push(request);
++    }
++    wake();
++}
++
++/// Remember the editor context once a frame has run, so later host calls can wake it.
++pub(crate) fn remember_context(ctx: &egui::Context) {
++    if let Ok(mut slot) = REPAINT.lock()
++        && slot.is_none()
++    {
++        *slot = Some(ctx.clone());
++    }
++}
++
++/// Ask for a frame: an idle egui app repaints only when something changes or asks it to.
++fn wake() {
++    if let Ok(slot) = REPAINT.lock()
++        && let Some(ctx) = slot.as_ref()
++    {
++        ctx.request_repaint();
++    }
++}
++
++/// Queue project bytes for the next frame; called by the `pcbz_host_open` export.
++pub fn queue_open(bytes: &[u8]) {
++    push(Request::Open(Arc::from(bytes)));
++}
++
++/// Queue a save for the next frame; called by the `pcbz_host_save` export.
++pub fn queue_save() {
++    push(Request::Save);
++}
++
++/// Queue a catalog command for the next frame; called by the `pcbz_host_command` export.
++pub fn queue_command(id: &str, params: &str) {
++    push(Request::Command { id: id.to_owned(), params: params.to_owned() });
++}
++
++/// Take the oldest request; `None` when the page queued nothing.
++pub(crate) fn take() -> Option<Request> {
++    let mut queue = REQUESTS.lock().ok()?;
++    if queue.is_empty() { None } else { Some(queue.remove(0)) }
++}
++
++/// Keep a request the editor could not start yet at the back of the queue.
++pub(crate) fn retry(request: Request) {
++    push(request);
++}
++
++/// Publish the state the page polls between a load, an edit and a save.
++pub(crate) fn publish_status(text: String) {
++    if let Ok(mut status) = STATUS.lock() {
++        *status = text;
++    }
++}
++
++/// The last published editor state as JSON; the `pcbz_host_status` export returns it.
++pub fn status() -> String {
++    STATUS.lock().map(|status| (*status).clone()).unwrap_or_default()
++}
+\ No newline at end of file
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index 0e4769ba00d104c5e30570e3284fde0fd8f5f75e..7ebcd7d2102a8ea866c684cbb4c34fa700e34854 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -43,6 +43,8 @@ mod field_actions;
+ mod footprint_assignment;
+ mod hierarchy;
+ mod home;
++#[cfg(target_arch = "wasm32")]
++pub mod host;
+ mod inline_text;
+ mod inspection_selection;
+ mod library_editors;
+@@ -2679,6 +2681,56 @@ impl PcbApp {
+         self.frame_inner(ui, false);
+     }
+ 
++    /// Apply requests the host page queued across the wasm boundary: open its project bytes,
++    /// save the open project, or run one catalog command. Each goes through the path a menu
++    /// action uses; a request that cannot start yet stays queued for the next frame.
++    #[cfg(target_arch = "wasm32")]
++    fn host_tick(&mut self, ctx: &egui::Context) {
++        host::remember_context(ctx);
++        for _ in 0..8 {
++            let Some(request) = host::take() else { break };
++            match request {
++                host::Request::Open(bytes) => {
++                    if self.files.busy() {
++                        host::retry(host::Request::Open(bytes));
++                        break;
++                    }
++                    if let Err(error) = self.files.open_host(bytes, self.session.revision(), ctx) {
++                        self.message = Some(error);
++                    }
++                }
++                host::Request::Save => {
++                    if self.session.project().is_none() || self.files.busy() {
++                        host::retry(host::Request::Save);
++                        break;
++                    }
++                    self.save_project_file(None, ctx);
++                }
++                host::Request::Command { id, params } => {
++                    if self.files.busy() {
++                        host::retry(host::Request::Command { id, params });
++                        break;
++                    }
++                    let params = serde_json::from_str(&params).unwrap_or(Value::Null);
++                    self.run(&id, &params);
++                    self.repaint_editors(ctx);
++                }
++            }
++        }
++        let project = self.session.project().map(|project| project.name.clone());
++        host::publish_status(
++            json!({
++                "revision": self.session.revision(),
++                "busy": self.files.busy(),
++                "home": self.home,
++                "project": project,
++                "message": self.message,
++                "notice": self.file_notice,
++            })
++            .to_string(),
++        );
++    }
++
+     /// Adopt project file results and handle Close before considering a timed Save, even in
+     /// a logic-only native pass. Repaint hosts when adoption or finishing a job changes them.
+     fn project_file_tick(&mut self, ctx: &egui::Context) {
+@@ -2724,6 +2776,10 @@ impl PcbApp {
+     /// path uses the same monotonic clock as logic-only passes; embedded hosts use input time.
+     fn frame_inner(&mut self, ui: &mut Ui, _native_framework: bool) {
+         let ctx = ui.ctx().clone();
++        // Requests the page queued across the wasm boundary run before this frame's file poll,
++        // through the same open, save and catalog-command paths as the menus below.
++        #[cfg(target_arch = "wasm32")]
++        self.host_tick(&ctx);
+         // Apply source availability before restored readers capture their catalog generation.
+         self.sync_library_preferences();
+         self.poll_library_sources(&ctx);
+diff --git a/crates/app/src/project_files.rs b/crates/app/src/project_files.rs
+index e80d0bd3b9627d02cea3eaeb77a6728f1e1912c0..5be396c741c70d35de28201503f0a981072de9c0 100644
+--- a/crates/app/src/project_files.rs
++++ b/crates/app/src/project_files.rs
+@@ -380,6 +380,23 @@ impl ProjectFiles {
+         Ok(())
+     }
+ 
++    /// Open project bytes the host page pushed across the wasm boundary, through the same
++    /// worker completion path as a browser upload. Host pages use this instead of a dialog.
++    #[cfg(target_arch = "wasm32")]
++    pub(super) fn open_host(&mut self, bytes: Arc<[u8]>, revision: u64, ctx: &egui::Context) -> Result<(), String> {
++        if self.busy() {
++            return Err("A project file operation is already running".to_owned());
++        }
++        let (send, receive) = mpsc::channel();
++        let ctx = ctx.clone();
++        wasm_bindgen_futures::spawn_local(async move {
++            let _ = send.send(web::open_bytes(bytes));
++            ctx.request_repaint();
++        });
++        self.job = Some(Job { receiver: receive, revision, operation: "open", destination: None, download: None });
++        Ok(())
++    }
++
+     /// Capture an immutable snapshot. An explicit encoding starts a Save As or browser download.
+     /// Browser exports of migrated files encode the current schema instead of reusing old bytes.
+     pub(super) fn save(&mut self, session: &Session, encoding: Option<SaveFormat>, ctx: &egui::Context) -> Result<(), String> {
+diff --git a/crates/app/src/project_files/web.rs b/crates/app/src/project_files/web.rs
+index d1579cdf39a611c957a4d608a58ae37d6a3900c1..6dd2b4b55653abed8bfd0562e8383ba9f063382f 100644
+--- a/crates/app/src/project_files/web.rs
++++ b/crates/app/src/project_files/web.rs
+@@ -14,6 +14,8 @@ use super::{Outcome, Saved, Upgrades, download};
+ 
+ #[wasm_bindgen(inline_js = "
+ export function pickProject(zipLimit) {
++    // A host page owns the project route; a plain browser keeps the file picker.
++    if (typeof globalThis.pcbzHostPick === 'function') return globalThis.pcbzHostPick(zipLimit);
+     return new Promise((resolve, reject) => {
+         const input = document.createElement('input');
+         input.type = 'file';
+@@ -35,6 +37,8 @@ let unsaved = false;
+ let warning = false;
+ export function setUnsaved(flag) {
+     unsaved = flag;
++    // The host page decides whether leaving asks first; no beforeunload prompt is ours there.
++    if (typeof globalThis.pcbzOnSave === 'function') return;
+     if (!warning) {
+         warning = true;
+         window.addEventListener('beforeunload', (event) => {
+@@ -47,6 +51,8 @@ export function setUnsaved(flag) {
+ }
+ 
+ export function downloadProject(bytes, name) {
++    // A host page owns the save route; a plain browser keeps its download UI.
++    if (typeof globalThis.pcbzOnSave === 'function') { globalThis.pcbzOnSave(bytes, name); return; }
+     const url = URL.createObjectURL(new Blob([bytes], {type: 'application/zip'}));
+     const link = document.createElement('a');
+     link.href = url;
+@@ -85,7 +91,15 @@ pub(super) async fn open(file: Promise) -> Result<Outcome, String> {
+     if bytes.length() as usize > MAX_ARCHIVE_BYTES {
+         return Err("project exceeds the native file size limit".to_owned());
+     }
+-    let bytes: Arc<[u8]> = bytes.to_vec().into();
++    open_bytes(bytes.to_vec().into())
++}
++
++/// Validate and decode project bytes that did not come from the file picker, so a host page
++/// can open its own route's payload through the same checks as an upload.
++pub(super) fn open_bytes(bytes: Arc<[u8]>) -> Result<Outcome, String> {
++    if bytes.len() > MAX_ARCHIVE_BYTES {
++        return Err("project exceeds the native file size limit".to_owned());
++    }
+     let encoding = Encoding::detect(&bytes);
+     if encoding != Encoding::Zip {
+         return Err(pcbcraft_engine::persistence::UNSUPPORTED_PROJECT_LAYOUT.to_owned());

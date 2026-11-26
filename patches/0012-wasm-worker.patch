@@ -1,0 +1,1060 @@
+# PCBZ wasm page patch 0012: the editor on a worker-owned OffscreenCanvas, its bundled CJK face,
+# the read-only switch and the export guard.
+# Why: the page and the chat share the host's one main thread, so the wasm editor must never run
+# there (red line a). A dedicated Worker gets the canvas with transferControlToOffscreen(); this
+# patch adds the worker-side host that turns that OffscreenCanvas into a wgpu surface (WebGPU, else
+# WebGL2), builds the app with a wasm constructor (a worker has no document, CreationContext or
+# LocalStorage), and runs one egui pass per call with the page's input JSON (the render server's
+# InputEvent vocabulary, copied because that crate is a native binary). egui's repaint request calls
+# the page's `pcbzWorkerWake`, so an idle editor still answers a queued host request.
+# Chinese project, sheet and net names need a bundled face: the page pushes an OFL subset into
+# `pcbcraft_chrome::fonts` before the app is built, and the wasm branch of the CJK fallback uses it
+# (desktop still probes its system fonts). `pcbz_host_read_only` turns the running session read-only
+# for the licence gate; the save route refuses as well. The three inline export downloads call the
+# page's `pcbzOnExport` when it is present, so a host page never produces an unstamped download;
+# a plain browser keeps its download UI.
+# Files touched: apps/pcbcraft-web/{Cargo.toml, src/main.rs, new src/worker/{mod,input}.rs};
+# crates/app/src/{new worker_app.rs, lib.rs module + host_tick read-only + host-mode New/Open guards
+# + a keep-alive repaint while a file job runs, host.rs request and host-page flag, the three export
+# inline-JS guards, project_files.rs and project_files/web.rs for a larger encode slice on the host
+# page}; crates/chrome/src/fonts.rs (bundled wasm face).
+# No eframe change: wgpu already accepts SurfaceTarget::OffscreenCanvas; the page's worker calls
+# this app's exports instead of eframe's WebRunner.
+
+diff --git a/Cargo.lock b/Cargo.lock
+index e071901..c621346 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -3045,10 +3045,14 @@ name = "pcbcraft-web"
+ version = "0.1.0"
+ dependencies = [
+  "eframe",
++ "egui",
+  "js-sys",
+  "log",
+  "pcbcraft-app",
++ "pcbcraft-chrome",
+  "pcbcraft-engine",
++ "serde",
++ "serde_json",
+  "wasm-bindgen",
+  "wasm-bindgen-futures",
+  "web-sys",
+diff --git a/apps/pcbcraft-web/Cargo.toml b/apps/pcbcraft-web/Cargo.toml
+index 84346b1..4bf9e34 100644
+--- a/apps/pcbcraft-web/Cargo.toml
++++ b/apps/pcbcraft-web/Cargo.toml
+@@ -7,15 +7,24 @@ rust-version.workspace = true
+ license.workspace = true
+ publish.workspace = true
+ 
++[features]
++default = []
++# The wasm-page workflow builds with this: a deterministic Chinese-text overlay it can check.
++proof = []
++
+ [lints]
+ workspace = true
+ 
+ [target.'cfg(target_arch = "wasm32")'.dependencies]
+ pcbcraft-app = { workspace = true }
++pcbcraft-chrome = { workspace = true }
+ pcbcraft-engine = { workspace = true }
+ eframe = { workspace = true }
++egui = { workspace = true }
+ log = { workspace = true }
++serde = { workspace = true }
++serde_json = { workspace = true }
+ js-sys = "0.3"
+ wasm-bindgen = "0.2"
+ wasm-bindgen-futures = "0.4"
+-web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlCanvasElement"] }
++web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlCanvasElement", "OffscreenCanvas"] }
+diff --git a/apps/pcbcraft-web/src/main.rs b/apps/pcbcraft-web/src/main.rs
+index 6ef2abd..f4aafff 100644
+--- a/apps/pcbcraft-web/src/main.rs
++++ b/apps/pcbcraft-web/src/main.rs
+@@ -1,6 +1,7 @@
+ //! PCBCraft in the browser: the same app as the desktop, through eframe's web runner (WebGPU where
+-//! the browser has it, WebGL2 otherwise). Build with `trunk build --release` from this directory.
+-//! The output goes to `dist/web`.
++//! the browser has it, WebGL2 otherwise) on a page's main thread, or through the worker host
++//! (patch 0012) on a transferred OffscreenCanvas. Build with `trunk build --release` from this
++//! directory. The output goes to `dist/web`.
+ 
+ #[cfg(target_arch = "wasm32")]
+ fn main() {
+@@ -34,6 +35,69 @@ fn main() {
+     });
+ }
+ 
++/// PCBZ wasm page: the worker host. Imported by the page's module worker, not by the main-thread
++/// entry above (a worker has no `window`, so `main` returns before starting eframe).
++#[cfg(target_arch = "wasm32")]
++pub mod worker;
++
++/// Start the editor on a transferred OffscreenCanvas, in this worker. `font` is the page's OFL
++/// CJK subset; empty means no bundled Chinese face.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub async fn pcbz_worker_start(
++    canvas: web_sys::OffscreenCanvas,
++    css_w: f32,
++    css_h: f32,
++    dpr: f32,
++    dark: bool,
++    mac: bool,
++    font: Vec<u8>,
++) -> Result<(), wasm_bindgen::JsValue> {
++    worker::start(canvas, css_w, css_h, dpr, dark, mac, &font).await
++}
++
++/// One worker pass with the page's input batch; the report JSON names what the page applies.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_worker_frame(input: &str) -> String {
++    worker::frame(input)
++}
++
++/// The page's resize (CSS pixels and device pixel ratio).
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_worker_resize(css_w: f32, css_h: f32, dpr: f32) {
++    worker::resize(css_w, css_h, dpr);
++}
++
++/// The graphics backend the worker got, as JSON (`{backend, device}`); the page's runtime probe.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_worker_probe() -> String {
++    worker::probe()
++}
++
++/// The page's focus change.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_worker_set_focus(focused: bool) {
++    worker::set_focus(focused);
++}
++
++/// The licence gate's read-only flag for the running session; the save route refuses as well.
++#[cfg(target_arch = "wasm32")]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_host_read_only(read_only: bool) {
++    pcbcraft_app::host::queue_read_only(read_only);
++}
++
++/// Proof-only: draw Chinese text on the next pass (the wasm-page workflow checks its pixels).
++#[cfg(all(target_arch = "wasm32", feature = "proof"))]
++#[wasm_bindgen::prelude::wasm_bindgen]
++pub fn pcbz_worker_debug_text(text: &str) {
++    worker::debug_text(text);
++}
++
+ /// Forward completed-zone counts while calculation stays in the isolated worker.
+ #[cfg(target_arch = "wasm32")]
+ #[wasm_bindgen::prelude::wasm_bindgen]
+diff --git a/apps/pcbcraft-web/src/worker/input.rs b/apps/pcbcraft-web/src/worker/input.rs
+new file mode 100644
+index 0000000..0d43399
+--- /dev/null
++++ b/apps/pcbcraft-web/src/worker/input.rs
+@@ -0,0 +1,157 @@
++//! The page's input vocabulary mapped 1:1 to `egui::Event` (egui 0.37
++//! `crates/egui-0.37.0/src/data/input/event.rs:18-206`).
++//!
++//! Copied from the render server's `domain/input.rs` (PCBZ wasm page patch 0012) because that
++//! crate is a native binary (tokio, tungstenite, wgpu surface) and cannot be built for
++//! wasm32-unknown-unknown. Keep the two in step: the page sends the same `InputEvent` JSON to
++//! either editor, so a change here that the render server lacks would split the vocabulary.
++
++use serde::Deserialize;
++use serde_json::Value;
++
++/// The keys held, as the page sees them.
++#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
++pub struct ModKeys {
++    pub alt: bool,
++    pub ctrl: bool,
++    pub shift: bool,
++    pub meta: bool,
++}
++
++#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
++#[serde(rename_all = "lowercase")]
++pub enum ButtonName {
++    Primary,
++    Secondary,
++    Middle,
++    Extra1,
++    Extra2,
++}
++
++#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
++#[serde(rename_all = "lowercase")]
++pub enum WheelUnit {
++    Point,
++    Line,
++    Page,
++}
++
++/// One input event as the wire carries it (`"e"` names the kind).
++#[derive(Clone, Debug, Deserialize, PartialEq)]
++#[serde(tag = "e", rename_all = "snake_case")]
++pub enum InputEvent {
++    Move { x: f32, y: f32 },
++    Button { x: f32, y: f32, button: ButtonName, pressed: bool, mods: ModKeys },
++    Gone,
++    Wheel { dx: f32, dy: f32, unit: WheelUnit, mods: ModKeys },
++    Zoom { factor: f32 },
++    Key { key: String, physical: Option<String>, pressed: bool, repeat: bool, mods: ModKeys },
++    Text { text: String },
++    Preedit { text: String, range: Option<[u32; 2]> },
++    Commit { text: String },
++    DeleteSurrounding { before: u32, after: u32 },
++    Copy,
++    Cut,
++    Paste { text: String },
++    Focus { focused: bool },
++    Mods { mods: ModKeys },
++}
++
++/// Read each event on its own; one this version does not know (or that does not read) is
++/// dropped and counted, the rest go on.
++pub fn parse_events(values: &[Value]) -> (Vec<InputEvent>, usize) {
++    let mut dropped = 0;
++    let events = values
++        .iter()
++        .filter_map(|v| {
++            let parsed = InputEvent::deserialize(v).ok();
++            dropped += usize::from(parsed.is_none());
++            parsed
++        })
++        .collect();
++    (events, dropped)
++}
++
++/// How page input becomes UI input on this system.
++#[derive(Clone, Copy, Debug)]
++pub struct Translator {
++    /// The render server runs on macOS: the command key is meta there, ctrl elsewhere (what
++    /// egui-winit does for a native window; the page cannot know).
++    pub mac: bool,
++}
++
++impl Translator {
++    pub fn native() -> Self {
++        Translator { mac: cfg!(target_os = "macos") }
++    }
++
++    /// `egui::Modifiers` (`data/input/modifiers.rs:19-37`) for the keys the page holds.
++    pub fn modifiers(&self, m: ModKeys) -> egui::Modifiers {
++        egui::Modifiers { alt: m.alt, ctrl: m.ctrl, shift: m.shift, mac_cmd: self.mac && m.meta, command: if self.mac { m.meta } else { m.ctrl } }
++    }
++
++    /// The UI event for `ev`. `points_per_css`: UI points per CSS pixel (1 / the UI's zoom),
++    /// for positions and point-unit wheel deltas. `None`: an event the UI has no use for (a key
++    /// neither of whose names it knows, empty text).
++    pub fn event(&self, ev: InputEvent, points_per_css: f32) -> Option<egui::Event> {
++        let at = |x: f32, y: f32| egui::pos2(x * points_per_css, y * points_per_css);
++        Some(match ev {
++            InputEvent::Move { x, y } => egui::Event::PointerMoved(at(x, y)),
++            InputEvent::Button { x, y, button, pressed, mods } => {
++                egui::Event::PointerButton { pos: at(x, y), button: pointer_button(button), pressed, modifiers: self.modifiers(mods) }
++            }
++            InputEvent::Gone => egui::Event::PointerGone,
++            InputEvent::Wheel { dx, dy, unit, mods } => {
++                let scale = if unit == WheelUnit::Point { points_per_css } else { 1.0 };
++                egui::Event::MouseWheel {
++                    unit: wheel_unit(unit),
++                    delta: egui::vec2(dx * scale, dy * scale),
++                    phase: egui::TouchPhase::Move,
++                    source: egui::MouseWheelSource::Unknown,
++                    modifiers: self.modifiers(mods),
++                }
++            }
++            InputEvent::Zoom { factor } => egui::Event::Zoom(factor),
++            InputEvent::Key { key, physical, pressed, repeat, mods } => {
++                // Browser names (`ArrowDown`, `KeyA`, `Digit0`) are what `Key::from_name` reads
++                // (`data/key.rs:503`), as eframe's web runner does it.
++                let physical_key = physical.as_deref().and_then(egui::Key::from_name);
++                let key = egui::Key::from_name(&key).or(physical_key)?;
++                egui::Event::Key { key, physical_key, pressed, repeat, modifiers: self.modifiers(mods) }
++            }
++            InputEvent::Text { text } if text.is_empty() => return None,
++            InputEvent::Text { text } => egui::Event::Text(text),
++            InputEvent::Preedit { text, range } => {
++                egui::Event::Ime(egui::ImeEvent::Preedit { text, active_range_chars: range.map(|[a, b]| a.min(b) as usize..a.max(b) as usize) })
++            }
++            InputEvent::Commit { text } => egui::Event::Ime(egui::ImeEvent::Commit(text)),
++            InputEvent::DeleteSurrounding { before, after } => {
++                egui::Event::Ime(egui::ImeEvent::DeleteSurrounding { before_chars: before as usize, after_chars: after as usize })
++            }
++            InputEvent::Copy => egui::Event::Copy,
++            InputEvent::Cut => egui::Event::Cut,
++            // As egui-winit pastes: Windows line ends become `\n`.
++            InputEvent::Paste { text } => egui::Event::Paste(text.replace("\r\n", "\n")),
++            InputEvent::Focus { focused } => egui::Event::WindowFocused(focused),
++            InputEvent::Mods { mods } => egui::Event::ModifiersChanged(self.modifiers(mods)),
++        })
++    }
++}
++
++fn pointer_button(b: ButtonName) -> egui::PointerButton {
++    match b {
++        ButtonName::Primary => egui::PointerButton::Primary,
++        ButtonName::Secondary => egui::PointerButton::Secondary,
++        ButtonName::Middle => egui::PointerButton::Middle,
++        ButtonName::Extra1 => egui::PointerButton::Extra1,
++        ButtonName::Extra2 => egui::PointerButton::Extra2,
++    }
++}
++
++fn wheel_unit(u: WheelUnit) -> egui::MouseWheelUnit {
++    match u {
++        WheelUnit::Point => egui::MouseWheelUnit::Point,
++        WheelUnit::Line => egui::MouseWheelUnit::Line,
++        WheelUnit::Page => egui::MouseWheelUnit::Page,
++    }
++}
+diff --git a/apps/pcbcraft-web/src/worker/mod.rs b/apps/pcbcraft-web/src/worker/mod.rs
+new file mode 100644
+index 0000000..0275ee3
+--- /dev/null
++++ b/apps/pcbcraft-web/src/worker/mod.rs
+@@ -0,0 +1,417 @@
++//! PCBZ wasm page patch 0012: the editor loop on a worker-owned OffscreenCanvas.
++//!
++//! Why: the page and the chat share the host's one main thread; red line a forbids running the
++//! single-threaded wasm editor there. This module is the worker-side host: it turns a transferred
++//! `OffscreenCanvas` into a wgpu surface (WebGPU, else WebGL2 through wgpu's GL backend), builds
++//! `PcbApp` with the wasm constructor, runs one egui pass per call with the page's input
++//! vocabulary (the render server's `domain/input.rs`, copied here because that crate is native),
++//! and paints into the canvas itself -- no frame crosses to the main thread. The existing
++//! `pcbz_host_*` exports (patch 0011) stay the only load/save path; egui's repaint request calls
++//! the page's `pcbzWorkerWake`, so an idle editor still answers a queued host request.
++//!
++//! Not in eframe: `WebRunner` takes an `HtmlCanvasElement` and a `document` for focus, IME and
++//! events, none of which exist in a worker. The wgpu surface is `SurfaceTarget::OffscreenCanvas`,
++//! which wgpu supports (no upstream eframe change is needed for the surface itself).
++
++use std::cell::RefCell;
++
++// eframe re-exports the renderer it was built with, so the page does not add a second source for it.
++use eframe::egui_wgpu::{self, wgpu};
++use wasm_bindgen::prelude::*;
++use web_sys::OffscreenCanvas;
++
++mod input;
++
++// The one editor a worker has.
++thread_local! {
++    static EDITOR: RefCell<Option<Editor>> = RefCell::new(None);
++    /// The page's wake function. egui requires its repaint callback to be `Send + Sync`; a
++    /// `js_sys::Function` is neither, so the callback captures nothing and reaches this slot.
++    static WAKE: RefCell<Option<js_sys::Function>> = const { RefCell::new(None) };
++}
++
++/// What one pass produced for the page (JSON; the page applies cursor, clipboard and IME).
++#[derive(Default, serde::Serialize)]
++struct Report {
++    painted: bool,
++    repaint: bool,
++    delay_ms: f64,
++    cursor: String,
++    copied: Vec<String>,
++    paste: bool,
++    ime: bool,
++    ime_interrupt: bool,
++    pulse: u64,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    error: Option<String>,
++}
++
++/// Owned web display handle for wgpu (`!Send`/`!Sync` raw pointers are not involved on web).
++#[derive(Clone, Debug)]
++struct WebDisplay;
++
++impl wgpu::rwh::HasDisplayHandle for WebDisplay {
++    fn display_handle(&self) -> Result<wgpu::rwh::DisplayHandle<'_>, wgpu::rwh::HandleError> {
++        Ok(wgpu::rwh::DisplayHandle::web())
++    }
++}
++
++struct Editor {
++    ctx: egui::Context,
++    app: pcbcraft_app::PcbApp,
++    /// Declared before the instance it was made from, and the device it draws with, so it is
++    /// dropped first (Rust drops fields in declaration order).
++    surface: wgpu::Surface<'static>,
++    /// Kept beside the surface: wgpu's own painter keeps its instance too.
++    instance: wgpu::Instance,
++    config: wgpu::SurfaceConfiguration,
++    rs: egui_wgpu::RenderState,
++    deltas: egui::TexturesDelta,
++    canvas: OffscreenCanvas,
++    css_w: f32,
++    css_h: f32,
++    dpr: f32,
++    focused: bool,
++    theme: egui::Theme,
++    translator: input::Translator,
++    started: f64,
++    max_texture_side: usize,
++    configure: bool,
++    pulse: u64,
++    #[cfg(feature = "proof")]
++    debug_text: Option<String>,
++}
++
++/// Device pixels for `css` at `dpr` (at least one; a zero-size surface has no frame).
++fn pixels(css: f32, dpr: f32) -> u32 {
++    (css * dpr).round().max(1.0) as u32
++}
++
++fn now_sec() -> f64 {
++    js_sys::Date::now() / 1000.0
++}
++
++/// Route egui's repaint request to the page's scheduler. Called with the context locked, so the
++/// callback only calls one JS function; the page posts a pump (rAF in a worker where present,
++/// otherwise a timer).
++fn install_wake(ctx: &egui::Context) {
++    let global = js_sys::global();
++    if let Ok(value) = js_sys::Reflect::get(&global, &JsValue::from_str("pcbzWorkerWake"))
++        && let Ok(wake) = value.dyn_into::<js_sys::Function>()
++    {
++        WAKE.with(|slot| *slot.borrow_mut() = Some(wake));
++    }
++    // Captures nothing: egui's callback bound is `Send + Sync`, which a JS function cannot meet.
++    ctx.set_request_repaint_callback(|_info| {
++        WAKE.with(|slot| {
++            if let Some(wake) = slot.borrow().as_ref() {
++                let _ = wake.call0(&JsValue::NULL);
++            }
++        });
++    });
++}
++
++/// Start the editor on a transferred canvas. `font` is the page's OFL CJK subset (empty: none).
++#[allow(clippy::too_many_arguments)]
++pub async fn start(
++    canvas: OffscreenCanvas,
++    css_w: f32,
++    css_h: f32,
++    dpr: f32,
++    dark: bool,
++    mac: bool,
++    font: &[u8],
++) -> Result<(), JsValue> {
++    let px_w = pixels(css_w, dpr);
++    let px_h = pixels(css_h, dpr);
++    canvas.set_width(px_w);
++    canvas.set_height(px_h);
++
++    let mut setup = egui_wgpu::WgpuSetupCreateNew::without_display_handle();
++    setup.display_handle = Some(Box::new(WebDisplay));
++    let web = egui_wgpu::WgpuConfiguration { wgpu_setup: egui_wgpu::WgpuSetup::CreateNew(setup), ..Default::default() };
++    let instance = web.wgpu_setup.new_instance().await;
++    let surface = instance
++        .create_surface(wgpu::SurfaceTarget::OffscreenCanvas(canvas.clone()))
++        .map_err(|error| JsValue::from_str(&format!("graphics surface: {error}")))?;
++    let options = egui_wgpu::RendererOptions { msaa_samples: 1, depth_stencil_format: None, ..Default::default() };
++    let rs = egui_wgpu::RenderState::create(&web, &instance, Some(&surface), options)
++        .await
++        .map_err(|error| JsValue::from_str(&format!("graphics device: {error}")))?;
++    let Some(mut config) = surface.get_default_config(&rs.adapter, px_w, px_h) else {
++        return Err(JsValue::from_str("graphics: the canvas surface is not supported"));
++    };
++    config.format = rs.target_format;
++    config.width = px_w;
++    config.height = px_h;
++    surface.configure(&rs.device, &config);
++    let max_texture_side = rs.device.limits().max_texture_dimension_2d as usize;
++
++    if !font.is_empty() {
++        pcbcraft_chrome::fonts::set_bundled_cjk(font.to_vec());
++    }
++    let ctx = egui::Context::default();
++    install_wake(&ctx);
++    let app = pcbcraft_app::PcbApp::new_worker(&ctx);
++
++    let editor = Editor {
++        ctx,
++        app,
++        surface,
++        instance,
++        config,
++        rs,
++        deltas: egui::TexturesDelta::default(),
++        canvas,
++        css_w,
++        css_h,
++        dpr,
++        focused: true,
++        theme: if dark { egui::Theme::Dark } else { egui::Theme::Light },
++        translator: input::Translator { mac },
++        started: now_sec(),
++        max_texture_side,
++        configure: false,
++        pulse: 0,
++        #[cfg(feature = "proof")]
++        debug_text: None,
++    };
++    EDITOR.with(|slot| *slot.borrow_mut() = Some(editor));
++    Ok(())
++}
++
++/// One pass with the page's input batch (JSON array in the render server's InputEvent vocabulary).
++pub fn frame(input_json: &str) -> String {
++    let mut report = Report::default();
++    EDITOR.with(|slot| {
++        let mut slot = slot.borrow_mut();
++        let Some(editor) = slot.as_mut() else {
++            report.error = Some("editor not started".to_owned());
++            return;
++        };
++        if let Err(error) = editor.pass(input_json, &mut report) {
++            report.error = Some(error);
++        }
++    });
++    serde_json::to_string(&report).unwrap_or_else(|_| "{}".to_owned())
++}
++
++/// The page's resize (CSS pixels and device pixel ratio).
++pub fn resize(css_w: f32, css_h: f32, dpr: f32) {
++    EDITOR.with(|slot| {
++        let mut slot = slot.borrow_mut();
++        let Some(editor) = slot.as_mut() else { return };
++        editor.css_w = css_w.max(1.0);
++        editor.css_h = css_h.max(1.0);
++        editor.dpr = dpr.max(0.1);
++        editor.canvas.set_width(pixels(editor.css_w, editor.dpr));
++        editor.canvas.set_height(pixels(editor.css_h, editor.dpr));
++        editor.configure = true;
++    });
++}
++
++/// The graphics backend this worker got (the page's runtime probe reports it; booleans only, no user data).
++pub fn probe() -> String {
++    EDITOR.with(|slot| {
++        let borrow = slot.borrow();
++        let Some(editor) = borrow.as_ref() else {
++            return "{\"backend\":\"none\"}".to_owned();
++        };
++        let info = editor.rs.adapter.get_info();
++        serde_json::json!({
++            "backend": format!("{:?}", info.backend),
++            "device": format!("{:?}", info.device_type),
++        })
++        .to_string()
++    })
++}
++
++/// The page's focus change (the canvas has no DOM focus of its own in a worker).
++pub fn set_focus(focused: bool) {
++    EDITOR.with(|slot| {
++        let mut slot = slot.borrow_mut();
++        if let Some(editor) = slot.as_mut() {
++            editor.focused = focused;
++        }
++    });
++}
++
++/// The page's proof overlay: draw `text` on top of the next pass, in the bundled CJK face.
++#[cfg(feature = "proof")]
++pub fn debug_text(text: &str) {
++    EDITOR.with(|slot| {
++        let mut slot = slot.borrow_mut();
++        if let Some(editor) = slot.as_mut() {
++            editor.debug_text = Some(text.to_owned());
++        }
++    });
++}
++
++impl Editor {
++    fn pass(&mut self, input_json: &str, report: &mut Report) -> Result<(), String> {
++        self.pulse += 1;
++        report.pulse = self.pulse;
++        let values = if input_json.trim().is_empty() {
++            Vec::new()
++        } else {
++            serde_json::from_str::<Vec<serde_json::Value>>(input_json).map_err(|error| format!("input: {error}"))?
++        };
++        let (events, _dropped) = input::parse_events(&values);
++        let points_per_css = 1.0 / self.ctx.zoom_factor().max(0.01);
++        let events: Vec<egui::Event> = events.into_iter().filter_map(|event| self.translator.event(event, points_per_css)).collect();
++        let raw = self.raw_input(events);
++        let ctx = self.ctx.clone();
++        let app = &mut self.app;
++        #[cfg(feature = "proof")]
++        let proof = self.debug_text.clone();
++        let full = ctx.run_ui(raw, |ui| {
++            app.frame(ui);
++            #[cfg(feature = "proof")]
++            if let Some(text) = proof.as_deref() {
++                overlay(ui, text);
++            }
++        });
++
++        let egui::FullOutput { platform_output, textures_delta, shapes, pixels_per_point, mut viewport_output, .. } = full;
++        self.deltas.append(textures_delta);
++        let root = viewport_output.remove(&egui::ViewportId::ROOT);
++        let repaint_delay = root.as_ref().map_or(std::time::Duration::MAX, |output| output.repaint_delay);
++        report.repaint = repaint_delay < std::time::Duration::MAX;
++        report.delay_ms = if report.repaint { repaint_delay.as_secs_f64() * 1000.0 } else { 0.0 };
++        report.paste = root.into_iter().flat_map(|output| output.commands).any(|command| matches!(command, egui::ViewportCommand::RequestPaste));
++        report.cursor = format!("{:?}", platform_output.cursor_icon);
++        report.copied = platform_output
++            .commands
++            .iter()
++            .filter_map(|command| match command {
++                egui::OutputCommand::CopyText(text) => Some(text.clone()),
++                _ => None,
++            })
++            .collect();
++        report.ime = platform_output.ime.is_some();
++        report.ime_interrupt = platform_output.ime.as_ref().is_some_and(|ime| ime.should_interrupt_composition);
++
++        let dirty = !shapes.is_empty() || !self.deltas.set.is_empty() || report.repaint;
++        if dirty {
++            report.painted = self.paint(shapes, pixels_per_point)?;
++        }
++        Ok(())
++    }
++
++    fn raw_input(&self, events: Vec<egui::Event>) -> egui::RawInput {
++        let zoom = self.ctx.zoom_factor().max(0.01);
++        let points = egui::vec2((self.css_w / zoom).max(1.0), (self.css_h / zoom).max(1.0));
++        let rect = egui::Rect::from_min_size(egui::Pos2::ZERO, points);
++        let viewport = egui::ViewportInfo {
++            native_pixels_per_point: Some(self.dpr),
++            monitor_size: Some(points),
++            inner_rect: Some(rect),
++            outer_rect: Some(rect),
++            minimized: Some(false),
++            maximized: Some(false),
++            fullscreen: Some(false),
++            focused: Some(self.focused),
++            occluded: Some(false),
++            ..Default::default()
++        };
++        egui::RawInput {
++            viewport_id: egui::ViewportId::ROOT,
++            viewports: std::iter::once((egui::ViewportId::ROOT, viewport)).collect(),
++            screen_rect: Some(rect),
++            max_texture_side: Some(self.max_texture_side),
++            time: Some(now_sec() - self.started),
++            events,
++            focused: self.focused,
++            system_theme: Some(self.theme),
++            ..Default::default()
++        }
++    }
++
++    fn paint(&mut self, shapes: Vec<egui::epaint::ClippedShape>, pixels_per_point: f32) -> Result<bool, String> {
++        let primitives = self.ctx.tessellate(shapes, pixels_per_point);
++        let width = pixels(self.css_w, self.dpr);
++        let height = pixels(self.css_h, self.dpr);
++        if self.config.width != width || self.config.height != height {
++            self.config.width = width;
++            self.config.height = height;
++            self.configure = true;
++        }
++        if self.configure {
++            self.surface.configure(&self.rs.device, &self.config);
++            self.configure = false;
++        }
++        let screen = egui_wgpu::ScreenDescriptor { size_in_pixels: [width, height], pixels_per_point };
++        let mut encoder = self.rs.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("pcbz-wasm egui") });
++        let user_buffers = {
++            let mut renderer = self.rs.renderer.write();
++            for (id, deltas) in self.deltas.set.drain() {
++                for delta in deltas {
++                    renderer.update_texture(&self.rs.device, &self.rs.queue, id, &delta);
++                }
++            }
++            renderer.update_buffers(&self.rs.device, &self.rs.queue, &mut encoder, &primitives, &screen)
++        };
++        let frame = match self.surface.get_current_texture() {
++            wgpu::CurrentSurfaceTexture::Success(frame) => Some(frame),
++            wgpu::CurrentSurfaceTexture::Suboptimal(frame) => {
++                self.configure = true;
++                Some(frame)
++            }
++            _ => {
++                self.configure = true;
++                None
++            }
++        };
++        let mut painted = false;
++        if let Some(frame) = frame {
++            let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
++            let mut clear = self.ctx.global_style().visuals.panel_fill.to_normalized_gamma_f32();
++            clear[3] = 1.0;
++            {
++                let renderer = self.rs.renderer.read();
++                let pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
++                    label: Some("pcbz-wasm egui pass"),
++                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
++                        view: &view,
++                        resolve_target: None,
++                        ops: wgpu::Operations {
++                            load: wgpu::LoadOp::Clear(wgpu::Color {
++                                r: clear[0] as f64,
++                                g: clear[1] as f64,
++                                b: clear[2] as f64,
++                                a: clear[3] as f64,
++                            }),
++                            store: wgpu::StoreOp::Store,
++                        },
++                        depth_slice: None,
++                    })],
++                    depth_stencil_attachment: None,
++                    timestamp_writes: None,
++                    occlusion_query_set: None,
++                    multiview_mask: None,
++                });
++                renderer.render(&mut pass.forget_lifetime(), &primitives, &screen);
++            }
++            self.rs.queue.submit(user_buffers.into_iter().chain([encoder.finish()]));
++            self.rs.queue.present(frame);
++            painted = true;
++        }
++        {
++            let mut renderer = self.rs.renderer.write();
++            for id in self.deltas.free.drain() {
++                renderer.free_texture(&id);
++            }
++        }
++        Ok(painted)
++    }
++}
++
++/// Proof-only overlay: black plate, white Chinese text; the workflow checks its pixels.
++#[cfg(feature = "proof")]
++fn overlay(ui: &egui::Ui, text: &str) {
++    egui::Area::new(egui::Id::new("pcbz-cjk-proof")).fixed_pos(egui::pos2(8.0, 8.0)).order(egui::Order::Foreground).show(ui.ctx(), |ui| {
++        egui::Frame::new().fill(egui::Color32::BLACK).inner_margin(egui::Margin::same(8)).show(ui, |ui| {
++            ui.label(egui::RichText::new(text).size(28.0).color(egui::Color32::WHITE));
++        });
++    });
++}
+diff --git a/crates/app/src/board_outputs.rs b/crates/app/src/board_outputs.rs
+index 01994ce..4e42ab3 100644
+--- a/crates/app/src/board_outputs.rs
++++ b/crates/app/src/board_outputs.rs
+@@ -209,6 +209,8 @@ use wasm_bindgen::prelude::*;
+ #[cfg(all(target_arch = "wasm32", not(test)))]
+ #[wasm_bindgen(inline_js = "
+ export function downloadFabrication(bytes,name,type){
++    // A host page owns the export route; a plain browser keeps its download UI (patch 0012).
++    if (typeof globalThis.pcbzOnExport === 'function') { globalThis.pcbzOnExport(bytes, name, type); return; }
+     const url=URL.createObjectURL(new Blob([bytes],{type}));
+     let a;
+     let requested=false;
+diff --git a/crates/app/src/board_setup/profile_io.rs b/crates/app/src/board_setup/profile_io.rs
+index 8b2436a..7328608 100644
+--- a/crates/app/src/board_setup/profile_io.rs
++++ b/crates/app/src/board_setup/profile_io.rs
+@@ -128,7 +128,7 @@ use wasm_bindgen::prelude::*;
+ #[cfg(target_arch = "wasm32")]
+ #[wasm_bindgen(inline_js = "
+ export function pickSetupProfile(){return new Promise((resolve,reject)=>{const input=document.createElement('input');input.type='file';input.accept='.json';input.oncancel=()=>resolve(null);input.onchange=async()=>{try{const file=input.files[0];if(!file)return resolve(null);if(file.size>1048576)throw new Error('Setup profile exceeds 1 MiB.');resolve(await file.arrayBuffer());}catch(error){reject(error);}};input.click();});}
+-export function downloadSetupProfile(bytes,name){const url=URL.createObjectURL(new Blob([bytes],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
++export function downloadSetupProfile(bytes,name){if (typeof globalThis.pcbzOnExport === 'function') { globalThis.pcbzOnExport(bytes, name, 'application/json'); return; }const url=URL.createObjectURL(new Blob([bytes],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
+ ")]
+ extern "C" {
+     #[wasm_bindgen(js_name=pickSetupProfile)]
+diff --git a/crates/app/src/host.rs b/crates/app/src/host.rs
+index 52b4cb5..4b71072 100644
+--- a/crates/app/src/host.rs
++++ b/crates/app/src/host.rs
+@@ -18,10 +18,28 @@ pub(crate) enum Request {
+     Save,
+     /// Run a catalog command, exactly as a menu item does.
+     Command { id: String, params: String },
++    /// Turn the live session read-only (or editable again), as the page's licence gate asks.
++    ReadOnly(bool),
+ }
+ 
+ static REQUESTS: Mutex<Vec<Request>> = Mutex::new(Vec::new());
+ 
++/// The read-only flag last asked for by the page, so a status poll between frames answers it.
++static READ_ONLY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
++/// Set by the worker constructor: this app runs as the page's editor, not as a plain browser page.
++static HOST_PAGE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
++/// Remember that this app is the host page's editor (New/Open then go through the plugin).
++pub fn set_host_page() {
++    HOST_PAGE.store(true, std::sync::atomic::Ordering::Relaxed);
++}
++
++/// Whether this app is the host page's editor.
++pub fn host_page() -> bool {
++    HOST_PAGE.load(std::sync::atomic::Ordering::Relaxed)
++}
++
+ /// The editor's context, kept so a request from outside a frame can ask for one.
+ static REPAINT: Mutex<Option<egui::Context>> = Mutex::new(None);
+ 
+@@ -68,6 +86,17 @@ pub fn queue_command(id: &str, params: &str) {
+     push(Request::Command { id: id.to_owned(), params: params.to_owned() });
+ }
+ 
++/// Queue the licence's read-only flag for the next frame; called by the `pcbz_host_read_only` export.
++pub fn queue_read_only(read_only: bool) {
++    READ_ONLY.store(read_only, std::sync::atomic::Ordering::Relaxed);
++    push(Request::ReadOnly(read_only));
++}
++
++/// The read-only flag the page last asked for.
++pub fn read_only() -> bool {
++    READ_ONLY.load(std::sync::atomic::Ordering::Relaxed)
++}
++
+ /// Take the oldest request; `None` when the page queued nothing.
+ pub(crate) fn take() -> Option<Request> {
+     let mut queue = REQUESTS.lock().ok()?;
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index a63094d..020ae85 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -47,6 +47,8 @@ mod hierarchy;
+ mod home;
+ #[cfg(target_arch = "wasm32")]
+ pub mod host;
++#[cfg(target_arch = "wasm32")]
++mod worker_app;
+ mod inline_text;
+ mod inspection_selection;
+ mod library_editors;
+@@ -613,6 +615,13 @@ impl PcbApp {
+ 
+     /// Start a new project, first asking whether to save any unsaved changes it would replace.
+     fn new_project(&mut self, ctx: &egui::Context) {
++        // [F11] In the page, a new empty project must never be saved over the file the session has bound. While one
++        // is open, New is refused; an empty session (no project yet) may create its first one.
++        #[cfg(target_arch = "wasm32")]
++        if host::host_page() && self.session.project().is_some() {
++            self.message = Some("页面里不能把新工程存到已有的文件上；请在对话里让助手新建工程。".to_owned());
++            return;
++        }
+         self.unless_unsaved(unsaved::Then::New, ctx);
+     }
+ 
+@@ -658,6 +667,13 @@ impl PcbApp {
+ 
+     /// Open a file that replaces the current session, first asking whether to save unsaved changes.
+     fn open_project_file(&mut self, ctx: &egui::Context) {
++        // The page loads the session's bound file itself; switching projects is the host page's file card's job. Opening
++        // here would re-fetch the same file and drop edits made since the last save (design §2.1).
++        #[cfg(target_arch = "wasm32")]
++        if host::host_page() {
++            self.message = Some("页面里请用会话的文件卡切换工程。".to_owned());
++            return;
++        }
+         self.unless_unsaved(unsaved::Then::Open, ctx);
+     }
+ 
+@@ -2724,6 +2740,9 @@ impl PcbApp {
+                     }
+                     self.save_project_file(None, ctx);
+                 }
++                host::Request::ReadOnly(read_only) => {
++                    self.set_read_only(read_only.then_some("PCBZ 只读：当前授权不能修改这个工程。"));
++                }
+                 host::Request::Command { id, params } => {
+                     if self.files.busy() {
+                         host::retry(host::Request::Command { id, params });
+@@ -2744,9 +2763,17 @@ impl PcbApp {
+                 "project": project,
+                 "message": self.message,
+                 "notice": self.file_notice,
++                "read_only": host::read_only(),
+             })
+             .to_string(),
+         );
++        // A file job (open, save) advances only on later frames; an idle egui asks for none, so
++        // without this the page's save would wait forever for the pump it just stopped. Ask for
++        // the next pass while one is in flight (the page's worker pump turns the request into a
++        // timer frame).
++        if self.files.busy() {
++            ctx.request_repaint_after(std::time::Duration::from_millis(16));
++        }
+     }
+ 
+     /// Adopt project file results and handle Close before considering a timed Save, even in
+diff --git a/crates/app/src/library_editors/io.rs b/crates/app/src/library_editors/io.rs
+index 22de19b..74319bb 100644
+--- a/crates/app/src/library_editors/io.rs
++++ b/crates/app/src/library_editors/io.rs
+@@ -170,7 +170,7 @@ use wasm_bindgen::prelude::*;
+ #[cfg(target_arch = "wasm32")]
+ #[wasm_bindgen(inline_js = "
+ export function pickLibraryItem(){return new Promise((resolve,reject)=>{const input=document.createElement('input');input.type='file';input.accept='.json';input.oncancel=()=>resolve(null);input.onchange=async()=>{try{const file=input.files[0];if(!file)return resolve(null);if(file.size>1048576)throw new Error('Library item exceeds 1 MiB.');resolve(await file.arrayBuffer());}catch(error){reject(error);}};input.click();});}
+-export function downloadLibraryItem(bytes,name){const url=URL.createObjectURL(new Blob([bytes],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
++export function downloadLibraryItem(bytes,name){if (typeof globalThis.pcbzOnExport === 'function') { globalThis.pcbzOnExport(bytes, name, 'application/json'); return; }const url=URL.createObjectURL(new Blob([bytes],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
+ ")]
+ extern "C" {
+     #[wasm_bindgen(js_name=pickLibraryItem)]
+diff --git a/crates/app/src/project_files.rs b/crates/app/src/project_files.rs
+index 5be396c..082b4f9 100644
+--- a/crates/app/src/project_files.rs
++++ b/crates/app/src/project_files.rs
+@@ -516,7 +516,21 @@ impl ProjectFiles {
+         let job = self.job.as_mut()?;
+         #[cfg(target_arch = "wasm32")]
+         if let Some(download) = &mut job.download {
+-            download.advance();
++            if crate::host::host_page() {
++                // A host page's flush waits for this save (its budget starts when the page
++                // flushes), and the worker paints the UI offscreen at a few frames a second, so a
++                // one-slice-per-frame encode can outlast that budget. Run bounded slices until the
++                // download finishes, then stop: the save is one task, not a background chore.
++                for _ in 0..64 {
++                    download.advance(1024);
++                    if download.done() {
++                        break;
++                    }
++                }
++            } else {
++                // A plain browser page stays smooth: one bounded slice per frame.
++                download.advance(256);
++            }
+         }
+         let revision = job.revision;
+         let result = match job.receiver.try_recv() {
+diff --git a/crates/app/src/project_files/web.rs b/crates/app/src/project_files/web.rs
+index 6dd2b4b..7267c46 100644
+--- a/crates/app/src/project_files/web.rs
++++ b/crates/app/src/project_files/web.rs
+@@ -114,6 +114,8 @@ pub(super) fn open_bytes(bytes: Arc<[u8]>) -> Result<Outcome, String> {
+ 
+ pub(super) struct Download {
+     source: DownloadSource,
++    /// The result has been sent: no further slice may run (a second send would download twice).
++    done: bool,
+     /// The suggested file name, from the project's name when the download was requested.
+     name: String,
+     result: Sender<Result<Outcome, String>>,
+@@ -152,11 +154,16 @@ impl Download {
+         } else {
+             DownloadSource::Encode(download::Encoder::new(snapshot, original)?)
+         };
+-        Ok(Self { source, name, result })
++        Ok(Self { source, done: false, name, result })
++    }
++
++    /// Whether this download has finished (its outcome was already sent).
++    pub(super) fn done(&self) -> bool {
++        self.done
+     }
+ 
+     /// Encode a bounded batch or download the unchanged bytes. A request cannot confirm a write.
+-    pub(super) fn advance(&mut self) {
++    pub(super) fn advance(&mut self, records: usize) {
+         let result = match &mut self.source {
+             DownloadSource::Documents(documents) => match PackedEncoder::new((**documents).clone()) {
+                 Ok(archive) => {
+@@ -166,7 +173,7 @@ impl Download {
+                 Err(error) => Err(error),
+             },
+             DownloadSource::Unchanged(bytes) => send_download(bytes, &self.name),
+-            DownloadSource::Encode(encoder) => match encoder.step(256) {
++            DownloadSource::Encode(encoder) => match encoder.step(records) {
+                 Ok(Some(documents)) => match PackedEncoder::new(documents) {
+                     Ok(archive) => {
+                         self.source = DownloadSource::Archive(archive);
+@@ -183,6 +190,7 @@ impl Download {
+                 Err(error) => Err(error),
+             },
+         };
++        self.done = true;
+         let _ = self.result.send(result);
+     }
+ }
+diff --git a/crates/app/src/worker_app.rs b/crates/app/src/worker_app.rs
+new file mode 100644
+index 0000000..5fec4a1
+--- /dev/null
++++ b/crates/app/src/worker_app.rs
+@@ -0,0 +1,44 @@
++//! PCBZ wasm page patch 0012: the editor without a document, for the page's worker.
++//!
++//! Why: the page runs the editor on an `OffscreenCanvas` inside a dedicated Worker (red line a:
++//! never on the host's main thread). A worker has no `window`, `document`, eframe
++//! `CreationContext` or `LocalStorage`, so `PcbApp::new` cannot build the app there, and
++//! `new_embedded` (patch 0002) is the native render server's constructor only. This file adds the
++//! wasm-side constructor and the read-only switch the page's licence gate drives; nothing
++//! existing is changed or read differently.
++
++use super::*;
++
++impl PcbApp {
++    /// What `new` builds with no storage and no document: installs the interface fonts (the
++    /// page pushes its bundled CJK face into `pcbcraft_chrome::fonts` first), default
++    /// preferences, and Home until the host page pushes project bytes through `pcbz_host_open`.
++    pub fn new_worker(ctx: &egui::Context) -> Self {
++        crate::host::set_host_page();
++        pcbcraft_chrome::install(ctx);
++        let preferences = Preferences::default();
++        let mut views = EditorViews::default();
++        views.set_grid_defaults(preferences.schematic_grid_nm, preferences.board_grid_nm);
++        Self {
++            library_sources: native_sources::Sources::restore(None),
++            home: true,
++            properties_open: true,
++            arrangements: arrangements::Arrangements::from_storage(None),
++            preferences,
++            library_preferences: placement_filters::Settings::parse(None),
++            board_appearance: board_appearance::Appearance::from_storage(None),
++            routing_presets: board_presets::Presets::from_storage(None),
++            views,
++            ..Self::default()
++        }
++    }
++
++    /// Make the live session read-only with `reason` (shown on the status bar), or editable again
++    /// with `None`. The page asks for this from `state.read_only` and whenever the licence's view
++    /// gate refuses; the save route refuses as well, so the bytes cannot reach disk either way.
++    pub fn set_read_only(&mut self, reason: Option<&str>) {
++        use pcbcraft_engine::SessionScope;
++        self.session.set_scope(if reason.is_some() { SessionScope::ReadOnly } else { SessionScope::Edit });
++        self.message = reason.map(str::to_owned);
++    }
++}
+diff --git a/crates/chrome/src/fonts.rs b/crates/chrome/src/fonts.rs
+index 1ca503a..dcf7d15 100644
+--- a/crates/chrome/src/fonts.rs
++++ b/crates/chrome/src/fonts.rs
+@@ -43,6 +43,18 @@ pub(crate) fn hebrew_fallback() -> Option<&'static Arc<FontData>> {
+     FALLBACK.get_or_init(load_hebrew_fallback).as_ref()
+ }
+ 
++/// The face the page bundles for Chinese text (the wasm build has no system fonts). The page
++/// pushes it before the first frame; `install` then registers it behind Plex like the desktop's.
++#[cfg(target_arch = "wasm32")]
++static BUNDLED_CJK: OnceLock<Vec<u8>> = OnceLock::new();
++
++/// Keep the page's OFL CJK subset for `install` (called before the app is built). The first face
++/// wins: the host pushes one font per page.
++#[cfg(target_arch = "wasm32")]
++pub fn set_bundled_cjk(bytes: Vec<u8>) {
++    let _ = BUNDLED_CJK.set(bytes);
++}
++
+ /// The system font that covers Han characters, probed once like the Hebrew one.
+ fn cjk_fallback() -> Option<&'static Arc<FontData>> {
+     static FALLBACK: OnceLock<Option<Arc<FontData>>> = OnceLock::new();
+@@ -89,7 +101,8 @@ fn load_cjk_fallback() -> Option<Arc<FontData>> {
+ 
+     #[cfg(target_arch = "wasm32")]
+     {
+-        None
++        // No filesystem in a worker: the page's bundled subset (patch 0012) is the one source.
++        BUNDLED_CJK.get().map(|bytes| Arc::new(FontData::from_owned(bytes.clone())))
+     }
+ }
+ 

@@ -1,0 +1,25 @@
+NotoSansSC-GB2312.otf
+  Source: Noto Sans CJK SC Regular (Noto Sans CJK, https://github.com/notofonts/noto-cjk), face 2 of
+          NotoSansCJK-Regular.ttc; SIL Open Font License 1.1 (OFL.txt beside it).
+  Subset: the GB2312 common set (6763 Han characters and the GB2312 symbol rows), ASCII, Latin-1,
+          general punctuation, and the CJK punctuation the editor draws.
+  Why: a wasm Worker has no system fonts, and the desktop CJK probe is compiled out on wasm32.
+
+Reproduce (fontTools; run at packaging time, never in the browser):
+  python3 - <<'PY'
+  chars = set()
+  for b1 in range(0xA1, 0xF8):
+      for b2 in range(0xA1, 0xFF):
+          try: chars.add(bytes([b1, b2]).decode('gb2312'))
+          except UnicodeDecodeError: pass
+  ascii_ = ''.join(chr(c) for c in range(0x20, 0x7F))
+  latin1 = ''.join(chr(c) for c in range(0xA0, 0x100))
+  punct = ''.join(chr(c) for c in range(0x2000, 0x2070)) + 'Ωμ°±×÷·—…‘’“”'
+  open('gb2312.txt', 'w', encoding='utf-8').write(''.join(sorted(chars)) + ascii_ + latin1 + punct)
+  PY
+  pyftsubset NotoSansCJK-Regular.ttc --font-number=2 --text-file=gb2312.txt \
+    --output-file=NotoSansSC-GB2312.otf --name-IDs='*' --name-legacy --name-languages='*' \
+    --layout-features='kern,liga,clig,calt,ccmp,locl,mark,mkmk,rlig' --no-hinting --desubroutinize
+
+  Size: 3,028,796 bytes. sha256: see the file named above in this directory's build record
+  (scripts/wasm-pack.mjs records it in manifest.json at packaging time).
