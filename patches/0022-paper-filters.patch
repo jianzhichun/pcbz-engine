@@ -1,0 +1,51 @@
+diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
+index 48e82b8..e8946cb 100644
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -456,7 +456,7 @@
+  "Overlay action": "叠加操作",
+  "Overlay input": "叠加输入",
+  "PANEL POSITION": "面板位置",
+- "PAPER": "图纸",
++ "PAPER": "图幅",
+  "PCB": "PCB",
+  "PCB Layout": "PCB 布局",
+  "PCB grid": "PCB 网格",
+@@ -470,7 +470,7 @@
+  "Page {} of {} · {} instances": "第 {} 页，共 {} 页 · {} 个实例",
+  "Panel Position": "面板位置",
+  "Panel style": "面板样式",
+- "Paper": "图纸",
++ "Paper": "图幅",
+  "Paper background": "图纸背景",
+  "Parameter": "参数",
+  "Part": "元件",
+@@ -781,7 +781,7 @@
+  "Zoom footprint preview in": "放大封装预览",
+  "Zoom footprint preview out": "缩小封装预览",
+  "Zoom speed": "缩放速度",
+- "add paper to older sheets": "为旧图纸补上图纸",
++ "add paper to older sheets": "为旧图纸补上图幅",
+  "color.blue": "蓝",
+  "color.copy": "点击复制颜色值",
+  "color.edit": "点击编辑颜色",
+@@ -804,7 +804,7 @@
+  "dots": "点",
+  "lines": "线",
+  "migrate bundled library references": "迁移内置库引用",
+- "migrate bundled library references and add paper to older sheets": "迁移内置库引用并为旧图纸补上图纸",
++ "migrate bundled library references and add paper to older sheets": "迁移内置库引用并为旧图纸补上图幅",
+  "navbar.custom.add_slot": "添加{slot}",
+  "navbar.custom.duplicate": "该槽位已在工具栏上。",
+  "navbar.custom.full": "移除一个槽位以添加另一个。",
+@@ -1003,5 +1003,9 @@
+  "Whole wire selected · Drag to move · Del delete": "已选择整条导线 · 拖动移动 · Del 删除",
+  "Wire has too many corners; finish it before continuing.": "导线拐角过多；请先完成再继续。",
+  "Wire preview exceeds the supported geometry limits.": "导线预览超出支持的几何限制。",
+- "Wire selected · Drag a segment, corner or free end to reshape · Del delete": "已选择导线 · 拖动线段、拐角或自由端以重塑 · Del 删除"
++ "Wire selected · Drag a segment, corner or free end to reshape · Del delete": "已选择导线 · 拖动线段、拐角或自由端以重塑 · Del 删除",
++ "Dimensions": "尺寸标注",
++ "Locked objects": "锁定对象",
++ "Pads": "焊盘",
++ "Zones": "覆铜区"
+ }
