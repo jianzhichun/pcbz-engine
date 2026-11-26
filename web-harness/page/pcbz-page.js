@@ -45,6 +45,8 @@ let fontLoaded = false
 let probeSent = false
 let frameCount = 0
 let saveWaiter = null
+/** The editor caret from the Worker's frame report (CSS px above the canvas); null outside text editing. */
+let lastImeRect = null
 const proofWaiters = new Map()
 let proofSeq = 0
 let readOnly = false
@@ -225,6 +227,10 @@ function onWorker(message) {
       if (Array.isArray(message.copied)) for (const text of message.copied) writeClipboard(String(text))
       if (message.paste === true) readClipboard()
       if (message.ime === true) focusText()
+      // The Worker reports the caret in CSS pixels (it owns no DOM): park the hidden textarea there so the browser's IME
+      // candidate window opens at the caret. Patch 0015's report carries `ime_rect`; absent means no text edit.
+      lastImeRect = message.ime_rect && typeof message.ime_rect === 'object' ? message.ime_rect : null
+      if (lastImeRect) placeText(lastImeRect)
       // The hidden textarea holds the keyboard for the editor; it is never blurred because egui is not editing text now.
       // (Blurring it here would lose every key after the next frame: the page listens for keys on the textarea.)
       if (message.ime_interrupt === true) textarea.value = ''
@@ -247,6 +253,9 @@ function onWorker(message) {
       }
       // the model now owns the file: stay locked until its save and the reload (design §3.1-3.2)
       sendControl({ t: 'flush-ack', id: String(message.id || ''), hash: typeof message.hash === 'string' ? message.hash : null, revision: typeof message.revision === 'number' ? message.revision : revision })
+      // The proof's own save is not a model turn and no control socket will reload it: keep the page
+      // usable for the checks that follow instead of holding the model-turn input lock.
+      if (message.id === 'proof-save') { locked = false; showLock(); return }
       locked = true
       showLock()
       return
@@ -335,6 +344,7 @@ window.__pcbzProof = {
   get ready() { return announced },
   get backend() { return backend },
   get font() { return fontLoaded },
+  get imeRect() { return lastImeRect },
   text(value) { try { worker?.postMessage({ t: 'proof-text', text: String(value) }) } catch { /* gone */ } },
   command(id, params) { try { worker?.postMessage({ t: 'proof-command', id, params: params || {} }) } catch { /* gone */ } },
   status() { return proofRequest({ t: 'proof-status' }, 10000) },
@@ -384,6 +394,18 @@ function focusText() {
   if (document.activeElement !== textarea) {
     try { textarea.focus({ preventScroll: true }) } catch { textarea.focus() }
   }
+}
+
+/** Park the hidden textarea at the editor's caret so the browser opens its IME candidate window there. The stage is the
+ *  canvas's containing block (both inset:0), so a canvas-relative point is a stage-relative one. */
+function placeText(rect) {
+  const x = Number(rect.x)
+  const y = Number(rect.y)
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return
+  textarea.style.left = `${x}px`
+  textarea.style.top = `${y}px`
+  const h = Number(rect.h)
+  if (Number.isFinite(h) && h > 0) textarea.style.height = `${h}px`
 }
 
 // ---- input ---------------------------------------------------------------------------------------------------------

@@ -11,7 +11,7 @@
 name: render-server
 on:
   push:
-    branches: [render-server]
+    branches: [render-server, release]
     tags: ['engine-*']
     paths: ['render-server/**', 'patches/**', 'scripts/png_check.py', 'scripts/stream_proof.py', 'UPSTREAM_COMMIT', '.github/workflows/render-server.yml']
   workflow_dispatch:

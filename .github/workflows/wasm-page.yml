@@ -11,7 +11,7 @@
 name: wasm-page
 on:
   push:
-    branches: [wasm-page]
+    branches: [wasm-page, release]
     tags: ['engine-*']
     paths: ['patches/**', 'web-harness/**', 'UPSTREAM_COMMIT', '.github/workflows/wasm-page.yml']
   workflow_dispatch:

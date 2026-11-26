@@ -7,7 +7,10 @@
 // Checks: the page never imports the app or instantiates wasm (static grep + the Worker's frames);
 // the Worker paints frames; the bundled CJK face draws Chinese text (the proof-only overlay, checked
 // by pixels); a rename through the host command and a save through /pcbz/wasm/save carry the page's
-// write base; the saved archive reopens in the pinned CLI under its Chinese name.
+// write base; the saved archive reopens in the pinned CLI under its Chinese name; and patch 0015's
+// query state is real: a double click opens an inline field edit whose status reports text_editing and
+// whose frame report carries a non-zero IME caret rect (typing keeps it), and the L key's net-label
+// dialog reports dialog_open until Escape closes it.
 
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -97,6 +100,103 @@ async function waitFor(page, predicate, arg, timeoutMs, label) {
     await page.waitForTimeout(250)
   }
   throw new Error(`${label} timed out; last=${JSON.stringify(last)}`)
+}
+
+/** The editor status the page's Worker reads from `pcbz_host_status` (patch 0015 adds the three flags). */
+async function readStatus(page) {
+  const text = await page.evaluate(() => window.__pcbzProof.status())
+  try { return text ? JSON.parse(text) : {} } catch { return {} }
+}
+
+async function waitStatus(page, predicate, timeoutMs, label) {
+  const deadline = Date.now() + timeoutMs
+  let last = {}
+  while (Date.now() < deadline) {
+    last = await readStatus(page)
+    if (predicate(last)) return last
+    await page.waitForTimeout(120)
+  }
+  throw new Error(`${label} timed out; status=${JSON.stringify(last)}`)
+}
+
+/** Two real pointer clicks 90 ms apart on the canvas at (x, y), so egui sees a double click there. */
+async function doubleClick(page, x, y) {
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.waitForTimeout(90)
+  await page.mouse.down()
+  await page.mouse.up()
+}
+
+/**
+ * Find a schematic symbol field and open its inline editor through real input.
+ *
+ * The schematic opens fitted to the sheet, which draws each field's text a couple of pixels tall --
+ * too small to target. The wheel zooms around the pointer (the default), so the proof parks the
+ * pointer on the component cluster and zooms in until the fields are legible. The field painter sets
+ * the `Grab` cursor only while the pointer is over a component field, so a pointer sweep is a
+ * non-destructive hit test; a double click then starts the field's inline TextEdit, the state
+ * `text_editing` and the IME caret rect come from. A click sweep is the fallback.
+ */
+async function openFieldEditor(page) {
+  const box = await page.evaluate(() => {
+    const rect = document.getElementById('pcbz-canvas').getBoundingClientRect()
+    return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+  })
+  const anchor = { x: box.left + box.width * 0.5, y: box.top + box.height * 0.6125 }
+  await page.mouse.move(anchor.x, anchor.y)
+  await page.waitForTimeout(160)
+  // Four notches of the wheel (the page sends point-unit deltas) zoom the fitted sheet about the pointer.
+  for (let i = 0; i < 4; i++) {
+    await page.mouse.wheel(0, 120)
+    await page.waitForTimeout(400)
+  }
+  const points = []
+  const sweep = (x0, x1, y0, y1, stepX, stepY) => {
+    for (let y = y0; y <= y1; y += stepY) for (let x = x0; x <= x1; x += stepX) points.push([x, y])
+  }
+  // The magnified symbol's fields sit around the zoom anchor; the whole viewport is a fallback.
+  sweep(anchor.x - 220, anchor.x + 220, anchor.y - 170, anchor.y + 230, 15, 12)
+  sweep(box.left + box.width * 0.24, box.left + box.width * 0.76, box.top + box.height * 0.26, box.top + box.height * 0.86, 22, 18)
+
+  const confirms = async (x, y, timeoutMs = 2500) => {
+    await doubleClick(page, x, y)
+    const started = await waitStatus(page, (status) => status.text_editing === true, timeoutMs, 'inline text editing').catch(() => null)
+    if (started) return true
+    const after = await readStatus(page)
+    if (after.dialog_open === true) { await page.keyboard.press('Escape'); await page.waitForTimeout(120) }
+    return false
+  }
+  // Fast path: the fitted sensor-node sheet's symbol sits under the anchor; after this zoom its Reference
+  // and Value fields land at these offsets (measured on the real page). A small jitter covers a pixel.
+  const direct = []
+  for (const [dx, dy] of [[-132, 50], [-116, 89]]) {
+    for (const jx of [-6, 0, 6]) for (const jy of [-5, 0, 5]) direct.push([anchor.x + dx + jx, anchor.y + dy + jy])
+  }
+  for (const [x, y] of direct) if (await confirms(x, y, 1300)) return { at: { x, y }, by: 'direct' }
+  for (const [x, y] of points) {
+    await page.mouse.move(x, y)
+    await page.waitForTimeout(90)
+    const cursor = await page.evaluate(() => document.getElementById('pcbz-stage').style.cursor)
+    if (cursor !== 'grab') continue
+    if (await confirms(x, y)) return { at: { x, y }, by: 'hover' }
+  }
+  for (const [x, y] of points.slice(0, 900)) {
+    if (await confirms(x, y)) return { at: { x, y }, by: 'click' }
+  }
+  return null
+}
+
+/** The IME caret rect the frame report carries while text is edited, or null until one arrives. */
+async function waitImeRect(page, timeoutMs) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const rect = await page.evaluate(() => window.__pcbzProof.imeRect)
+    if (rect && Number.isFinite(rect.x) && Number.isFinite(rect.y) && Number(rect.h) > 0) return rect
+    await page.waitForTimeout(120)
+  }
+  return null
 }
 
 /** The red line, checked on the built page: no app module, no wasm, no host export on the main thread. */
@@ -268,6 +368,39 @@ async function main() {
       metrics.cli = JSON.parse(execFileSync('python3', [join(HERE, 'open_check.py'), cli, join(out, 'saved.pc'), RENAMED], { encoding: 'utf8' }).trim())
       if (metrics.cli.ok !== true) throw new Error('the CLI did not reopen the saved archive')
     }
+
+    // Patch 0015's query state: an inline field edit (started by a real double click) reports
+    // text_editing and a caret rect the page can park its hidden textarea at, and a key-opened dialog
+    // reports dialog_open until it is closed. Both are the state the plugin's flush/reload hold reads.
+    const opened = await openFieldEditor(page)
+    if (!opened) throw new Error('no editable schematic field was found for the inline text proof')
+    const editingStatus = await waitStatus(page, (status) => status.text_editing === true, 15000, 'inline text editing')
+    const rect = await waitImeRect(page, 15000)
+    if (!rect) throw new Error('the frame report carried no IME caret rect while text was being edited')
+    if (!(Math.abs(rect.x) + Math.abs(rect.y) > 0)) throw new Error(`the IME caret rect is zero: ${JSON.stringify(rect)}`)
+    await snapshot('worker-text-edit.png')
+    // Type through the page's DOM input path (the hidden textarea): the field must stay in edit and the
+    // report must keep carrying a non-zero caret rect, which typing moves.
+    await page.keyboard.type('XY')
+    await page.waitForTimeout(350)
+    const typedStatus = await readStatus(page)
+    if (typedStatus.text_editing !== true) throw new Error('typing ended the inline text edit')
+    const typedRect = await waitImeRect(page, 8000)
+    if (!typedRect) throw new Error('the caret rect vanished after typing')
+    metrics.text_editing = { opened, status: editingStatus, rect, typed_status: typedStatus, typed_rect: typedRect, screenshot: 'worker-text-edit.png' }
+    await page.keyboard.press('Escape')
+    await waitStatus(page, (status) => status.text_editing !== true, 15000, 'inline text editing end')
+
+    // Place local label (the L key) opens the net-label dialog without a pointer; Escape closes it. An
+    // extra Escape clears any focus the inline edit left, so the shortcut is not swallowed.
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(250)
+    await page.keyboard.press('l')
+    const dialogOpen = await waitStatus(page, (status) => status.dialog_open === true, 15000, 'net-label dialog open')
+    await snapshot('worker-dialog-open.png')
+    await page.keyboard.press('Escape')
+    const dialogClosed = await waitStatus(page, (status) => status.dialog_open !== true, 15000, 'net-label dialog close')
+    metrics.dialogs = { open: dialogOpen, closed: dialogClosed, screenshot: 'worker-dialog-open.png' }
 
     metrics.main_thread_check = await checkNoMainThreadWasm()
     metrics.probe = probe

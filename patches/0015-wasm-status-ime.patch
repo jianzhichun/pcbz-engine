@@ -1,0 +1,76 @@
+# PCBZ wasm page patch 0015: the page's own input-holding state and IME caret, query path only.
+# Why: the plugin holds a model call's flush/reload while the editor has an open dialog or an inline
+# text edit (design §3.2 step 3, §3.3), but patch 0011's `pcbz_host_status` published only revision/
+# busy/home/project/message/notice/read_only, so the page could only infer that state from a test seam.
+# This adds the three fields `inspect_editor` already reports on the desktop -- `dialog_open` (the app's
+# `Dialog`), `text_editing` (`views.editing_text()`, the schematic inline text edit) and `unsaved`
+# (`files.dirty(&session)`) -- read at the same host_tick that publishes the rest. It also puts the IME
+# caret on the worker's frame report from the egui platform output (`ime.cursor_rect`, converted from
+# points to the page's CSS pixels). A Worker has no DOM, so the page parks its hidden textarea at that
+# point and the browser opens the IME candidate window at the caret.
+# Query path only: no editor behaviour changes. Both sites are cfg(target_arch = "wasm32"), so a desktop
+# build compiles neither addition.
+# Files touched: crates/app/src/lib.rs (host_tick status JSON); apps/pcbcraft-web/src/worker/mod.rs
+# (Report.ime_rect and ImeRect, set from platform_output.ime).
+
+diff --git a/apps/pcbcraft-web/src/worker/mod.rs b/apps/pcbcraft-web/src/worker/mod.rs
+index 0275ee3..01d4d91 100644
+--- a/apps/pcbcraft-web/src/worker/mod.rs
++++ b/apps/pcbcraft-web/src/worker/mod.rs
+@@ -41,11 +41,23 @@ struct Report {
+     paste: bool,
+     ime: bool,
+     ime_interrupt: bool,
++    /// The primary caret while the editor is editing text, in CSS pixels from the canvas origin;
++    /// the page parks its hidden input here so the IME candidate window opens at the caret.
++    #[serde(skip_serializing_if = "Option::is_none")]
++    ime_rect: Option<ImeRect>,
+     pulse: u64,
+     #[serde(skip_serializing_if = "Option::is_none")]
+     error: Option<String>,
+ }
+ 
++/// A caret in the page's CSS pixels (the canvas origin is `0,0`); `h` is the caret's row height.
++#[derive(serde::Serialize)]
++struct ImeRect {
++    x: f32,
++    y: f32,
++    h: f32,
++}
++
+ /// Owned web display handle for wgpu (`!Send`/`!Sync` raw pointers are not involved on web).
+ #[derive(Clone, Debug)]
+ struct WebDisplay;
+@@ -290,6 +302,15 @@ impl Editor {
+             .collect();
+         report.ime = platform_output.ime.is_some();
+         report.ime_interrupt = platform_output.ime.as_ref().is_some_and(|ime| ime.should_interrupt_composition);
++        // The candidate window belongs at the caret. egui reports the primary cursor in points; the
++        // page's hidden textarea lives in CSS pixels from the canvas origin, i.e. points times the
++        // same zoom `raw_input` divides by. A caret rect is thin in width but spans the text row.
++        let zoom = self.ctx.zoom_factor().max(0.01);
++        report.ime_rect = platform_output.ime.as_ref().map(|ime| ImeRect {
++            x: ime.cursor_rect.center().x * zoom,
++            y: ime.cursor_rect.center().y * zoom,
++            h: ime.cursor_rect.height() * zoom,
++        });
+ 
+         let dirty = !shapes.is_empty() || !self.deltas.set.is_empty() || report.repaint;
+         if dirty {
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index 6d96536..5620e1c 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -2794,6 +2794,12 @@ impl PcbApp {
+                 "message": self.message,
+                 "notice": self.file_notice,
+                 "read_only": host::read_only(),
++                // The same input-holding state `inspect_editor` reports on the desktop: the page refuses
++                // a flush/reload while a dialog or an inline text edit is open, and treats unsaved work
++                // as dirty rather than blocked (design §3.3).
++                "dialog_open": !matches!(self.dialog, Dialog::None),
++                "text_editing": self.views.editing_text(),
++                "unsaved": self.files.dirty(&self.session),
+             })
+             .to_string(),
+         );
