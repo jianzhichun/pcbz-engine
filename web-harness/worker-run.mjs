@@ -344,6 +344,27 @@ async function main() {
     metrics.before = pixelStats(before)
     if (metrics.before.ink < 2000 || metrics.before.colors < 8) throw new Error(`the Worker's frame is blank: ${JSON.stringify(metrics.before)}`)
 
+    // Capture the Worker's canvas, not the page chrome. A large increase in luminance rules out
+    // incidental differences (a cursor or animation). Both captures belong to the same document.
+    const initialRevision = (await readStatus(page)).revision
+    if (!Number.isFinite(initialRevision)) throw new Error('worker did not publish a revision')
+    const palette = {}
+    for (const theme of ['dark', 'light']) {
+      const frames = await page.evaluate(theme => {
+        const n = window.__pcbzProof.frames
+        window.postMessage({ t: 'pcbz-wasm-host', kind: 'theme', theme }, location.origin)
+        return n
+      }, theme)
+      await page.waitForFunction(n => window.__pcbzProof.frames > n, frames, { timeout: 12000 })
+      const image = PNG.sync.read(await snapshot(`worker-${theme}.png`))
+      let sum = 0
+      for (let i = 0; i < image.data.length; i += 4) sum += (image.data[i] + image.data[i + 1] + image.data[i + 2]) / 3
+      palette[theme] = sum / (image.width * image.height)
+      if ((await readStatus(page)).revision !== initialRevision) throw new Error('theme switch changed the project revision')
+    }
+    if (palette.light - palette.dark < 10) throw new Error(`no light/dark Worker canvas change: ${JSON.stringify(palette)}`)
+    metrics.runtime_theme = { ...palette, revision: initialRevision }
+
     await page.evaluate(() => window.__pcbzProof.text('中文工程 电源网络 VCC'))
     await page.waitForTimeout(600)
     const cjk = await snapshot('worker-cjk.png')

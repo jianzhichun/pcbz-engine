@@ -185,6 +185,9 @@ self.onmessage = (event) => {
     case 'resize':
       if (app) { app.pcbz_worker_resize(Number(message.w) || 1, Number(message.h) || 1, Number(message.dpr) || 1); schedule(0) }
       return
+    case 'theme':
+      if (app && ['dark', 'light'].includes(message.theme)) { app.pcbz_worker_theme(message.theme === 'dark'); schedule(0) }
+      return
     case 'focus':
       if (app) app.pcbz_worker_set_focus(message.focused === true)
       return

@@ -567,6 +567,7 @@ window.addEventListener('message', (event) => {
   if (event.source !== parent || event.origin !== location.origin) return
   const message = event.data
   if (!message || message.t !== 'pcbz-wasm-host' || typeof message.kind !== 'string') return
+  if (message.kind === 'theme' && ['dark', 'light'].includes(message.theme)) worker?.postMessage({ t: 'theme', theme: message.theme })
   if (message.kind === 'visible') worker?.postMessage({ t: 'visible', visible: message.visible === true })
 })
 document.addEventListener('visibilitychange', () => worker?.postMessage({ t: 'visible', visible: document.visibilityState !== 'hidden' }))

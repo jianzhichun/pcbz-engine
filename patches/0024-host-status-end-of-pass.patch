@@ -1,0 +1,51 @@
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index d01981d..09ccb36 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -2786,6 +2786,20 @@ impl PcbApp {
+                 }
+             }
+         }
++        // A file job (open, save) advances only on later frames; an idle egui asks for none, so
++        // without this the page's save would wait forever for the pump it just stopped. Ask for
++        // the next pass while one is in flight (the page's worker pump turns the request into a
++        // timer frame).
++        if self.files.busy() {
++            ctx.request_repaint_after(std::time::Duration::from_millis(16));
++        }
++    }
++
++    /// Publish the editor state the page polls, as of the pass that just finished. The page decides a flush or a
++    /// reload from this value, so it must include a dialog or inline text edit that this pass opened; publishing at
++    /// the start of a pass left every read one pass behind (patch 0024).
++    #[cfg(target_arch = "wasm32")]
++    fn host_publish_status(&self) {
+         let project = self.session.project().map(|project| project.name.clone());
+         host::publish_status(
+             json!({
+@@ -2805,13 +2819,6 @@ impl PcbApp {
+             })
+             .to_string(),
+         );
+-        // A file job (open, save) advances only on later frames; an idle egui asks for none, so
+-        // without this the page's save would wait forever for the pump it just stopped. Ask for
+-        // the next pass while one is in flight (the page's worker pump turns the request into a
+-        // timer frame).
+-        if self.files.busy() {
+-            ctx.request_repaint_after(std::time::Duration::from_millis(16));
+-        }
+     }
+ 
+     /// Adopt project file results and handle Close before considering a timed Save, even in
+@@ -2926,6 +2933,11 @@ impl PcbApp {
+         if before != (self.session.revision(), self.preferences, std::mem::discriminant(&self.dialog), self.home, self.library_editors.stamp()) {
+             self.repaint_editors(&ctx);
+         }
++        // Publish after the UI pass, not before it: the page reads this value between passes, and a dialog or an
++        // inline text edit that this pass opened must already be in it (patch 0024; the client's extra refresh pass
++        // existed only to paper over the stale read).
++        #[cfg(target_arch = "wasm32")]
++        self.host_publish_status();
+     }
+ 
+     /// Draw the same editor in any visible window. Project dialogs, Home and the assistant
