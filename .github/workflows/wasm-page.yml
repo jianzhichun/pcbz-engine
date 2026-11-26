@@ -53,7 +53,11 @@ jobs:
           trunk --version
       - name: Build the web app
         working-directory: upstream/apps/pcbcraft-web
-        run: trunk build --release --locked
+        # `proof` adds the CJK overlay and the worker probe the proof below checks; the shipping
+        # build (M-wasm3) omits it.
+        run: trunk build --release --locked --features proof
+      - name: Put the PCBZ page into dist/web (worker entry, hashed app manifest)
+        run: node web-harness/prepare-page.mjs --dist upstream/dist/web --page web-harness/page
       - name: Record the dist sizes
         run: |
           du -ab upstream/dist/web | sort -n | tail -25 | tee sizes.txt
@@ -73,6 +77,12 @@ jobs:
         run: |
           CLI=$(find cli -name pcbcraft-cli -type f | head -1)
           node web-harness/run.mjs --dist upstream/dist/web --project upstream/examples/sensor-node.pc --out proof --cli "$CLI"
+      - name: 'Worker proof: OffscreenCanvas frames, CJK pixels, save through the plugin routes'
+        run: |
+          CLI=$(find cli -name pcbcraft-cli -type f | head -1)
+          node web-harness/worker-run.mjs --dist upstream/dist/web --project upstream/examples/sensor-node.pc --out proof --cli "$CLI"
+      - name: Brotli the wasm (the compressed form is what ships; design 1.4)
+        run: node web-harness/brotli-dist.mjs --dist upstream/dist/web | tee proof/wasm-brotli.json
       - name: Upload the build and the proof
         if: always()
         uses: actions/upload-artifact@v4
