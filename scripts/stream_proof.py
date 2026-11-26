@@ -358,8 +358,11 @@ class Session:
         self.project_file = self.out / f"project-{self.name}.pc"
         shutil.copyfile(self.args.project, self.project_file)
         trace = [] if not getattr(self.args, "strace", False) else ["strace", "-f", "-qq", "-e", "trace=execve,connect", "-o", str(self.out / f"strace-{self.name}.log")]
+        # The proof's pointer targets are fixed pixels measured in the English layout; ask for English so a
+        # Chinese-by-default build does not shift them. The Chinese interface has its own dark/light snapshot
+        # check in the workflow (scripts/../out-zh-*).
         cmd = trace + [self.args.server, "--stream", f"127.0.0.1:{listener.getsockname()[1]}", "--session", self.name, "--size", self.args.size,
-               "--adapter", self.args.adapter, "--project", str(self.project_file), "--config-dir", str(self.config_dir)]
+               "--adapter", self.args.adapter, "--lang", "en", "--project", str(self.project_file), "--config-dir", str(self.config_dir)]
         self.errlog = open(self.out / f"server-{self.name}.log", "w", encoding="utf-8")
         t0 = time.perf_counter()
         self.proc = subprocess.Popen(cmd, env=env, stdout=self.errlog, stderr=subprocess.STDOUT)
