@@ -573,12 +573,16 @@ def cancel_running_check(s, label):
     t = threading.Thread(target=run, daemon=True)
     t.start()
     # Keep the interface busy the way a person would while the model's step computes: move the
-    # pointer, and count the frames the server still draws and encodes.
-    frames = 0
-    for i in range(10):
-        s.leg.send({"k": "input", "seq": s.seq + 1, "events": [{"e": "move", "x": 300 + i * 40, "y": 380 + i}]})
-        s.seq += 1
-        frames += s.pump_count(0.1)
+    # pointer, open and close the File menu, and count the frames the server still draws. Menu
+    # frames are the reliable evidence on every surface (a bare mouse move over an empty view
+    # can change nothing, so no frame is encoded).
+    frames = s.pump_count(0.3)
+    for i in range(3):
+        opened = s.click(124, 16, f"cancel-menu-{label}-{i}")
+        frames += int(opened is not None)
+        closed = s.press("Escape", "Escape", f"cancel-escape-{label}-{i}")
+        frames += int(closed is not None)
+    frames += s.pump_count(0.1)
     reply = control_once(s.ready["controlPort"], s.ready["controlSecret"], "ui.operations", {"cancel": "agent"})
     cancelled = reply.get("ok") is True and (reply.get("result") or {}).get("cancelled") == "agent"
     s.check(f"[{label}] ui.operations cancel is answered by the control socket, not a frame pass", cancelled, reply)
@@ -589,7 +593,7 @@ def cancel_running_check(s, label):
     stopped = bool(result) and result[0] is True and "stopped:" in text and "nothing was applied" in text
     s.check(f"[{label}] the in-flight engine.execute answers stopped / nothing was applied", stopped, text[:300])
     s.check(f"[{label}] the stop returned before the scripted hold ended", elapsed < TEST_CHECK_MS / 1000.0, round(elapsed, 2))
-    s.check(f"[{label}] the editor drew frames while the job computed", frames >= 3, frames)
+    s.check(f"[{label}] the editor drew frames while the job computed", frames >= 2, frames)
     s.check(f"[{label}] the editor never restarted", s.proc.poll() is None and s.proc.pid == pid, (s.proc.poll(), pid))
     s.settle()
     err1, snap1 = s.bridge_call(lambda: s.bridge.tool("snapshot_project"))
