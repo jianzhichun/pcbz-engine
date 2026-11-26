@@ -782,7 +782,7 @@ index cc8271b..5e0dc57 100644
              Frame::NONE.inner_margin(t.space_16 as i8).show(ui, |ui| {
                  ui.set_style(field_style);
 diff --git a/crates/chrome/src/workspace.rs b/crates/chrome/src/workspace.rs
-index dc9645e..fe4fe17 100644
+index dc9645e..300e794 100644
 --- a/crates/chrome/src/workspace.rs
 +++ b/crates/chrome/src/workspace.rs
 @@ -615,6 +615,7 @@ fn workspace_tile(ui: &mut Ui, workspace: &str, icon: WorkspaceIcon, height: f32
@@ -877,3 +877,12 @@ index dc9645e..fe4fe17 100644
          }
      }
      if let Some(group) = output.groups.first() {
+@@ -1457,7 +1463,7 @@ pub(super) fn panel_header_control(ui: &mut Ui, id: egui::Id, rect: Rect, title:
+     painter.with_clip_rect(painter.clip_rect().intersect(label)).text(
+         label.left_center(),
+         Align2::LEFT_CENTER,
+-        title,
++        crate::i18n::tr_label(title),
+         font,
+         if ui.is_enabled() { t.text } else { t.text_dim },
+     );
