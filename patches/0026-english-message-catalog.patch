@@ -1,8 +1,8 @@
 diff --git a/crates/chrome/assets/shared-ui/en.json b/crates/chrome/assets/shared-ui/en.json
-index 212df46..2a97c8e 100644
+index 212df46..9bed77c 100644
 --- a/crates/chrome/assets/shared-ui/en.json
 +++ b/crates/chrome/assets/shared-ui/en.json
-@@ -102,5 +102,374 @@
+@@ -102,5 +102,392 @@
    "ui.viewport_status_summary_more": "+{count}",
    "ui.workspace_available": "Available",
    "ui.workspace_current": "Current",
@@ -376,5 +376,23 @@ index 212df46..2a97c8e 100644
 +  "fragment.check_canceled": "Check canceled",
 +  "fragment.board_changed;_check_discarded": "Board changed; check discarded",
 +  "fragment.drc_checking…": "DRC checking…",
-+  "fragment.drc_not_run": "DRC not run"
++  "fragment.drc_not_run": "DRC not run",
++  "fragment.crossing": "Crossing",
++  "fragment.window": "Window",
++  "fragment.no_library_selected": "No library selected",
++  "fragment.library_unavailable": "Library unavailable",
++  "fragment.preview_source": "Preview source",
++  "fragment.active_source": "Active source",
++  "fragment.technical": "Technical",
++  "fragment.library_item": "library item",
++  "fragment.library": "library",
++  "fragment.libraries": "libraries",
++  "fragment.writable": "Writable",
++  "fragment.read_only": "Read-only",
++  "fragment.built_in": "Built-in",
++  "fragment.local_files": "Local files",
++  "fragment.schematic": "schematic",
++  "fragment.pcb_canvas": "PCB canvas",
++  "fragment.not_recorded": "Not recorded",
++  "fragment.invalid_library_documents": "Invalid library documents"
  }

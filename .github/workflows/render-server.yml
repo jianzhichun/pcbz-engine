@@ -168,7 +168,7 @@ jobs:
               --lang zh --theme "$theme" --project upstream/examples/sensor-node.pc 2>&1 | tee -a zh-$theme.log
             python scripts/png_check.py "out-zh-$theme/frame-0002.png" 960 600 500 2>&1 | tee -a zh-$theme.log
             # The legacy example triggers a real translated migration notice with two values.
-            python -c "import json,sys; s=json.load(open(sys.argv[1], encoding='utf-8'))['status']; assert s and '保存' in s and '图幅' in s, s; print(s)" "out-zh-$theme/frames.json"
+            PYTHONUTF8=1 python -c "import json,sys; s=json.load(open(sys.argv[1], encoding='utf-8'))['status']; assert s and '保存' in s and '图幅' in s, s; print(s)" "out-zh-$theme/frames.json"
           done
           # The two palettes must differ (a real switch, not one drawing twice).
           python - "$PWD/out-zh-dark/frame-0002.png" "$PWD/out-zh-light/frame-0002.png" <<'EOF'

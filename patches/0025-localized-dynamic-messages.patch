@@ -622,10 +622,10 @@ index e6062aa..9b1d197 100644
                                          let mut glass = ply.glass_style.clone().unwrap_or_default();
                                          if form::text(ui, "Glass style", &mut glass).changed() {
 diff --git a/crates/app/src/board_setup/profile_io.rs b/crates/app/src/board_setup/profile_io.rs
-index 7328608..bc76485 100644
+index 7328608..9894582 100644
 --- a/crates/app/src/board_setup/profile_io.rs
 +++ b/crates/app/src/board_setup/profile_io.rs
-@@ -43,11 +43,11 @@ impl Files {
+@@ -43,20 +43,20 @@ impl Files {
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("board-setup-profile".into())
@@ -639,6 +639,17 @@ index 7328608..bc76485 100644
              .map_err(|e| e.to_string())?;
          #[cfg(target_arch = "wasm32")]
          {
+             let picker = save.is_none().then(pick_profile);
+-            wasm_bindgen_futures::spawn_local(async move {
++            wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+                 let result = web(save, picker).await;
+                 let _ = send.send(result);
+                 ctx.request_repaint();
+-            });
++            }));
+         }
+         self.next = ticket;
+         self.pending = Some((ticket, receive));
 @@ -95,9 +95,9 @@ fn publish(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
      let parent = path.parent().ok_or("Choose a destination directory.")?;
      let mut file = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
@@ -810,7 +821,7 @@ index 8c58e6c..9000809 100644
          *action = Action::PlaceAll;
      }
 diff --git a/crates/app/src/board_workspace.rs b/crates/app/src/board_workspace.rs
-index 1c30cde..8e5e755 100644
+index 1c30cde..bc442e3 100644
 --- a/crates/app/src/board_workspace.rs
 +++ b/crates/app/src/board_workspace.rs
 @@ -609,7 +609,7 @@ impl PcbApp {
@@ -827,7 +838,7 @@ index 1c30cde..8e5e755 100644
          }
          let highlighted = self.views.board_highlight_for(id, &self.session);
 -        let label = if self.views.is_split() { format!("PCB canvas {}", id.0 + 1) } else { "PCB canvas".to_owned() };
-+        let label = if self.views.is_split() { pcbcraft_chrome::i18n::format("dynamic.pcb_canvas_4a019c8", &[("arg1", &format!("{}", id.0 + 1))]) } else { "PCB canvas".to_owned() };
++        let label = if self.views.is_split() { pcbcraft_chrome::i18n::format("dynamic.pcb_canvas_4a019c8", &[("arg1", &format!("{}", id.0 + 1))]) } else { pcbcraft_chrome::i18n::tr_label("PCB canvas").to_owned() };
          if self.board_move_ready(ui.ctx(), id, enabled)
              && let Some(widget) = self.views.view(id).map(|v| v.widget_id())
          {
@@ -1013,7 +1024,7 @@ index 5771852..da467cc 100644
          })
          .collect()
 diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index 09ccb36..d3bbcc5 100644
+index 09ccb36..41e2861 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
 @@ -1522,14 +1522,9 @@ impl PcbApp {
@@ -1029,7 +1040,7 @@ index 09ccb36..d3bbcc5 100644
 -                ratsnest.lines.len(),
 -                if ratsnest.lines.len() == 1 { "" } else { "s" }
 -            ));
-+            board_status = Some(pcbcraft_chrome::i18n::format("dynamic.airwire_97ee44d", &[("arg1", &format!("{}", board_status.as_deref().unwrap_or("Board"))), ("arg2", &format!("{}", ratsnest.lines.len())), ("arg3", pcbcraft_chrome::i18n::plural_suffix(if ratsnest.lines.len() == 1 { "" } else { "s" })), ("missing", &format!("{}", missing))]));
++            board_status = Some(pcbcraft_chrome::i18n::format("dynamic.airwire_97ee44d", &[("arg1", &format!("{}", board_status.as_deref().unwrap_or_else(|| pcbcraft_chrome::i18n::tr_label("Board")))), ("arg2", &format!("{}", ratsnest.lines.len())), ("arg3", pcbcraft_chrome::i18n::plural_suffix(if ratsnest.lines.len() == 1 { "" } else { "s" })), ("missing", &format!("{}", missing))]));
          }
          shell::status_bar(
              ui,
@@ -1215,7 +1226,7 @@ index 89ba833..f410cd3 100644
          let _ = self.draft.get_or_insert_with(|| form::Draft::new(&snapshot, Some(object_id), self.session.revision()));
  
 diff --git a/crates/app/src/library_editors/form.rs b/crates/app/src/library_editors/form.rs
-index 41aa272..88bc913 100644
+index 41aa272..0e6521a 100644
 --- a/crates/app/src/library_editors/form.rs
 +++ b/crates/app/src/library_editors/form.rs
 @@ -181,8 +181,8 @@ impl Draft {
@@ -1239,7 +1250,7 @@ index 41aa272..88bc913 100644
 +        Some("pad") => pcbcraft_chrome::i18n::format("dynamic.pad_2946570", &[("arg1", &format!("{}", draft.value["pad"]["number"].as_str().unwrap_or("")))]),
          Some("non_plated_hole") => "Non-plated hole".into(),
 -        Some("outline") => format!("{} rectangle", display(draft.value["graphic"]["purpose"].as_str().unwrap_or("Technical"))),
-+        Some("outline") => pcbcraft_chrome::i18n::format("dynamic.rectangle_57d0b17", &[("arg1", &format!("{}", display(draft.value["graphic"]["purpose"].as_str().unwrap_or("Technical"))))]),
++        Some("outline") => pcbcraft_chrome::i18n::format("dynamic.rectangle_57d0b17", &[("arg1", pcbcraft_chrome::i18n::tr_label(&display(draft.value["graphic"]["purpose"].as_str().unwrap_or("Technical"))))]),
          Some(kind) => display(kind),
          None => "Definition".into(),
      }
@@ -1262,10 +1273,10 @@ index 41aa272..88bc913 100644
          *value = json!(number);
          return Ok(());
 diff --git a/crates/app/src/library_editors/io.rs b/crates/app/src/library_editors/io.rs
-index 74319bb..9e2cc16 100644
+index 74319bb..42e8d90 100644
 --- a/crates/app/src/library_editors/io.rs
 +++ b/crates/app/src/library_editors/io.rs
-@@ -51,11 +51,11 @@ impl Files {
+@@ -51,20 +51,20 @@ impl Files {
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("library-file".into())
@@ -1279,6 +1290,17 @@ index 74319bb..9e2cc16 100644
              .map_err(|e| e.to_string())?;
          #[cfg(target_arch = "wasm32")]
          {
+             let picker = save.is_none().then(pick_item);
+-            wasm_bindgen_futures::spawn_local(async move {
++            wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+                 let result = web(save, picker).await;
+                 let _ = send.send(result);
+                 ctx.request_repaint();
+-            });
++            }));
+         }
+         self.pending = Some(receive);
+         Ok(())
 @@ -84,19 +84,19 @@ impl Files {
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
@@ -1331,7 +1353,7 @@ index 74319bb..9e2cc16 100644
          return Ok(Outcome::Cancelled);
      }
 diff --git a/crates/app/src/library_editors/publishing.rs b/crates/app/src/library_editors/publishing.rs
-index 3ab426b..13b4f8d 100644
+index 3ab426b..b26890b 100644
 --- a/crates/app/src/library_editors/publishing.rs
 +++ b/crates/app/src/library_editors/publishing.rs
 @@ -194,11 +194,11 @@ impl Publisher {
@@ -1353,7 +1375,7 @@ index 3ab426b..13b4f8d 100644
          let changed = doc.is_some_and(|doc| doc.session.publication_dirty());
          let verifying = self.library_editors.publisher.unconfirmed() == Some(draft.document);
 -        let title = format!("Publish {}", item.as_ref().map(|item| item.name.as_str()).unwrap_or("library item"));
-+        let title = pcbcraft_chrome::i18n::format("dynamic.publish_57fbae8", &[("arg1", &format!("{}", item.as_ref().map(|item| item.name.as_str()).unwrap_or("library item")))]);
++        let title = pcbcraft_chrome::i18n::format("dynamic.publish_57fbae8", &[("arg1", &format!("{}", item.as_ref().map(|item| item.name.as_str()).unwrap_or_else(|| pcbcraft_chrome::i18n::tr_label("library item"))))]);
          let mut create = false;
          let action = pcbcraft_chrome::catalog::property_form_enabled(
              ctx,
@@ -1371,7 +1393,7 @@ index 3ab426b..13b4f8d 100644
                              ("Type", if item.kind == Kind::Symbol { "Symbol".into() } else { "Footprint".into() }),
                              (if copy { "Source ID" } else { "Item ID" }, item.id.clone()),
 -                            ("Based on", base.map(|revision| format!("Revision {revision}")).unwrap_or_else(|| "Not recorded".into())),
-+                            ("Based on", base.map(|revision| pcbcraft_chrome::i18n::format("dynamic.revision_60c9d7a", &[("revision", &format!("{}", revision))])).unwrap_or_else(|| "Not recorded".into())),
++                            ("Based on", base.map(|revision| pcbcraft_chrome::i18n::format("dynamic.revision_60c9d7a", &[("revision", &format!("{}", revision))])).unwrap_or_else(|| pcbcraft_chrome::i18n::tr_label("Not recorded").into())),
                              ("Library ID", library.unwrap_or("Not selected").into()),
                              ("License", item.license.clone()),
                          ] {
@@ -1489,7 +1511,7 @@ index f0dba1d..a4f195b 100644
                          *camera = Camera::default();
                      } else {
 diff --git a/crates/app/src/library_workspace.rs b/crates/app/src/library_workspace.rs
-index dd01c98..8817f57 100644
+index dd01c98..3aa01e9 100644
 --- a/crates/app/src/library_workspace.rs
 +++ b/crates/app/src/library_workspace.rs
 @@ -168,7 +168,7 @@ impl PcbApp {
@@ -1497,7 +1519,7 @@ index dd01c98..8817f57 100644
                  ui,
                  |ui| {
 -                    ui.label(format!("Libraries · {} {}", sources.len(), if sources.len() == 1 { "library" } else { "libraries" }));
-+                    ui.label(pcbcraft_chrome::i18n::format("dynamic.libraries_68a01fe", &[("arg1", &format!("{}", sources.len())), ("arg2", &format!("{}", if sources.len() == 1 { "library" } else { "libraries" }))]));
++                    ui.label(pcbcraft_chrome::i18n::format("dynamic.libraries_68a01fe", &[("arg1", &format!("{}", sources.len())), ("arg2", pcbcraft_chrome::i18n::tr_label(if sources.len() == 1 { "library" } else { "libraries" }))]));
                  },
                  |_| {},
              );
@@ -1708,10 +1730,10 @@ index 348e865..1d432f0 100644
          // An embedded host keeps the project file itself, so nothing in the editor is "unsaved".
          if command == "project.new" && !app.embedded && app.files.dirty(&app.session) {
 diff --git a/crates/app/src/manufacturing/files.rs b/crates/app/src/manufacturing/files.rs
-index 0b76ba5..19e4339 100644
+index 0b76ba5..b5a1418 100644
 --- a/crates/app/src/manufacturing/files.rs
 +++ b/crates/app/src/manufacturing/files.rs
-@@ -47,11 +47,11 @@ impl Files {
+@@ -47,19 +47,19 @@ impl Files {
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("fabrication-review".into())
@@ -1726,6 +1748,16 @@ index 0b76ba5..19e4339 100644
          #[cfg(target_arch = "wasm32")]
          {
              let _ = (path, directory);
+             let file = pick_zip(MAX_ZIP_BYTES as u32);
+-            wasm_bindgen_futures::spawn_local(async move {
++            wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+                 let _ = send.send(browser(file).await);
+                 ctx.request_repaint();
+-            });
++            }));
+         }
+         self.0 = Some(Job { owner, binding: Arc::downgrade(binding), result });
+         Ok(())
 @@ -156,7 +156,7 @@ extern "C" {
  /// Start the chooser during the browser gesture and bound the selected bytes before parsing.
  #[cfg(target_arch = "wasm32")]
@@ -1780,7 +1812,7 @@ index 3129ce1..c5c3333 100644
                          });
                      }
 diff --git a/crates/app/src/native_sources.rs b/crates/app/src/native_sources.rs
-index 91936f9..ecd3df6 100644
+index 91936f9..94a85c2 100644
 --- a/crates/app/src/native_sources.rs
 +++ b/crates/app/src/native_sources.rs
 @@ -65,7 +65,7 @@ impl Sources {
@@ -1835,7 +1867,7 @@ index 91936f9..ecd3df6 100644
                  use std::io::Read;
                  let result = rfd::FileDialog::new()
                      .add_filter("PCBZ library bundle", &["json"])
-@@ -216,7 +216,7 @@ impl Sources {
+@@ -216,16 +216,16 @@ impl Sources {
                      .transpose();
                  let _ = send.send(result.map(Option::flatten));
                  ctx.request_repaint();
@@ -1844,6 +1876,30 @@ index 91936f9..ecd3df6 100644
              .map_err(|e| e.to_string())?;
          #[cfg(target_arch = "wasm32")]
          {
+             let promise = web::pick();
+-            wasm_bindgen_futures::spawn_local(async move {
++            wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+                 let result = web::read(promise).await;
+                 let _ = send.send(result);
+                 ctx.request_repaint();
+-            });
++            }));
+         }
+         let previous_status = self.statuses.insert(source.clone(), "Loading…".into());
+         self.job = Some(Job { source, previous_status, receive, generation, installing: cfg!(not(target_arch = "wasm32")) });
+@@ -241,10 +241,10 @@ impl Sources {
+         let (send, receive) = mpsc::channel();
+         let promise = web::pick_folder();
+         let context = ctx.clone();
+-        wasm_bindgen_futures::spawn_local(async move {
++        wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+             let _ = send.send(web::read_folder(promise).await);
+             context.request_repaint();
+-        });
++        }));
+         let previous_status = self.statuses.insert(source.clone(), "Loading…".into());
+         self.job = Some(Job { source, previous_status, receive, generation, installing: false });
+         Ok(())
 @@ -461,12 +461,12 @@ mod web {
      }
      /// Validate transported folder text with exactly the engine's native document limits.
@@ -1855,7 +1911,7 @@ index 91936f9..ecd3df6 100644
          }
          let text =
 -            js_sys::JSON::stringify(&value).map_err(|e| format!("Could not read library: {e:?}"))?.as_string().ok_or("Invalid library documents")?;
-+            js_sys::JSON::stringify(&value).map_err(|e| pcbcraft_chrome::i18n::format("dynamic.could_not_read_library_d67adeb", &[("e", &format!("{:?}", e))]))?.as_string().ok_or("Invalid library documents")?;
++            js_sys::JSON::stringify(&value).map_err(|e| pcbcraft_chrome::i18n::format("dynamic.could_not_read_library_d67adeb", &[("e", &format!("{:?}", e))]))?.as_string().ok_or_else(|| pcbcraft_chrome::i18n::tr_label("Invalid library documents"))?;
          #[derive(Deserialize)]
          struct Folder {
              documents: sources::Documents,
@@ -2163,7 +2219,7 @@ index 5a0c684..637df4c 100644
                  self.message = self.new_part_document(ui.ctx(), Some(address.clone())).map(|_| ()).err();
              }
 diff --git a/crates/app/src/part_documents/form.rs b/crates/app/src/part_documents/form.rs
-index 712744f..e2aa78d 100644
+index 712744f..2b5b07d 100644
 --- a/crates/app/src/part_documents/form.rs
 +++ b/crates/app/src/part_documents/form.rs
 @@ -54,9 +54,9 @@ impl PcbApp {
@@ -2171,10 +2227,10 @@ index 712744f..e2aa78d 100644
                      "Cannot publish".into()
                  } else if changed {
 -                    format!("Draft · {}", destination.as_deref().unwrap_or("No library selected"))
-+                    pcbcraft_chrome::i18n::format("dynamic.draft_6dbf79c", &[("arg1", &format!("{}", destination.as_deref().unwrap_or("No library selected")))])
++                    pcbcraft_chrome::i18n::format("dynamic.draft_6dbf79c", &[("arg1", &format!("{}", destination.as_deref().unwrap_or_else(|| pcbcraft_chrome::i18n::tr_label("No library selected"))))])
                  } else {
 -                    format!("Published r{} · {}", record.reference().revision, destination.as_deref().unwrap_or("Library unavailable"))
-+                    pcbcraft_chrome::i18n::format("dynamic.published_r_e651aa1", &[("arg1", &format!("{}", record.reference().revision)), ("arg2", &format!("{}", destination.as_deref().unwrap_or("Library unavailable")))])
++                    pcbcraft_chrome::i18n::format("dynamic.published_r_e651aa1", &[("arg1", &format!("{}", record.reference().revision)), ("arg2", &format!("{}", destination.as_deref().unwrap_or_else(|| pcbcraft_chrome::i18n::tr_label("Library unavailable"))))])
                  };
                  publish = pcbcraft_chrome::part_form::publication(ui, &status, !crate::IN_BROWSER && !busy && valid.is_ok() && !doc.has_unapplied());
                  return;
@@ -2329,6 +2385,28 @@ index 3fa0657..fcdd525 100644
          }
          let keys: Vec<_> = choices
              .iter()
+diff --git a/crates/app/src/performance/rendered.rs b/crates/app/src/performance/rendered.rs
+index f2657f3..87ef850 100644
+--- a/crates/app/src/performance/rendered.rs
++++ b/crates/app/src/performance/rendered.rs
+@@ -571,7 +571,7 @@ impl eframe::App for RenderedApp {
+             let wake = ctx.clone();
+             #[cfg(target_arch = "wasm32")]
+             if let Some(canvas) = self.canvas.clone() {
+-                wasm_bindgen_futures::spawn_local(async move {
++                wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+                     match super::browser_capture::capture(canvas).await {
+                         Ok(capture) => {
+                             let _ = send.try_send(capture);
+@@ -579,7 +579,7 @@ impl eframe::App for RenderedApp {
+                         Err(error) => log::error!("{error}"),
+                     }
+                     wake.request_repaint();
+-                });
++                }));
+             } else {
+                 self.complete(&ctx, Err("browser replay has no capture canvas".into()));
+             }
 diff --git a/crates/app/src/project_browser.rs b/crates/app/src/project_browser.rs
 index 18923bf..41609b2 100644
 --- a/crates/app/src/project_browser.rs
@@ -2379,7 +2457,7 @@ index 18923bf..41609b2 100644
          let response = workspace::tree_row(ui, ui.make_persistent_id(("project_browser", node)), &row);
          if pick.is_some() || matches!(node, Node::Sheets | Node::Sheet(_)) {
 diff --git a/crates/app/src/project_files.rs b/crates/app/src/project_files.rs
-index a5909ee..7e5719c 100644
+index a5909ee..8dc64d9 100644
 --- a/crates/app/src/project_files.rs
 +++ b/crates/app/src/project_files.rs
 @@ -303,13 +303,13 @@ impl ProjectFiles {
@@ -2400,7 +2478,7 @@ index a5909ee..7e5719c 100644
          self.job = Some(Job { receiver, revision, operation: "open", destination });
          Ok(())
      }
-@@ -355,17 +355,18 @@ impl ProjectFiles {
+@@ -355,19 +355,19 @@ impl ProjectFiles {
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("pcbcraft-open".to_owned())
@@ -2416,14 +2494,29 @@ index a5909ee..7e5719c 100644
          {
              let _ = folder;
              let file = web::pick_file();
-+            let language = pcbcraft_chrome::i18n::capture_language();
-             wasm_bindgen_futures::spawn_local(async move {
--                let _ = send.send(web::open(file).await);
-+                let _ = send.send(web::open(file, language).await);
+-            wasm_bindgen_futures::spawn_local(async move {
++            wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+                 let _ = send.send(web::open(file).await);
                  ctx.request_repaint();
-             });
+-            });
++            }));
          }
-@@ -424,11 +425,11 @@ impl ProjectFiles {
+         self.job = Some(Job {
+             receiver: receive,
+@@ -389,10 +389,10 @@ impl ProjectFiles {
+         }
+         let (send, receive) = mpsc::channel();
+         let ctx = ctx.clone();
+-        wasm_bindgen_futures::spawn_local(async move {
++        wasm_bindgen_futures::spawn_local(pcbcraft_chrome::i18n::localized_future(async move {
+             let _ = send.send(web::open_bytes(bytes));
+             ctx.request_repaint();
+-        });
++        }));
+         self.job = Some(Job { receiver: receive, revision, operation: "open", destination: None, download: None });
+         Ok(())
+     }
+@@ -424,11 +424,11 @@ impl ProjectFiles {
                  let ctx = ctx.clone();
                  std::thread::Builder::new()
                      .name("pcbcraft-save".to_owned())
@@ -2438,7 +2531,7 @@ index a5909ee..7e5719c 100644
              }
          }
          #[cfg(target_arch = "wasm32")]
-@@ -480,11 +481,11 @@ impl ProjectFiles {
+@@ -480,11 +480,11 @@ impl ProjectFiles {
          let ctx = ctx.clone();
          std::thread::Builder::new()
              .name("pcbcraft-save-as".to_owned())
@@ -2526,23 +2619,19 @@ index f442cef..04d3836 100644
      Ok(())
  }
 diff --git a/crates/app/src/project_files/web.rs b/crates/app/src/project_files/web.rs
-index 7267c46..1f843c6 100644
+index 7267c46..f157306 100644
 --- a/crates/app/src/project_files/web.rs
 +++ b/crates/app/src/project_files/web.rs
-@@ -82,8 +82,10 @@ pub(super) fn pick_file() -> Promise {
- }
+@@ -83,7 +83,7 @@ pub(super) fn pick_file() -> Promise {
  
  /// Validate the bounded picked payload before returning it to the editor.
--pub(super) async fn open(file: Promise) -> Result<Outcome, String> {
+ pub(super) async fn open(file: Promise) -> Result<Outcome, String> {
 -    let data = JsFuture::from(file).await.map_err(|error| format!("Could not open project: {}", error_message(&error)))?;
-+pub(super) async fn open(file: Promise, translate: impl FnOnce() -> pcbcraft_chrome::i18n::LanguageScope) -> Result<Outcome, String> {
-+    let result = JsFuture::from(file).await;
-+    let _locale = translate();
-+    let data = result.map_err(|error| pcbcraft_chrome::i18n::format("dynamic.could_not_open_project_1b8cec0", &[("arg1", &format!("{}", error_message(&error)))]))?;
++    let data = JsFuture::from(file).await.map_err(|error| pcbcraft_chrome::i18n::format("dynamic.could_not_open_project_1b8cec0", &[("arg1", &format!("{}", error_message(&error)))]))?;
      if data.is_null() {
          return Ok(Outcome::Cancelled);
      }
-@@ -197,7 +199,7 @@ impl Download {
+@@ -197,7 +197,7 @@ impl Download {
  
  /// Hand the completed payload to the browser's download UI under `name`.
  fn send_download(bytes: &[u8], name: &str) -> Result<Outcome, String> {
@@ -2858,7 +2947,7 @@ index 702e1ff..a29c469 100644
              !self.files.busy(),
          );
 diff --git a/crates/app/src/window_commands.rs b/crates/app/src/window_commands.rs
-index 3d00d36..1e0dbab 100644
+index 3d00d36..4e8400c 100644
 --- a/crates/app/src/window_commands.rs
 +++ b/crates/app/src/window_commands.rs
 @@ -361,9 +361,9 @@ mod live {
@@ -2982,7 +3071,7 @@ index 3d00d36..1e0dbab 100644
                      let allowed: &[usize] = if board { &crate::ribbon::BOARD_TAB_ORDER } else { &crate::ribbon::TAB_ORDER };
                      if !allowed.contains(&tab) || (board && name == "capture") || (!board && matches!(name, "layout" | "route")) {
 -                        return Err(format!("This ribbon tab is available in the {} workspace.", if board { "schematic" } else { "PCB" }));
-+                        return Err(pcbcraft_chrome::i18n::format("dynamic.this_ribbon_tab_is_available_in_the_work_8299c34", &[("arg1", &format!("{}", if board { "schematic" } else { "PCB" }))]));
++                        return Err(pcbcraft_chrome::i18n::format("dynamic.this_ribbon_tab_is_available_in_the_work_8299c34", &[("arg1", pcbcraft_chrome::i18n::tr_label(if board { "schematic" } else { "PCB" }))]));
                      }
                      self.in_window(host, |app| app.ribbon_tab = tab);
                  }
@@ -2996,7 +3085,7 @@ index 3d00d36..1e0dbab 100644
              debug_assert!(self.views.host == self.views.main);
              self.sync_library_focus();
 diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
-index 920ae27..633d710 100644
+index 920ae27..f63a951 100644
 --- a/crates/chrome/assets/shared-ui/zh.json
 +++ b/crates/chrome/assets/shared-ui/zh.json
 @@ -964,7 +964,7 @@
@@ -3008,7 +3097,7 @@ index 920ae27..633d710 100644
   "An arrangement collection can contain up to 32 arrangements.": "一个布局集合最多可包含 32 个布局。",
   "External clipboard text exceeds 64 KiB.": "剪贴板文本超过 64 KiB。",
   "Hierarchical sheet symbols and interfaces retain their orientation.": "层次图纸符号和接口保持其方向。",
-@@ -1019,5 +1019,374 @@
+@@ -1019,5 +1019,392 @@
   "Undo Library Edit": "撤销库编辑",
   "Unsaved library items": "未保存的库条目",
   "Vertex X (mm)": "顶点 X（mm）",
@@ -3382,7 +3471,25 @@ index 920ae27..633d710 100644
 + "fragment.check_canceled": "检查已取消",
 + "fragment.board_changed;_check_discarded": "PCB 已更改，已丢弃检查结果",
 + "fragment.drc_checking…": "正在检查设计规则…",
-+ "fragment.drc_not_run": "尚未检查设计规则"
++ "fragment.drc_not_run": "尚未检查设计规则",
++ "fragment.crossing": "交叉选择",
++ "fragment.window": "窗口选择",
++ "fragment.no_library_selected": "未选择库",
++ "fragment.library_unavailable": "库不可用",
++ "fragment.preview_source": "预览来源",
++ "fragment.active_source": "当前来源",
++ "fragment.technical": "技术层",
++ "fragment.library_item": "库条目",
++ "fragment.library": "个库",
++ "fragment.libraries": "个库",
++ "fragment.writable": "可写",
++ "fragment.read_only": "只读",
++ "fragment.built_in": "内置",
++ "fragment.local_files": "本地文件",
++ "fragment.schematic": "原理图",
++ "fragment.pcb_canvas": "PCB 画布",
++ "fragment.not_recorded": "未记录",
++ "fragment.invalid_library_documents": "库文档无效"
  }
 diff --git a/crates/chrome/src/arrangements.rs b/crates/chrome/src/arrangements.rs
 index 02056ec..c4574ba 100644
@@ -3592,10 +3699,10 @@ index a6dbd45..cd20d0e 100644
      if remove.hovered() || remove.has_focus() {
          ui.painter().rect_filled(remove_rect, t.radius_md, t.hover);
 diff --git a/crates/chrome/src/i18n.rs b/crates/chrome/src/i18n.rs
-index 1f7e9e0..e55dd55 100644
+index 1f7e9e0..d41276a 100644
 --- a/crates/chrome/src/i18n.rs
 +++ b/crates/chrome/src/i18n.rs
-@@ -211,9 +211,32 @@ pub fn tr_label(label: &str) -> &str {
+@@ -211,9 +211,36 @@ pub fn tr_label(label: &str) -> &str {
  /// sentences with numbers or names can be translated as one string. Unknown arguments and untranslated
  /// templates pass through unchanged.
  pub fn format(template: &str, args: &[(&str, &str)]) -> String {
@@ -3603,19 +3710,23 @@ index 1f7e9e0..e55dd55 100644
      solidcraft_ui_text::format(template, args)
  }
  
-+pub use solidcraft_ui_text::LanguageScope;
-+
-+/// Re-enter the request locale on completion, not across an async suspension.
-+pub fn capture_language() -> impl FnOnce() -> LanguageScope {
++/// A browser task can yield while another session is using this thread. Enter the language
++/// on each poll and drop it before yielding rather than holding a locale guard across await.
++#[cfg(target_arch = "wasm32")]
++pub fn localized_future<F: std::future::Future>(future: F) -> impl std::future::Future<Output = F::Output> {
 +    let language = solidcraft_ui_text::language();
-+    move || solidcraft_ui_text::scope(language)
++    let mut future = Box::pin(future);
++    std::future::poll_fn(move |cx| {
++        let _guard = solidcraft_ui_text::scope(language);
++        future.as_mut().poll(cx)
++    })
 +}
 +
 +/// Capture the caller's locale at dispatch, then restore the worker's previous locale on return.
 +pub fn localized_job<T>(job: impl FnOnce() -> T) -> impl FnOnce() -> T {
-+    let language = capture_language();
++    let language = solidcraft_ui_text::language();
 +    move || {
-+        let _guard = language();
++        let _guard = solidcraft_ui_text::scope(language);
 +        job()
 +    }
 +}
@@ -3628,7 +3739,7 @@ index 1f7e9e0..e55dd55 100644
  /// Look up `id` in logical (reading) order for accessibility names, falling back to
  /// [`solidcraft_ui_text::tr`] when `id` is absent from the active catalog.
  pub fn logical_tr(id: &str) -> &str {
-@@ -294,14 +317,19 @@ mod tests {
+@@ -294,14 +321,19 @@ mod tests {
          static EN_CAT: solidcraft_ui_text::Catalog = solidcraft_ui_text::Catalog::new("en", "English", include_str!("../assets/shared-ui/en.json"));
          static HE_CAT: solidcraft_ui_text::Catalog = solidcraft_ui_text::Catalog::new("he", "עברית", include_str!("../assets/shared-ui/he.json"));
  
@@ -3649,7 +3760,7 @@ index 1f7e9e0..e55dd55 100644
              let he_val = he.get(key).expect("checked above");
              assert!(!he_val.trim().is_empty(), "{key} has empty Hebrew translation");
              assert_eq!(placeholder_names(en_val), placeholder_names(he_val), "placeholder mismatch for {key}");
-@@ -363,6 +391,17 @@ mod tests {
+@@ -363,6 +395,17 @@ mod tests {
          }
      }
  
@@ -3747,7 +3858,7 @@ index 7a05d52..22d07cf 100644
                  && let Some(url) = url
              {
 diff --git a/crates/chrome/src/selection.rs b/crates/chrome/src/selection.rs
-index a198d06..75d6ae8 100644
+index a198d06..a2d4b0d 100644
 --- a/crates/chrome/src/selection.rs
 +++ b/crates/chrome/src/selection.rs
 @@ -39,7 +39,7 @@ fn paint(painter: &Painter, rect: Rect, crossing: bool, count: usize, ink: Color
@@ -3755,7 +3866,7 @@ index a198d06..75d6ae8 100644
          rect.left_top() - vec2(0.0, 5.0),
          Align2::LEFT_BOTTOM,
 -        format!("{} · {} items", if crossing { "Crossing" } else { "Window" }, count),
-+        crate::i18n::format("dynamic.items_a5a3c8a", &[("arg1", &format!("{}", if crossing { "Crossing" } else { "Window" })), ("arg2", &format!("{}", count))]),
++        crate::i18n::format("dynamic.items_a5a3c8a", &[("arg1", crate::i18n::tr_label(if crossing { "Crossing" } else { "Window" })), ("arg2", &format!("{}", count))]),
          FontId::proportional(t.font_small),
          ink,
      );
