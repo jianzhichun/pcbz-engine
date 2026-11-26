@@ -97,9 +97,17 @@ impl Snapshot {
             self.host.pass(Vec::new());
             std::thread::sleep(options.gap);
         }
+        // CI drives the same select-all shortcut as the interactive editor. This is snapshot
+        // mode only and never mutates the design or a running session.
+        let selection_proof = std::env::var_os("PCBZ_SNAPSHOT_SELECT_ALL").is_some();
+        if selection_proof {
+            let key = |pressed| egui::Event::Key { key: egui::Key::A, physical_key: Some(egui::Key::A),
+                pressed, repeat: false, modifiers: egui::Modifiers::COMMAND };
+            self.host.pass(vec![key(true), key(false)]);
+        }
         let mut rows = Vec::new();
         for n in 1..=options.frames {
-            let (pass_ms, paint_ms) = match self.frame() {
+            let (pass_ms, paint_ms) = match self.frame(selection_proof) {
                 Ok(t) => t,
                 Err(()) => return EXIT_DEVICE_LOST,
             };
@@ -139,8 +147,19 @@ impl Snapshot {
     }
 
     /// One pass and its paint (screenshots answered): the pass's and the paint's milliseconds.
-    fn frame(&mut self) -> Result<(f32, f32), ()> {
+    fn frame(&mut self, selection_proof: bool) -> Result<(f32, f32), ()> {
         let pass = self.host.pass(Vec::new());
+        if selection_proof {
+            let notice = pass.shapes.iter().find_map(|clipped| match &clipped.shape {
+                egui::Shape::Text(t) if clipped.clip_rect.intersects(egui::Rect::from_min_size(t.pos, t.galley.size())) => {
+                    let text = t.galley.text();
+                    (text.contains("已选中") && text.bytes().any(|b| b.is_ascii_digit())).then_some(text)
+                }
+                _ => None,
+            });
+            let Some(notice) = notice else { eprintln!("selection count missing from paint output"); return Err(()) };
+            eprintln!("translated selection: {notice}");
+        }
         let (painted, paint_ms) = self.host.paint(&self.gpu, pass.shapes, pass.pixels_per_point);
         if let Painted::Lost(why) = painted {
             eprintln!("render-server: the graphics device was lost: {why}");

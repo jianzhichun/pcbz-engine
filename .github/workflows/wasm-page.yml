@@ -13,7 +13,7 @@ on:
   push:
     branches: [wasm-page, release]
     tags: ['engine-*']
-    paths: ['patches/**', 'web-harness/**', 'UPSTREAM_COMMIT', '.github/workflows/wasm-page.yml']
+    paths: ['scripts/i18n_check.py', 'scripts/i18n_non_ui.json', 'patches/**', 'web-harness/**', 'UPSTREAM_COMMIT', '.github/workflows/wasm-page.yml']
   workflow_dispatch:
 permissions:
   contents: read

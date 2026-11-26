@@ -1,0 +1,399 @@
+{
+  "crates/app/src/arrangements/edit.rs": {
+    "{base} {index}": 1
+  },
+  "crates/app/src/arrangements/tests.rs": {
+    "Arrangement {name}": 1,
+    "Saved layout {index:02}": 1
+  },
+  "crates/app/src/assistant.rs": {
+    "HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\nContent-Length: {}\\r\\nConnection: close\\r\\n\\r\\n{answer}": 1,
+    "{mark} {text}": 1,
+    "{title} · {status}": 1,
+    "{}: {shown}": 1
+  },
+  "crates/app/src/assistant/chat.rs": {
+    "{who}:F": 1
+  },
+  "crates/app/src/assistant/settings.rs": {
+    "effort {effort}": 1,
+    "timeout {secs}": 1
+  },
+  "crates/app/src/board_appearance.rs": {
+    "#{r:02X}{g:02X}{b:02X}": 1
+  },
+  "crates/app/src/board_clipboard/tests.rs": {
+    "PCB canvas {}": 1
+  },
+  "crates/app/src/board_measure.rs": {
+    "{} · Δx {} · Δy {}": 1
+  },
+  "crates/app/src/board_net_choice.rs": {
+    "Signal {i:04}": 1
+  },
+  "crates/app/src/board_panels/properties.rs": {
+    "{} ({state})": 2
+  },
+  "crates/app/src/board_reference.rs": {
+    "{name}: {error}": 1
+  },
+  "crates/app/src/board_rules.rs": {
+    " {value} ": 1
+  },
+  "crates/app/src/board_setup/materials.rs": {
+    " · {m}": 1,
+    "CTE {} ppm/K · {}{region}{range} · {:?}{}": 1,
+    "CTI {value}{group} · {:?}{}": 1,
+    "Dk {}  ·  Df {}  ·  {}": 1,
+    "Tg  {} °C · {} · {:?}": 1,
+    "{f} Hz": 1,
+    "{v} V": 1,
+    "{} · Synthetic method A": 1,
+    "{} · Synthetic method B": 1
+  },
+  "crates/app/src/board_setup/pages.rs": {
+    "{} · r{}": 2
+  },
+  "crates/app/src/board_update.rs": {
+    "{name}: {terminals}": 1,
+    "{} / {} · r{}": 2
+  },
+  "crates/app/src/board_zones.rs": {
+    "{current} ({status})": 1
+  },
+  "crates/app/src/clipboard/tests.rs": {
+    "Schematic canvas {}": 1
+  },
+  "crates/app/src/editor_view.rs": {
+    "{} › {name}": 1
+  },
+  "crates/app/src/editor_windows.rs": {
+    "{document} — {APP_TITLE}": 1
+  },
+  "crates/app/src/footprint_assignment.rs": {
+    "X ({})": 1,
+    "Y ({})": 1,
+    "{} / {} · r{}": 1
+  },
+  "crates/app/src/hierarchy.rs": {
+    "Sheet {number}": 2
+  },
+  "crates/app/src/lib.rs": {
+    "PCBZ {VERSION}": 1,
+    "X {}  Y {}": 1,
+    "v{VERSION}": 1
+  },
+  "crates/app/src/library_editors/canvas.rs": {
+    "{number} {}": 1,
+    "{} mm": 1
+  },
+  "crates/app/src/library_editors/courtyard.rs": {
+    "Courtyard outline · {cy_id}": 1,
+    "Vertex {} {axis} (mm)": 1
+  },
+  "crates/app/src/library_editors/form.rs": {
+    "{} {e}": 1,
+    "{}: {e}": 1
+  },
+  "crates/app/src/library_editors/remap.rs": {
+    "R{instance}": 1,
+    "{owner} · {} / {}": 1,
+    "{} (r{})": 1
+  },
+  "crates/app/src/library_editors/tests/remap_evidence.rs": {
+    "Pin remap report exceeds {} encoded bytes; review fewer logical pins at once.": 1
+  },
+  "crates/app/src/library_workspace.rs": {
+    " · {license}": 1,
+    "{} {}/{} r{}": 1,
+    "{} · {}/{} · r{}": 1,
+    "{}/{} r{}": 1
+  },
+  "crates/app/src/library_workspace/project.rs": {
+    "{reference} · {location}": 1
+  },
+  "crates/app/src/library_workspace/tests.rs": {
+    "Fit {label}": 1,
+    "Zoom in {label}": 1
+  },
+  "crates/app/src/live_control.rs": {
+    "Finish the current dialog or file operation in the editor before running `{}`": 1
+  },
+  "crates/app/src/manufacturing/files.rs": {
+    "{name}: {error}": 1
+  },
+  "crates/app/src/native_part_properties.rs": {
+    "{}: {error}": 1
+  },
+  "crates/app/src/net_class_editor.rs": {
+    " · {rule}": 1,
+    " · {rule} · r{revision}": 1,
+    "{properties}: {}": 1,
+    "{} · r{}": 1,
+    "{}: {error}": 1
+  },
+  "crates/app/src/net_labels.rs": {
+    "X: {e}": 1,
+    "Y: {e}": 1
+  },
+  "crates/app/src/no_connect.rs": {
+    "{label} · {}": 1
+  },
+  "crates/app/src/part_documents.rs": {
+    "{} · {} · r{}": 1,
+    "{}/{} r{}": 1
+  },
+  "crates/app/src/part_documents/form.rs": {
+    " · {name}": 1,
+    "{name} ({id})": 1,
+    "{} · {} · r{}": 1,
+    "{}/{} · r{}": 1,
+    "{}: {reason}": 1
+  },
+  "crates/app/src/part_documents/picker/tests.rs": {
+    "Original symbol {index:03}": 1,
+    "Test collection {library:02}": 1
+  },
+  "crates/app/src/part_documents/tests.rs": {
+    "VIN{index}": 1,
+    "{duplicate}\\nKEYWORD-1": 1
+  },
+  "crates/app/src/parts_browser.rs": {
+    "{library}/{id} r{revision}": 2,
+    "{name}  {count}": 1,
+    "{} · r{}": 1
+  },
+  "crates/app/src/parts_browser/tests.rs": {
+    "Scale library {index}": 1,
+    "Synthetic part {n}": 1,
+    "{reference} · {value}": 1
+  },
+  "crates/app/src/performance.rs": {
+    "{id}: probe candidates omit an exhaustive geometric neighbor": 1,
+    "{id}: {e}": 1,
+    "{kind} trace ID does not match its versioned steps": 1
+  },
+  "crates/app/src/performance/bga.rs": {
+    "BGA baseline holds {terminals} terminals, expected {BALLS}": 1,
+    "BGA footprint maps {mismatched} terminals to a pad of another name, expected 0": 1,
+    "BGA footprint maps {} terminals, expected {BALLS}": 1,
+    "BGA library did not load cleanly: {problems:?}": 1
+  },
+  "crates/app/src/performance/browser_capture.rs": {
+    "canvas readback failed: {e:?}": 1
+  },
+  "crates/app/src/performance/envelope.rs": {
+    "envelope board counts mismatch: tracks={} (expected {MAX_TRACKS}), vias={} (expected {MAX_VIAS}), footprints={footprints} (expected {FOOTPRINTS}), symbols={symbols} (expected {expected_symbols}), max_pads={max_pads} (expected {BGA_PADS})": 1,
+    "{COPY}: {error}": 1
+  },
+  "crates/app/src/performance/fixture.rs": {
+    "Child {index}": 1,
+    "{id}: {e}": 1
+  },
+  "crates/app/src/performance/pointer.rs": {
+    "pointer route failed: {error}": 1
+  },
+  "crates/app/src/performance/project.rs": {
+    "{name}: zoom input missed canvas": 1,
+    "{workspace:?}: click input was not observed": 1,
+    "{workspace:?}: zoom input did not reach the canvas": 1
+  },
+  "crates/app/src/performance/remote.rs": {
+    "MCP edit failed: {error}": 1
+  },
+  "crates/app/src/performance/rendered.rs": {
+    "GPU completion polling failed: {error}": 1
+  },
+  "crates/app/src/performance/replay.rs": {
+    "{}: expected capacity refusal message": 1,
+    "{}: refusal changed from {previous} to {message}": 1,
+    "{}: route state mismatch (input may have missed canvas)": 1,
+    "{}: unexpected refusal: {message}": 1,
+    "{}: {message}": 1
+  },
+  "crates/app/src/performance/shove.rs": {
+    "unexpected via displacement: {plan:?}": 1,
+    "{case}: unexpected shove behavior: {plan:?}": 1,
+    "{case}: {e}": 1,
+    "{name} must publish exactly one revision": 1,
+    "{name}: {e}": 1
+  },
+  "crates/app/src/performance/walkaround.rs": {
+    "{id}: {e}": 2
+  },
+  "crates/app/src/placement_filters.rs": {
+    "Field {i}": 1,
+    "{} · {}/{} r{}": 1
+  },
+  "crates/app/src/project_browser.rs": {
+    "R10  {value}": 1,
+    "R2  {value}": 1,
+    "{reference}  {value}": 1,
+    "{reference}  {}": 1
+  },
+  "crates/app/src/project_files/download/tests.rs": {
+    "{old}\\n \\t": 1
+  },
+  "crates/app/src/project_files/native/split_tests.rs": {
+    "published:{ENTRY_POINT}": 1,
+    "{old}\\n \\t": 1
+  },
+  "crates/app/src/project_files/native/split_tests/open_preservation.rs": {
+    "desktop open {file}: {error}": 1,
+    "headless open {file}: {error}": 1
+  },
+  "crates/app/src/properties.rs": {
+    "X: {error}": 1,
+    "Y: {error}": 1
+  },
+  "crates/app/src/properties/coordinate_tests.rs": {
+    "Units: {}": 1
+  },
+  "crates/app/src/properties/field_tests.rs": {
+    "Schematic canvas {}": 1
+  },
+  "crates/app/src/properties/fields.rs": {
+    "{kind} {n}": 1
+  },
+  "crates/app/src/recent_projects.rs": {
+    "Project {index}": 1
+  },
+  "crates/app/src/requirement_input.rs": {
+    "{name} {suffix}": 1
+  },
+  "crates/app/src/schematic_canvas/fields.rs": {
+    "{name}: {value}": 1
+  },
+  "crates/app/src/schematic_canvas/wires/tests.rs": {
+    "Schematic canvas {}": 1
+  },
+  "crates/app/src/sheet_editing.rs": {
+    "Sheet {number}": 2
+  },
+  "crates/app/src/tests.rs": {
+    "Field {index}": 1,
+    "v{VERSION}": 1
+  },
+  "crates/app/src/tests/app_bar_utilities.rs": {
+    "v{VERSION}": 2
+  },
+  "crates/app/src/tests/board_colors.rs": {
+    "Change color for layer {name}": 1
+  },
+  "crates/app/src/tests/board_layers.rs": {
+    "Activate layer {displayed_name}": 1,
+    "Activate layer {name}": 2,
+    "Line · {displayed_name}": 1,
+    "Line · {name}": 1
+  },
+  "crates/app/src/tests/board_tracks.rs": {
+    "Activate layer {layer}": 1,
+    "Enter {} to {}": 2,
+    "INTENDED_{index}": 1,
+    "Net {net} highlighted": 1,
+    "Short · {finding}": 1
+  },
+  "crates/app/src/tests/board_via_nets.rs": {
+    "Choose net {option}": 1
+  },
+  "crates/app/src/tests/board_views.rs": {
+    "Close view {path}": 2,
+    "PCB canvas {}": 1
+  },
+  "crates/app/src/tests/designator_locks.rs": {
+    "Field {index}": 1
+  },
+  "crates/app/src/tests/detached_editors.rs": {
+    "Back to {}": 1,
+    "Schematic canvas {}": 2,
+    "no open view {}": 1,
+    "{document} — PCBZ": 1
+  },
+  "crates/app/src/tests/detached_editors/pane_drag.rs": {
+    "Dock in main window · {}": 2,
+    "Dock in window 1 · {}": 2,
+    "Split {text} in window 0": 1
+  },
+  "crates/app/src/tests/display_units.rs": {
+    "Units: {}": 2
+  },
+  "crates/app/src/tests/grid_spacing.rs": {
+    "Grid 10 mil · dots {}": 1
+  },
+  "crates/app/src/tests/hierarchy.rs": {
+    "Schematic canvas {}": 1
+  },
+  "crates/app/src/tests/multiple_sheets.rs": {
+    "Schematic canvas {}": 2
+  },
+  "crates/app/src/tests/net_appearance.rs": {
+    "Schematic canvas {}": 1
+  },
+  "crates/app/src/tests/no_connect.rs": {
+    "No connect J1 pin {}": 2,
+    "Schematic canvas {}": 1
+  },
+  "crates/app/src/tests/panel_docking.rs": {
+    "Collapse {name}": 1,
+    "Collapse {title}": 1,
+    "Move {title}": 1,
+    "{name} position": 3
+  },
+  "crates/app/src/tests/recent_projects.rs": {
+    "Open {name} ({})": 1,
+    "Remove Power controller ({}) from recent projects": 1,
+    "Remove {name} ({}) from recent projects": 1,
+    "Schematic preview: Two resistors ({})": 1
+  },
+  "crates/app/src/tests/ribbon.rs": {
+    "{group} menu": 1
+  },
+  "crates/app/src/tests/selection_filters.rs": {
+    "Open {editor} beside current view": 1
+  },
+  "crates/app/src/tests/split_editors.rs": {
+    "Schematic canvas {}": 1
+  },
+  "crates/app/src/tests/symbol_overlap.rs": {
+    "Select {}": 2
+  },
+  "crates/app/src/ui_automation/tests/native.rs": {
+    "A window-manager constraint was not reported with the measured size: {window}": 1,
+    "Closed window {opened} accepted a resize": 1,
+    "Detached window {opened} did not close": 1,
+    "Native input did not complete: {id}": 1,
+    "Native targets did not become ready/focused: {handles:?}": 1,
+    "Resize to {width}×{height} did not settle": 1,
+    "Resize was not accepted: {requested}": 1,
+    "Targets were not measured at {width}×{height}: {at}": 1,
+    "Window did not reach {width}×{height}: {window}": 1
+  },
+  "crates/app/src/window_commands.rs": {
+    "`{id}` has no parameter `no_such_parameter`": 1,
+    "`{id}` needs `": 1,
+    "`{id}` takes an object of parameters": 1,
+    "`{}` {reason}": 1,
+    "unknown command `{id}`": 1
+  },
+  "crates/chrome/src/board.rs": {
+    "#{r:02X}{g:02X}{b:02X}": 1
+  },
+  "crates/chrome/src/board_setup.rs": {
+    "{name}: {}": 1
+  },
+  "crates/chrome/src/catalog.rs": {
+    "Part {n}": 1,
+    "button:Close {title}": 1,
+    "{name} · {identity}": 1,
+    "{name}\\n{value} · {library}": 1
+  },
+  "crates/chrome/src/menu.rs": {
+    "{shown} ({shortcut})": 1
+  },
+  "crates/chrome/src/units.rs": {
+    "{text} {}": 1
+  },
+  "crates/chrome/src/workspace/catalog.rs": {
+    "{} · {identity}": 1
+  }
+}

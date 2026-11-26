@@ -13,7 +13,8 @@ Checks, all fatal except the count:
     `solidcraft_ui_text::tr_label`, so only egui-native text is counted). `--max-english` fails
     above the given budget; omitted, the count is reported only (the first cut's honest number);
   - also prints the number of `format!` templates with English text. Those interpolate values, so
-    they cannot go through the literal catalog as they are; the number is reported, not gated.
+    untranslated display templates share the literal budget. Reviewed test fixtures, protocol
+    identifiers and locale-independent notation have exact per-file occurrence limits.
 Stdlib only.
 """
 import json
@@ -95,7 +96,14 @@ def main():
                             remaining.append(f"{path.relative_to(root)}:{number}: {match.group(1)}")
                         start = line.find(sink, start)
 
-    fmt = set()
+    from collections import Counter
+    exceptions = json.loads(pathlib.Path(__file__).with_name("i18n_non_ui.json").read_text(encoding="utf-8"))
+    fmt = []
+    used = set()
+    dynamic = {k for k in en if k.startswith("dynamic.")}
+    for key in dynamic:
+        if not zh.get(key) or zh[key] == en[key]:
+            problems.append(f"missing Chinese dynamic translation: {key}")
     FMT = re.compile(r'format!\(\s*"((?:[^"\\]|\\.)*)"')
     for crate in ("chrome", "app"):
         for path in sorted((root / "upstream" / "crates" / crate / "src").rglob("*.rs")):
@@ -103,18 +111,26 @@ def main():
                 text = path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
+            used.update(re.findall(r'i18n::format\(\s*"(dynamic\.[^"]+)"', text))
+            allowance = Counter(exceptions.get(path.relative_to(root / "upstream").as_posix(), {}))
             for match in FMT.finditer(text):
                 template = match.group(1)
                 # a displayed sentence: letters and a space or a capital, not a path/id fragment
                 if re.search("[A-Za-z]", template) and (" " in template or re.search("[A-Z]", template)):
-                    fmt.add(template)
+                    if allowance[template] > 0:
+                        allowance[template] -= 1
+                    else:
+                        fmt.append(f"{path.relative_to(root)}:{text.count(chr(10), 0, match.start()) + 1}: {template}")
+    if used != dynamic:
+        problems.append(f"dynamic key/source mismatch: {sorted(used ^ dynamic)}")
 
     for problem in problems:
         print(f"i18n: {problem}")
     print(f"i18n: zh catalog keys={len(zh)} en keys={len(en)} missing={len(missing)} forbidden={sum(1 for p in problems if 'names' in p)}")
     print(f"i18n: remaining English UI literals in chrome/app (direct egui sinks)={len(remaining)}")
-    print(f"i18n: English format! templates left in chrome/app (interpolated; reported, not gated)={len(fmt)}")
-    for template in sorted(fmt)[:12]:
+    print(f"i18n: untranslated English format! display templates={len(fmt)}")
+    print(f"i18n: translated dynamic templates={len(dynamic)}; English fallback templates={len(dynamic)}")
+    for template in sorted(fmt):
         print(f"  {template}")
     for line in remaining[:40]:
         print(f"  {line}")
@@ -123,8 +139,8 @@ def main():
 
     if problems:
         return 1
-    if max_english is not None and len(remaining) > max_english:
-        print(f"i18n: {len(remaining)} English literals exceed the budget {max_english}")
+    if max_english is not None and len(remaining) + len(fmt) > max_english:
+        print(f"i18n: {len(remaining) + len(fmt)} English literals/templates exceed the budget {max_english}")
         return 1
     return 0
 
