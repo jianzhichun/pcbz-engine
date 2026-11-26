@@ -1,0 +1,122 @@
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index de9105d..d01981d 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -1476,7 +1476,7 @@ impl PcbApp {
+     /// PCB views report their active tool/layer and explicitly label a hidden active layer.
+     /// A mirrored board keeps its orientation label alongside action hints and errors.
+     fn status(&mut self, ui: &mut Ui) {
+-        let name = self.session.project().map_or("No project open", |p| p.name.as_str()).to_owned();
++        let name = self.session.project().map_or(pcbcraft_chrome::i18n::tr_label("No project open"), |p| p.name.as_str()).to_owned();
+         let message = self.message.clone();
+         let cancelable = if matches!(self.dialog, Dialog::None) && !self.home && self.views.active.workspace == Workspace::Board {
+             self.cancelable_pour()
+@@ -1543,7 +1543,7 @@ impl PcbApp {
+                     ui.label(dim(pcbcraft_chrome::i18n::tr_label("Bottom view")));
+                 }
+                 if let Some(message) = message {
+-                    ui.label(shell::error(message));
++                    ui.label(shell::error(pcbcraft_chrome::i18n::tr_label(&message)));
+                 } else if self.views.active.board.clipboard.active() {
+                     ui.label(dim(pcbcraft_chrome::i18n::tr_label("Paste · Click to place · R rotate · Esc cancel")));
+                 } else if self.views.active.workspace == Workspace::Board && self.views.active.board.placement.is_some() {
+@@ -1572,13 +1572,13 @@ impl PcbApp {
+                     // File results, such as a saved fabrication archive, would otherwise be hidden
+                     // behind the board status in this workspace.
+                     if let Some(notice) = &self.file_notice {
+-                        ui.label(dim(notice.as_str()));
++                        ui.label(dim(pcbcraft_chrome::i18n::tr_label(notice)));
+                     }
+                 } else if self.views.active.schematic.clipboard.active() || self.views.active.board.clipboard.active() {
+                     ui.label(dim(if self.views.active.schematic.clipboard.can_rotate() {
+-                        "Paste · Click to place · R rotate · Esc cancel"
++                        pcbcraft_chrome::i18n::tr_label("Paste · Click to place · R rotate · Esc cancel")
+                     } else {
+-                        "Paste · Click to place · Esc cancel"
++                        pcbcraft_chrome::i18n::tr_label("Paste · Click to place · Esc cancel")
+                     }));
+                 } else if self.views.active.schematic.tool.is_none()
+                     && !self.views.active.schematic.selection.no_connects.is_empty()
+@@ -1594,9 +1594,11 @@ impl PcbApp {
+                     ui.label(match tool {
+                         Tool::NoConnect { .. } => dim(pcbcraft_chrome::i18n::tr_label("No connect · Esc cancel")),
+                         Tool::Field { .. } => dim(pcbcraft_chrome::i18n::tr_label("Move symbol field · Esc to cancel")),
+-                        Tool::SheetGesture { drag, .. } => {
+-                            dim(if drag.corner.is_some() { "Resize sheet · Esc to cancel" } else { "Move sheet · Esc to cancel" })
+-                        }
++                        Tool::SheetGesture { drag, .. } => dim(if drag.corner.is_some() {
++                            pcbcraft_chrome::i18n::tr_label("Resize sheet · Esc to cancel")
++                        } else {
++                            pcbcraft_chrome::i18n::tr_label("Move sheet · Esc to cancel")
++                        }),
+                         Tool::NetLabel { .. } => dim(pcbcraft_chrome::i18n::tr_label("Place net label · R to rotate · Esc to cancel")),
+                         Tool::Hierarchy { .. } => dim(pcbcraft_chrome::i18n::tr_label("Hierarchical sheet or label · Esc to cancel")),
+                         Tool::PlaceSymbol { definition, .. } => dim(format!("Place {} · R rotate · Esc to cancel", definition.name)),
+@@ -1616,14 +1618,14 @@ impl PcbApp {
+                     ui.label(dim(pcbcraft_chrome::i18n::tr_label("Wire segment selected · Del delete")));
+                 } else if self.views.active.schematic.selection.single_wire().is_some() {
+                     ui.label(dim(if self.views.active.schematic.whole_wire_drag {
+-                        "Whole wire selected · Drag to move · Del delete"
++                        pcbcraft_chrome::i18n::tr_label("Whole wire selected · Drag to move · Del delete")
+                     } else {
+-                        "Wire selected · Drag a segment, corner or free end to reshape · Del delete"
++                        pcbcraft_chrome::i18n::tr_label("Wire selected · Drag a segment, corner or free end to reshape · Del delete")
+                     }));
+                 } else if self.files.busy() {
+                     ui.label(dim(pcbcraft_chrome::i18n::tr_label("File operation in progress")));
+                 } else if let Some(notice) = &self.file_notice {
+-                    ui.label(dim(notice.as_str()));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label(notice)));
+                 }
+             },
+             |ui| {
+diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
+index c230060..48e82b8 100644
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -964,5 +964,44 @@
+  "User": "用户层",
+  "View or project changed; reopen properties to continue.": "视图或工程已更改；请重新打开属性继续。",
+  "View or project changed; reopen the label action to continue.": "视图或工程已更改；请重新打开标签操作继续。",
+-"Apply board defaults": "应用电路板默认值"
++"Apply board defaults": "应用电路板默认值",
++ "An arrangement collection can contain up to 32 arrangements.": "一个布局集合最多可包含 32 个布局。",
++ "External clipboard text exceeds 64 KiB.": "剪贴板文本超过 64 KiB。",
++ "Hierarchical sheet symbols and interfaces retain their orientation.": "层次图纸符号和接口保持其方向。",
++ "Library changed during deletion inspection; try again": "删除检查期间库已更改；请重试。",
++ "Library operation disconnected; inspect its folder before retrying": "库操作已断开；重试前请检查其文件夹。",
++ "Move sheet · Esc to cancel": "移动图纸 · Esc 取消",
++ "No HTTP(S) datasheet link is set for this component.": "此元件未设置 HTTP(S) 数据手册链接。",
++ "No current nets are available for a zone.": "当前没有可用于覆铜区的网络。",
++ "No-connect marks attach to a pin lead or an open wire end.": "未连接标记只能附着在引脚引线或开放的导线端点。",
++ "PCBZ opens and starts projects from the chat": "PCBZ 从对话中打开并启动工程",
++ "PCBZ saves the project itself": "PCBZ 会自行保存工程",
++ "Paste · Click to place · Esc cancel": "粘贴 · 点击放置 · Esc 取消",
++ "Press Ctrl+V (⌘V on macOS) to paste the system clipboard.": "按 Ctrl+V（macOS 上为 ⌘V）粘贴系统剪贴板。",
++ "Project download requested": "已请求下载工程",
++ "Resize sheet · Esc to cancel": "调整图纸大小 · Esc 取消",
++ "Selection changed; unapplied property edits were discarded.": "选择已更改；未应用的属性编辑已丢弃。",
++ "Selection or revision changed; unapplied property edits were discarded.": "选择或修订已更改；未应用的属性编辑已丢弃。",
++ "The Ground library definition is unavailable; check Library Sources.": "接地库定义不可用；请检查库来源。",
++ "The arrangement could not be activated; the current views have been kept.": "无法启用该布局；当前视图已保留。",
++ "The board changed; choose the zone net again.": "电路板已更改；请重新选择覆铜区网络。",
++ "The chat is already connected to this editor": "对话已连接到该编辑器",
++ "The clipboard contains no text.": "剪贴板中没有文本。",
++ "The clipboard destination changed. Paste again in the current view.": "剪贴板目标已更改。请在当前视图中重新粘贴。",
++ "The component is no longer available for renaming.": "该元件已无法重命名。",
++ "The project or source pane changed. Open Update PCB again to continue.": "工程或源面板已更改。请重新打开“从原理图更新 PCB”继续。",
++ "The source arrangement is unavailable or exceeds the supported layout limits.": "源布局不可用或超出支持的布局限制。",
++ "Track start is blocked; choose another point.": "走线起点被阻挡；请选择其他点。",
++ "View or project changed; reopen footprint assignment to continue.": "视图或工程已更改；请重新打开封装分配继续。",
++ "View or project changed; reopen the Parts Catalog to continue.": "视图或工程已更改；请重新打开元件目录继续。",
++ "View or project changed; reopen the hierarchy action to continue.": "视图或工程已更改；请重新打开层次操作继续。",
++ "View or project changed; reopen the net picker.": "视图或工程已更改；请重新打开网络选择器。",
++ "View or project changed; reopen the sheet action to continue.": "视图或工程已更改；请重新打开图纸操作继续。",
++ "View or project changed; reopen the size control to continue.": "视图或工程已更改；请重新打开尺寸控件继续。",
++ "View or project changed; reopen the symbol fields to continue editing.": "视图或工程已更改；请重新打开符号字段继续编辑。",
++ "View or project changed; text edit cancelled.": "视图或工程已更改；文本编辑已取消。",
++ "Whole wire selected · Drag to move · Del delete": "已选择整条导线 · 拖动移动 · Del 删除",
++ "Wire has too many corners; finish it before continuing.": "导线拐角过多；请先完成再继续。",
++ "Wire preview exceeds the supported geometry limits.": "导线预览超出支持的几何限制。",
++ "Wire selected · Drag a segment, corner or free end to reshape · Del delete": "已选择导线 · 拖动线段、拐角或自由端以重塑 · Del 删除"
+ }
