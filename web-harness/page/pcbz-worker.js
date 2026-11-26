@@ -207,6 +207,10 @@ self.onmessage = (event) => {
       return
     case 'proof-snapshot':
       if (!canvas || typeof canvas.convertToBlob !== 'function') { post({ t: 'proof-png', id: message.id, error: 'no canvas snapshot' }); return }
+      // Capture instrument (harness only; the product never snapshots): a WebGL drawing buffer is
+      // only guaranteed to hold the frame inside the task that drew it (wgpu creates the context
+      // without preserveDrawingBuffer), so paint one pass and copy it in that same task.
+      if (app) { try { app.pcbz_worker_frame('[]') } catch { /* the page reports frame errors itself */ } }
       canvas.convertToBlob({ type: 'image/png' })
         .then(async (blob) => post({ t: 'proof-png', id: message.id, png: base64(new Uint8Array(await blob.arrayBuffer())) }))
         .catch((error) => post({ t: 'proof-png', id: message.id, error: text(error) }))
