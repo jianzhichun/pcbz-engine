@@ -848,7 +848,7 @@ index a63094d..020ae85 100644
  
      /// Open a file that replaces the current session, first asking whether to save unsaved changes.
      fn open_project_file(&mut self, ctx: &egui::Context) {
-+        // The page loads the session's bound file itself; switching projects is the AngAI file card's job. Opening
++        // The page loads the session's bound file itself; switching projects is the host page's file card's job. Opening
 +        // here would re-fetch the same file and drop edits made since the last save (design §2.1).
 +        #[cfg(target_arch = "wasm32")]
 +        if host::host_page() {
