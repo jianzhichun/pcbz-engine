@@ -1,0 +1,81 @@
+diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
+index 99112b3..f2cdb7a 100644
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -75,6 +75,7 @@
+  "Board": "电路板",
+  "Board Setup": "电路板设置",
+  "Board materials": "板材料",
++ "Boards": "电路板",
+  "Bottom view": "底视图",
+  "Break": "断开",
+  "Browse Library": "浏览库",
+@@ -647,6 +648,7 @@
+  "Setup": "设置",
+  "Sheet": "图纸",
+  "Sheet color": "图纸颜色",
++ "Sheet parameters": "图纸参数",
+  "Sheets": "图纸",
+  "Shortcuts": "快捷键",
+  "Shove through vias": "推挤通孔过孔",
+diff --git a/crates/chrome/src/properties.rs b/crates/chrome/src/properties.rs
+index 028fe52..eacb18f 100644
+--- a/crates/chrome/src/properties.rs
++++ b/crates/chrome/src/properties.rs
+@@ -81,7 +81,7 @@ pub fn text_action(ui: &mut Ui, label: &str, value: &mut String, action: &str) -
+ pub fn choice(ui: &mut Ui, label: &str, id: impl egui::AsIdSalt, value: &mut String, options: &[(&str, String)]) -> egui::Response {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        let label = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(label).halign(Align::Min));
++        let label = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+         let selected = options.iter().find(|(key, _)| *key == value.as_str()).map(|(_, text)| text.as_str()).unwrap_or(value.as_str()).to_owned();
+         solidcraft_ui_kit::dropdown_menu(ui, id, &selected, |ui| {
+             for (key, text) in options {
+diff --git a/crates/chrome/src/selection_filters.rs b/crates/chrome/src/selection_filters.rs
+index 970d2cb..6f45e81 100644
+--- a/crates/chrome/src/selection_filters.rs
++++ b/crates/chrome/src/selection_filters.rs
+@@ -20,7 +20,7 @@ fn checkbox(ui: &mut Ui, checked: &mut bool, mixed: bool, label: &str, accessibl
+     ui.allocate_ui_with_layout(vec2(width, height), Layout::left_to_right(Align::Center), |ui| {
+         ui.set_width(width);
+         ui.spacing_mut().interact_size.y = height;
+-        solidcraft_ui_kit::checkbox_indeterminate(ui, label, checked, mixed).accessible_name(accessible)
++        solidcraft_ui_kit::checkbox_indeterminate(ui, crate::i18n::tr_label(label), checked, mixed).accessible_name(accessible)
+     })
+     .inner
+ }
+@@ -37,7 +37,7 @@ pub fn controls(ui: &mut Ui, filters: &mut [Filter<'_>]) -> bool {
+     let width = ui.available_width().min((ui.clip_rect().right() - ui.cursor().left()).max(1.0));
+     ui.horizontal(|ui| {
+         let toggle = checkbox(ui, &mut all, mixed, "All items", "All items", (width - 48.0 - ui.spacing().item_spacing.x).max(1.0));
+-        let reset = ui.add_sized(vec2(48.0, t.control_height), |ui: &mut Ui| solidcraft_ui_kit::text_button(ui, "Reset", true)).clicked();
++        let reset = ui.add_sized(vec2(48.0, t.control_height), |ui: &mut Ui| solidcraft_ui_kit::text_button(ui, crate::i18n::tr_label("Reset"), true)).clicked();
+         if toggle.changed() || reset {
+             for row in filters.iter_mut().filter(|row| row.enabled) {
+                 row.checked = reset || all;
+diff --git a/crates/chrome/src/workspace.rs b/crates/chrome/src/workspace.rs
+index 300e794..f69758c 100644
+--- a/crates/chrome/src/workspace.rs
++++ b/crates/chrome/src/workspace.rs
+@@ -484,17 +484,18 @@ pub fn ribbon_with_controls(
+                                     && ui.available_width() >= quick.len() as f32 * (t.space_24 + ui.spacing().item_spacing.x);
+                                 for (index, tool) in quick.iter().enumerate().rev().filter(|_| show_quick) {
+                                     let (_, rect) = ui.allocate_space(vec2(t.space_24, t.space_24));
++                                    let description = crate::i18n::tr_label(tool.description);
+                                     let response = crate::controls::glyph_target_with_hover(
+                                         ui,
+                                         ui.scope_id().with(("ribbon_quick", tool.description)),
+                                         rect,
+-                                        tool.description,
+-                                        tool.description,
++                                        description,
++                                        description,
+                                         tool.enabled,
+                                         tool.active,
+                                     );
+                                     response.widget_info(|| {
+-                                        WidgetInfo::selected(Role::Button, tool.enabled && ui.is_enabled(), tool.active, tool.description)
++                                        WidgetInfo::selected(Role::Button, tool.enabled && ui.is_enabled(), tool.active, description)
+                                     });
+                                     paint_icon(ui.painter(), tool.icon, rect.center(), t.space_16, t, tool.enabled);
+                                     if response.clicked() {
