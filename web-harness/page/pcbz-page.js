@@ -218,19 +218,25 @@ function onWorker(message) {
       probed = true
       backend = typeof message.backend === 'string' ? message.backend : 'unknown'
       fontLoaded = message.font === true
+      // the project fetch can let the first frame beat this message (the Worker sets `ready` before it awaits the
+      // fetch): the frame then could not report the backend or the font. Send the runtime probe now that they are known.
+      if (announced) sendProbe()
       postParent('probe', { ok: true })
       return
     case 'frame': {
       frameCount += 1
-      if (!announced && message.painted) { announced = true; loading?.remove(); sendProbe(); postParent('ready', { revision }) }
+      if (!announced && message.painted) { announced = true; loading?.remove(); postParent('ready', { revision }) }
+      // the probe reports what actually drew and whether the bundled font loaded: only the Worker's ready message
+      // knows those, so it is never sent from a frame that arrived before it (the backend would read as `unknown`)
+      if (probed) sendProbe()
       if (typeof message.cursor === 'string') stage.style.cursor = cursorCss(message.cursor)
       if (Array.isArray(message.copied)) for (const text of message.copied) writeClipboard(String(text))
       if (message.paste === true) readClipboard()
-      if (message.ime === true) focusText()
       // The Worker reports the caret in CSS pixels (it owns no DOM): park the hidden textarea there so the browser's IME
       // candidate window opens at the caret. Patch 0015's report carries `ime_rect`; absent means no text edit.
       lastImeRect = message.ime_rect && typeof message.ime_rect === 'object' ? message.ime_rect : null
       if (lastImeRect) placeText(lastImeRect)
+      if (message.ime === true) focusText()
       // The hidden textarea holds the keyboard for the editor; it is never blurred because egui is not editing text now.
       // (Blurring it here would lose every key after the next frame: the page listens for keys on the textarea.)
       if (message.ime_interrupt === true) textarea.value = ''
