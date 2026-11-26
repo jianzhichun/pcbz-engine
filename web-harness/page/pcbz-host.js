@@ -88,7 +88,6 @@ function finish(ok, note) {
 }
 
 function settle(ok, note) {
-  console.log('DBG settle', Math.round(performance.now()), ok, note || '')
   const pending = host.pending
   if (!pending) return
   host.pending = null
@@ -102,7 +101,6 @@ function reasonOf(body, fallback) {
 }
 
 async function save(bytes, name, tries = 0) {
-  console.log('DBG save begin', Math.round(performance.now()), bytes.length)
   if (host.readOnly) {
     host.post({ t: 'read-only', readOnly: true, reason: '当前授权不能修改这个工程。' })
     settle(false, '只读。')

@@ -900,28 +900,56 @@ index 22de19b..74319bb 100644
  extern "C" {
      #[wasm_bindgen(js_name=pickLibraryItem)]
 diff --git a/crates/app/src/project_files.rs b/crates/app/src/project_files.rs
-index 5be396c..666c24f 100644
+index 5be396c..082b4f9 100644
 --- a/crates/app/src/project_files.rs
 +++ b/crates/app/src/project_files.rs
-@@ -516,7 +516,12 @@ impl ProjectFiles {
+@@ -516,7 +516,21 @@ impl ProjectFiles {
          let job = self.job.as_mut()?;
          #[cfg(target_arch = "wasm32")]
          if let Some(download) = &mut job.download {
 -            download.advance();
-+            // One bounded slice per frame keeps the plain browser page smooth. A host page's
-+            // editor has a flush budget (its save must answer while the model waits) and paints
-+            // offscreen in a worker, so it takes a much larger slice: the same archive would
-+            // otherwise need dozens of frames and outlast the host's flush timeout.
-+            let records = if crate::host::host_page() { 4096 } else { 256 };
-+            download.advance(records);
++            if crate::host::host_page() {
++                // A host page's flush waits for this save (its budget starts when the page
++                // flushes), and the worker paints the UI offscreen at a few frames a second, so a
++                // one-slice-per-frame encode can outlast that budget. Run bounded slices until the
++                // download finishes, then stop: the save is one task, not a background chore.
++                for _ in 0..64 {
++                    download.advance(1024);
++                    if download.done() {
++                        break;
++                    }
++                }
++            } else {
++                // A plain browser page stays smooth: one bounded slice per frame.
++                download.advance(256);
++            }
          }
          let revision = job.revision;
          let result = match job.receiver.try_recv() {
 diff --git a/crates/app/src/project_files/web.rs b/crates/app/src/project_files/web.rs
-index 6dd2b4b..0992c76 100644
+index 6dd2b4b..7267c46 100644
 --- a/crates/app/src/project_files/web.rs
 +++ b/crates/app/src/project_files/web.rs
-@@ -156,7 +156,7 @@ impl Download {
+@@ -114,6 +114,8 @@ pub(super) fn open_bytes(bytes: Arc<[u8]>) -> Result<Outcome, String> {
+ 
+ pub(super) struct Download {
+     source: DownloadSource,
++    /// The result has been sent: no further slice may run (a second send would download twice).
++    done: bool,
+     /// The suggested file name, from the project's name when the download was requested.
+     name: String,
+     result: Sender<Result<Outcome, String>>,
+@@ -152,11 +154,16 @@ impl Download {
+         } else {
+             DownloadSource::Encode(download::Encoder::new(snapshot, original)?)
+         };
+-        Ok(Self { source, name, result })
++        Ok(Self { source, done: false, name, result })
++    }
++
++    /// Whether this download has finished (its outcome was already sent).
++    pub(super) fn done(&self) -> bool {
++        self.done
      }
  
      /// Encode a bounded batch or download the unchanged bytes. A request cannot confirm a write.
@@ -930,7 +958,7 @@ index 6dd2b4b..0992c76 100644
          let result = match &mut self.source {
              DownloadSource::Documents(documents) => match PackedEncoder::new((**documents).clone()) {
                  Ok(archive) => {
-@@ -166,7 +166,7 @@ impl Download {
+@@ -166,7 +173,7 @@ impl Download {
                  Err(error) => Err(error),
              },
              DownloadSource::Unchanged(bytes) => send_download(bytes, &self.name),
@@ -939,6 +967,14 @@ index 6dd2b4b..0992c76 100644
                  Ok(Some(documents)) => match PackedEncoder::new(documents) {
                      Ok(archive) => {
                          self.source = DownloadSource::Archive(archive);
+@@ -183,6 +190,7 @@ impl Download {
+                 Err(error) => Err(error),
+             },
+         };
++        self.done = true;
+         let _ = self.result.send(result);
+     }
+ }
 diff --git a/crates/app/src/worker_app.rs b/crates/app/src/worker_app.rs
 new file mode 100644
 index 0000000..5fec4a1

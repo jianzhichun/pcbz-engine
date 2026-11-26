@@ -53,7 +53,6 @@ globalThis.pcbzWorkerWake = () => schedule(0)
 
 function pump() {
   if (!app || !ready || closed) return
-  console.log('DBG pump', Math.round(performance.now()), JSON.stringify(status()))
   const batch = pending.splice(0)
   let report
   try {
@@ -127,7 +126,6 @@ async function init(message) {
 }
 
 function flush(id) {
-  console.log('DBG flush', Math.round(performance.now()), JSON.stringify(status()))
   beginFlush(id)
   const state = status()
   if (!state.project) { ackFlush(true); return }
