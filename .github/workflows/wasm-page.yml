@@ -40,7 +40,7 @@ jobs:
           for p in patches/*.patch; do git -C upstream apply --verbose "../$p"; done
       - name: Chinese catalog scan and remaining-English count
         shell: bash
-        run: python3 scripts/i18n_check.py . 2>&1 | tee i18n.txt
+        run: python3 scripts/i18n_check.py . --max-english 0 2>&1 | tee i18n.txt
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown

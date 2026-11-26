@@ -1,0 +1,2120 @@
+diff --git a/crates/app/src/assistant.rs b/crates/app/src/assistant.rs
+index 8eeebe0..6319c94 100644
+--- a/crates/app/src/assistant.rs
++++ b/crates/app/src/assistant.rs
+@@ -588,7 +588,7 @@ impl Assistant {
+     fn panel_contents(&mut self, ui: &mut Ui, session: &Session, can_edit: bool, has_document: bool) {
+         let t = Tokens::get();
+         if self.confirm_new {
+-            ui.label("Start a new chat? This clears the conversation and draft.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("Start a new chat? This clears the conversation and draft."));
+             ui.horizontal(|ui| {
+                 if pcbcraft_chrome::controls::button(ui, "Start new chat").clicked() {
+                     self.new_chat();
+@@ -602,7 +602,7 @@ impl Assistant {
+         self.option_pickers(ui);
+         if self.chat.items.is_empty() {
+             ui.add_space(t.space_8);
+-            ui.label(dim("The agent works on open documents through the same commands as the menus. Edits are undoable."));
++            ui.label(dim(pcbcraft_chrome::i18n::tr_label("The agent works on open documents through the same commands as the menus. Edits are undoable.")));
+         }
+         chrome::composer(ui, |ui| self.composer(ui, session, can_edit, has_document));
+         ui.with_layout(Layout::bottom_up(Align::Min), |ui| {
+@@ -635,7 +635,7 @@ impl Assistant {
+                             answered = Some((approval.id, Answer::Allow));
+                         }
+                         if pcbcraft_chrome::controls::button(ui, "Always allow")
+-                            .on_hover_text("Allow this command for this agent from now on")
++                            .on_hover_text(pcbcraft_chrome::i18n::tr_label("Allow this command for this agent from now on"))
+                             .clicked()
+                         {
+                             answered = Some((approval.id, Answer::AlwaysAllow));
+@@ -727,7 +727,7 @@ impl Assistant {
+                 }
+             }
+             if self.chat.tools == Some(false) {
+-                ui.label(dim("No project tools"));
++                ui.label(dim(pcbcraft_chrome::i18n::tr_label("No project tools")));
+             }
+         });
+         match self.chat.state.clone() {
+@@ -736,9 +736,9 @@ impl Assistant {
+             }
+             State::SignIn(methods) => {
+                 ui.horizontal(|ui| {
+-                    ui.label("Sign in to continue.");
++                    ui.label(pcbcraft_chrome::i18n::tr_label("Sign in to continue."));
+                     // A terminal or environment sign-in happens outside; the agent restarts to see it.
+-                    if pcbcraft_chrome::controls::button(ui, "Retry").on_hover_text("Restart the agent after signing in elsewhere").clicked() {
++                    if pcbcraft_chrome::controls::button(ui, "Retry").on_hover_text(pcbcraft_chrome::i18n::tr_label("Restart the agent after signing in elsewhere")).clicked() {
+                         self.connect(ui.ctx());
+                     }
+                 });
+@@ -786,7 +786,7 @@ impl Assistant {
+                                 }
+                             })
+                             .response
+-                            .accessible_name("Assistant model");
++                            .accessible_name(pcbcraft_chrome::i18n::tr_label("Assistant model"));
+                     }
+                     if let Some((current, modes)) = &self.chat.modes {
+                         let shown = modes.iter().find(|(id, _)| id == current).map_or(current.as_str(), |(_, name)| name.as_str());
+@@ -800,7 +800,7 @@ impl Assistant {
+                                 }
+                             })
+                             .response
+-                            .accessible_name("Assistant permission mode");
++                            .accessible_name(pcbcraft_chrome::i18n::tr_label("Assistant permission mode"));
+                     }
+                 }
+                 for option in &self.chat.config {
+@@ -860,7 +860,7 @@ impl Assistant {
+                 TextEdit::multiline(&mut self.draft)
+                     .id(draft_id)
+                     .interactive(human)
+-                    .hint_text("Ask about the document or request a change…")
++                    .hint_text(pcbcraft_chrome::i18n::tr_label("Ask about the document or request a change…"))
+                     .desired_rows(2)
+                     .desired_width(f32::INFINITY)
+                     .char_limit(8192),
+@@ -872,16 +872,16 @@ impl Assistant {
+                     self.chat.stop();
+                 }
+                 ui.spinner();
+-            } else if pcbcraft_chrome::controls::enabled_button(ui, can_send, "Send").on_hover_text("Send (Enter)").clicked() || enter {
++            } else if pcbcraft_chrome::controls::enabled_button(ui, can_send, "Send").on_hover_text(pcbcraft_chrome::i18n::tr_label("Send (Enter)")).clicked() || enter {
+                 let text = self.draft.trim().to_owned();
+                 if self.chat.send(&text) {
+                     self.draft.clear();
+                 }
+             }
+             if !has_document {
+-                ui.label(dim("Open or create a document to start."));
++                ui.label(dim(pcbcraft_chrome::i18n::tr_label("Open or create a document to start.")));
+             } else if !self.chat.connected() {
+-                ui.label(dim("Connect an agent to start."));
++                ui.label(dim(pcbcraft_chrome::i18n::tr_label("Connect an agent to start.")));
+             }
+         });
+     }
+@@ -910,7 +910,7 @@ fn conversation_item(ui: &mut Ui, item: &Item, agent: &str) {
+             ui.strong(agent);
+             markdown_view(ui, parsed.get_or_init(|| markdown::parse(text)));
+             if *cut {
+-                ui.label(dim("The rest of this reply was dropped: it passed 64 KiB."));
++                ui.label(dim(pcbcraft_chrome::i18n::tr_label("The rest of this reply was dropped: it passed 64 KiB.")));
+             }
+         }
+         Item::Agent { thought: true, text, .. } => {
+diff --git a/crates/app/src/assistant/settings.rs b/crates/app/src/assistant/settings.rs
+index a76f61e..04c77e2 100644
+--- a/crates/app/src/assistant/settings.rs
++++ b/crates/app/src/assistant/settings.rs
+@@ -120,7 +120,7 @@ impl Assistant {
+         if crate::embedded::ASSISTANT_OFF.load(std::sync::atomic::Ordering::Relaxed) {
+             ui.heading("AI");
+             ui.separator();
+-            ui.label("The chat beside this editor is its assistant.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("The chat beside this editor is its assistant."));
+             return None;
+         }
+         let mut request = None;
+@@ -142,7 +142,7 @@ impl Assistant {
+                 pcbcraft_chrome::controls::checkbox(ui, &mut self.settings.toolbar, "Show Assistant button in application bar").changed();
+             ui.separator();
+             ui.strong("Permissions");
+-            ui.label(dim("What agents may do without asking. Reading the project always runs."));
++            ui.label(dim(pcbcraft_chrome::i18n::tr_label("What agents may do without asking. Reading the project always runs.")));
+             ui.horizontal_wrapped(|ui| {
+                 for mode in Mode::ALL {
+                     if ui.selectable_label(self.settings.agents.ai_permissions == mode, mode.label()).clicked()
+@@ -154,7 +154,7 @@ impl Assistant {
+                 }
+             });
+             let mut automatic = self.settings.agents.auto_approve_bridge;
+-            let auto = ui.checkbox(&mut automatic, "Approve agents' requests to use PCBZ's tools automatically").on_hover_text(
++            let auto = ui.checkbox(&mut automatic, pcbcraft_chrome::i18n::tr_label("Approve agents' requests to use PCBZ's tools automatically")).on_hover_text(
+                 "PCBZ still applies the permission mode to every command. Turn this off to also confirm each \
+                      request in the agent's own words, which shows that the call comes from it, at the cost of a \
+                      second question for commands the mode asks about.",
+@@ -170,14 +170,14 @@ impl Assistant {
+                     request = Some(Request::Add(Box::default()));
+                 }
+                 if pcbcraft_chrome::controls::enabled_button(ui, self.detecting.is_none(), "Refresh")
+-                    .on_hover_text("Look for installed agents again")
++                    .on_hover_text(pcbcraft_chrome::i18n::tr_label("Look for installed agents again"))
+                     .clicked()
+                 {
+                     self.detect(ui.ctx());
+                 }
+             });
+             if self.detecting.is_some() {
+-                ui.label(dim("Looking for installed agents…"));
++                ui.label(dim(pcbcraft_chrome::i18n::tr_label("Looking for installed agents…")));
+             }
+             for entry in self.entries() {
+                 ui.push_id(&entry.id, |ui| self.agent_row(ui, &entry, &mut request));
+@@ -189,13 +189,13 @@ impl Assistant {
+                 .unwrap_or_default();
+             if !missing.is_empty() {
+                 ui.add_space(Tokens::get().space_8);
+-                ui.label(dim("Not installed"));
++                ui.label(dim(pcbcraft_chrome::i18n::tr_label("Not installed")));
+                 for (name, install) in missing {
+                     ui.push_id(name, |ui| {
+                         ui.horizontal_wrapped(|ui| {
+                             ui.label(name);
+                             ui.label(dim(install));
+-                            if pcbcraft_chrome::controls::small_button(ui, "Copy").on_hover_text("Copy the install command").clicked() {
++                            if pcbcraft_chrome::controls::small_button(ui, "Copy").on_hover_text(pcbcraft_chrome::i18n::tr_label("Copy the install command")).clicked() {
+                                 ui.ctx().copy_text(install.to_owned());
+                             }
+                         });
+@@ -239,7 +239,7 @@ impl Assistant {
+         ui.label(dim(format!("{}{login}", entry.detail())));
+         ui.horizontal_wrapped(|ui| {
+             let testing = self.tests.iter().any(|(id, _)| *id == entry.id);
+-            if pcbcraft_chrome::controls::enabled_button(ui, !testing, "Test").on_hover_text("Start the agent and check that it answers").clicked() {
++            if pcbcraft_chrome::controls::enabled_button(ui, !testing, "Test").on_hover_text(pcbcraft_chrome::i18n::tr_label("Start the agent and check that it answers")).clicked() {
+                 self.test_agent(ui.ctx(), entry);
+             }
+             if self.settings.agents.agent_default == entry.id {
+@@ -267,7 +267,7 @@ impl Assistant {
+                     }
+                 })
+                 .response
+-                .accessible_name("Agent permission mode");
++                .accessible_name(pcbcraft_chrome::i18n::tr_label("Agent permission mode"));
+             let remembered = self.settings.agents.agent_always_allow.get(&entry.id).map_or(0, Vec::len);
+             if remembered > 0 && pcbcraft_chrome::controls::button(ui, format!("Forget {remembered} always-allowed")).clicked() {
+                 self.settings.agents.agent_always_allow.remove(&entry.id);
+@@ -296,7 +296,7 @@ impl Assistant {
+             }
+         });
+         if self.tests.iter().any(|(id, _)| *id == entry.id) {
+-            ui.label(dim("Testing…"));
++            ui.label(dim(pcbcraft_chrome::i18n::tr_label("Testing…")));
+         } else if let Some(result) = self.test_results.get(&entry.id) {
+             match result {
+                 Ok(answer) => ui.label(answer.as_str()),
+@@ -378,18 +378,18 @@ impl Assistant {
+             let field_width = (ui.available_width() - t.space_24 * 4.0).clamp(160.0, 320.0);
+             egui::Grid::new("assistant_agent_form").num_columns(2).spacing([t.space_12, t.space_8]).show(ui, |ui| {
+                 let name_label = ui.label("Name");
+-                ui.add(egui::TextEdit::singleline(&mut form.name).char_limit(64).desired_width(field_width).hint_text("My agent"))
++                ui.add(egui::TextEdit::singleline(&mut form.name).char_limit(64).desired_width(field_width).hint_text(pcbcraft_chrome::i18n::tr_label("My agent")))
+                     .labelled_by(name_label.id);
+                 ui.end_row();
+                 if form.kind == Kind::Acp {
+                     let command_label = ui.label("Command");
+                     ui.add(
+-                        egui::TextEdit::singleline(&mut form.command).char_limit(MAX_COMMAND).desired_width(field_width).hint_text("opencode acp"),
++                        egui::TextEdit::singleline(&mut form.command).char_limit(MAX_COMMAND).desired_width(field_width).hint_text(pcbcraft_chrome::i18n::tr_label("opencode acp")),
+                     )
+                     .labelled_by(command_label.id);
+                     ui.end_row();
+                 } else {
+-                    let url_label = ui.label("Base URL");
++                    let url_label = ui.label(pcbcraft_chrome::i18n::tr_label("Base URL"));
+                     ui.add(
+                         egui::TextEdit::singleline(&mut form.base_url)
+                             .char_limit(2048)
+@@ -412,23 +412,23 @@ impl Assistant {
+                     ui.add(egui::TextEdit::singleline(&mut form.key).password(true).char_limit(4096).desired_width(field_width).hint_text(hint))
+                         .labelled_by(key_label.id);
+                     ui.end_row();
+-                    let timeout_label = ui.label("Request timeout (s)");
++                    let timeout_label = ui.label(pcbcraft_chrome::i18n::tr_label("Request timeout (s)"));
+                     ui.add(egui::DragValue::new(&mut form.timeout_s).range(agents::MIN_REQUEST_TIMEOUT_S..=agents::MAX_REQUEST_TIMEOUT_S))
+                         .labelled_by(timeout_label.id);
+                     ui.end_row();
+-                    let effort_label = ui.label("Reasoning effort");
++                    let effort_label = ui.label(pcbcraft_chrome::i18n::tr_label("Reasoning effort"));
+                     ui.add(
+                         egui::TextEdit::singleline(&mut form.effort)
+                             .char_limit(agents::MAX_REASONING_EFFORT_LEN)
+                             .desired_width(field_width)
+-                            .hint_text("Provider default"),
++                            .hint_text(pcbcraft_chrome::i18n::tr_label("Provider default")),
+                     )
+                     .labelled_by(effort_label.id);
+                     ui.end_row();
+                 }
+             });
+             if form.kind == Kind::Acp {
+-                ui.label(dim("A program that speaks the Agent Client Protocol, with its arguments. It runs without a shell."));
++                ui.label(dim(pcbcraft_chrome::i18n::tr_label("A program that speaks the Agent Client Protocol, with its arguments. It runs without a shell.")));
+             } else {
+                 ui.label(dim(
+                     "PCBZ runs the conversation itself and gives the model the project tools. A key is kept in the system keychain and only sent over HTTPS or to this computer.",
+diff --git a/crates/app/src/board_canvas.rs b/crates/app/src/board_canvas.rs
+index 2ecece5..ef7c695 100644
+--- a/crates/app/src/board_canvas.rs
++++ b/crates/app/src/board_canvas.rs
+@@ -188,9 +188,9 @@ pub(super) fn show(
+         state.drawing.delete_requested = false;
+         ui.label(error);
+         if project.teardrops().is_empty() {
+-            ui.label("Exact arc records are preserved. Board display, picking and edits are unavailable until circular copper is supported.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("Exact arc records are preserved. Board display, picking and edits are unavailable until circular copper is supported."));
+         } else {
+-            ui.label("Remove the saved teardrop intents with pcb.edit_teardrops to resume board editing.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("Remove the saved teardrop intents with pcb.edit_teardrops to resume board editing."));
+         }
+         return Interaction::default();
+     }
+diff --git a/crates/app/src/board_clipboard.rs b/crates/app/src/board_clipboard.rs
+index 5557f79..336079c 100644
+--- a/crates/app/src/board_clipboard.rs
++++ b/crates/app/src/board_clipboard.rs
+@@ -263,7 +263,7 @@ impl PcbApp {
+                 let original = draft.fragment.source_project() == project.id();
+                 ui.add_enabled(original, egui::Checkbox::new(&mut draft.options.reuse_components, "Reuse original unplaced components"));
+                 if !draft.options.reuse_components {
+-                    ui.label(shell::dim("Duplication creates linked schematic components and physical placements in one edit. Matching net names can join existing nets within their scope; add a suffix to keep the copied circuit separate."));
++                    ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("Duplication creates linked schematic components and physical placements in one edit. Matching net names can join existing nets within their scope; add a suffix to keep the copied circuit separate.")));
+                     pcbcraft_chrome::controls::checkbox(ui, &mut draft.options.items.preserve_references, "Keep original references");
+                     properties::text(ui, "Net-name suffix", &mut draft.options.items.net_name_suffix);
+                     for target in &mut draft.targets {
+diff --git a/crates/app/src/board_drc.rs b/crates/app/src/board_drc.rs
+index edd71f8..f2803b4 100644
+--- a/crates/app/src/board_drc.rs
++++ b/crates/app/src/board_drc.rs
+@@ -208,17 +208,17 @@ impl Drc {
+             }
+             let Some(ran) = &self.result else {
+                 if !self.waiting && self.notice.is_none() {
+-                    ui.label(shell::dim("Not run"));
++                    ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("Not run")));
+                 }
+                 return;
+             };
+             if ran.source.revision() != revision || ran.outdated {
+-                ui.label(shell::dim("The board changed since this check. Run again to refresh."));
++                ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("The board changed since this check. Run again to refresh.")));
+             }
+             ui.label(shell::dim(format!("Revision {}", ran.source.revision())));
+             let report = &ran.report;
+             if report.total == 0 {
+-                ui.label("No problems found with the current rules.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("No problems found with the current rules."));
+             } else {
+                 let summary: Vec<_> = report.counts.iter().map(|(kind, count)| format!("{count} {}", label(*kind).to_lowercase())).collect();
+                 ui.label(format!("{} issue{}: {}", report.total, if report.total == 1 { "" } else { "s" }, summary.join(", ")));
+diff --git a/crates/app/src/board_panels.rs b/crates/app/src/board_panels.rs
+index e51ae48..4f63f25 100644
+--- a/crates/app/src/board_panels.rs
++++ b/crates/app/src/board_panels.rs
+@@ -198,7 +198,7 @@ impl PcbApp {
+                         property(ui, "Board", target.name());
+                         property(ui, "Footprint", &footprint.definition);
+                         ui.label("Silkscreen");
+-                        if ui.button("Edit silkscreen text").clicked() {
++                        if ui.button(pcbcraft_chrome::i18n::tr_label("Edit silkscreen text")).clicked() {
+                             reference_pick = Some(footprint.id.clone());
+                         }
+                         ui.end_row();
+diff --git a/crates/app/src/board_panels/properties.rs b/crates/app/src/board_panels/properties.rs
+index 6dca7b1..86277d8 100644
+--- a/crates/app/src/board_panels/properties.rs
++++ b/crates/app/src/board_panels/properties.rs
+@@ -179,7 +179,7 @@ pub(super) fn copper_properties(
+         property(ui, "Via drill", "Mixed");
+     } else if let Some(first) = vias.first() {
+         let ids: Vec<_> = vias.iter().map(|via| via.id).collect();
+-        ui.label("Via pad");
++        ui.label(pcbcraft_chrome::i18n::tr_label("Via pad"));
+         if let Some(pad) = ui
+             .add_enabled_ui(!any_locked, |ui| {
+                 // The pad must stay larger than the drill; a smaller pad is refused rather than
+@@ -191,7 +191,7 @@ pub(super) fn copper_properties(
+             edit = Some((pcbcraft_engine::SET_VIA_SIZE, serde_json::json!({"vias":ids,"via_diameter_nm":pad,"via_drill_nm":first.drill_nm})));
+         }
+         ui.end_row();
+-        ui.label("Via drill");
++        ui.label(pcbcraft_chrome::i18n::tr_label("Via drill"));
+         if let Some(drill) = ui
+             .add_enabled_ui(!any_locked, |ui| {
+                 committed_length(ui, ("Selected via drill", salt), first.drill_nm, MIN_VIA_DRILL_NM..=first.diameter_nm - 1, unit, revision, false)
+diff --git a/crates/app/src/board_presets.rs b/crates/app/src/board_presets.rs
+index d671599..728c599 100644
+--- a/crates/app/src/board_presets.rs
++++ b/crates/app/src/board_presets.rs
+@@ -227,7 +227,7 @@ impl PcbApp {
+         let via = matches!(edit.current, Size::Via(_));
+         let (mut submit, mut cancel) = (false, false);
+         let closing = shell::dialog(ctx, "routing_size", if via { "Custom Via Size" } else { "Custom Width" }, |ui| {
+-            let label = ui.label(if via { "Pad diameter" } else { "Width" });
++            let label = ui.label(if via { pcbcraft_chrome::i18n::tr_label("Pad diameter") } else { "Width" });
+             let response = ui.add(egui::TextEdit::singleline(&mut edit.first).desired_width(f32::INFINITY)).labelled_by(label.id);
+             if !edit.focused {
+                 response.request_focus();
+@@ -235,11 +235,11 @@ impl PcbApp {
+             }
+             submit |= response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+             if via {
+-                let label = ui.label("Drill diameter");
++                let label = ui.label(pcbcraft_chrome::i18n::tr_label("Drill diameter"));
+                 let response = ui.add(egui::TextEdit::singleline(&mut edit.second).desired_width(f32::INFINITY)).labelled_by(label.id);
+                 submit |= response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+             }
+-            ui.checkbox(&mut edit.save, "Save as preset");
++            ui.checkbox(&mut edit.save, pcbcraft_chrome::i18n::tr_label("Save as preset"));
+             if let Some(error) = &edit.error {
+                 ui.label(shell::error(error.as_str()));
+             }
+diff --git a/crates/app/src/board_reference.rs b/crates/app/src/board_reference.rs
+index d132ee8..6119b36 100644
+--- a/crates/app/src/board_reference.rs
++++ b/crates/app/src/board_reference.rs
+@@ -135,25 +135,25 @@ impl State {
+         properties::field(ui, "Part", |ui| {
+             ui.label(footprint.reference.as_ref());
+             if ui
+-                .add_enabled(enabled && !edit.dirty && edit.source == source, egui::Button::new("Rename…").small())
+-                .on_hover_text("Rename the component in the schematic, PCB and outputs. Apply or reset pending silkscreen edits first.")
++                .add_enabled(enabled && !edit.dirty && edit.source == source, egui::Button::new(pcbcraft_chrome::i18n::tr_label("Rename…")).small())
++                .on_hover_text(pcbcraft_chrome::i18n::tr_label("Rename the component in the schematic, PCB and outputs. Apply or reset pending silkscreen edits first."))
+                 .clicked()
+             {
+                 edit.rename = Some(footprint.reference.to_string());
+             }
+         });
+         if edit.source != source {
+-            ui.label("The board changed. Reload properties to continue.");
+-            if ui.button("Reload properties").clicked() {
++            ui.label(pcbcraft_chrome::i18n::tr_label("The board changed. Reload properties to continue."));
++            if ui.button(pcbcraft_chrome::i18n::tr_label("Reload properties")).clicked() {
+                 self.draft = None;
+             }
+             return None;
+         }
+         if let Some(reference) = &mut edit.rename {
+             properties::text(ui, "Reference", reference);
+-            let apply = ui.add_enabled(enabled, egui::Button::new("Rename part")).clicked();
++            let apply = ui.add_enabled(enabled, egui::Button::new(pcbcraft_chrome::i18n::tr_label("Rename part"))).clicked();
+             let reference = reference.clone();
+-            if ui.button("Cancel rename").clicked() {
++            if ui.button(pcbcraft_chrome::i18n::tr_label("Cancel rename")).clicked() {
+                 edit.rename = None;
+                 edit.error = None;
+             }
+@@ -191,7 +191,7 @@ impl State {
+                 }
+                 if ui
+                     .add(pcbcraft_chrome::settings::action_button("Reset silkscreen", false))
+-                    .on_hover_text("Restore component reference text, default appearance and the library's reference position.")
++                    .on_hover_text(pcbcraft_chrome::i18n::tr_label("Restore component reference text, default appearance and the library's reference position."))
+                     .clicked()
+                 {
+                     action = Some(Action::Appearance {
+@@ -214,7 +214,7 @@ impl State {
+ fn appearance_fields(ui: &mut Ui, edit: &mut Edit, resolved: &Resolved, reference: &str, physical: bool) {
+     ui.add_enabled_ui(physical, |ui| {
+         let mut linked = edit.appearance.text.is_none();
+-        if ui.checkbox(&mut linked, "Use part reference").changed() {
++        if ui.checkbox(&mut linked, pcbcraft_chrome::i18n::tr_label("Use part reference")).changed() {
+             edit.appearance.text = (!linked).then(|| reference.to_owned());
+             edit.dirty = true;
+         }
+@@ -259,7 +259,7 @@ fn appearance_fields(ui: &mut Ui, edit: &mut Edit, resolved: &Resolved, referenc
+             ui.selectable_value(&mut edit.appearance.align, Some(TextAlign::End), "Right");
+         });
+         let mut visible = edit.appearance.visible.unwrap_or(resolved.visible);
+-        if ui.checkbox(&mut visible, "Show silkscreen text").changed() {
++        if ui.checkbox(&mut visible, pcbcraft_chrome::i18n::tr_label("Show silkscreen text")).changed() {
+             edit.appearance.visible = Some(visible);
+         }
+         edit.dirty |= original != edit.appearance;
+diff --git a/crates/app/src/board_rules.rs b/crates/app/src/board_rules.rs
+index 8415c1e..c4995fa 100644
+--- a/crates/app/src/board_rules.rs
++++ b/crates/app/src/board_rules.rs
+@@ -118,7 +118,7 @@ impl Edit {
+             );
+         }
+         if !current {
+-            ui.label(shell::error("The project changed. Close and reopen Rules to continue."));
++            ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("The project changed. Close and reopen Rules to continue.")));
+         }
+         if let Some(error) = edit.error.as_deref().or_else(|| if edit.builtin { None } else { value.as_ref().err().map(String::as_str) }) {
+             ui.label(shell::error(error));
+diff --git a/crates/app/src/board_setup.rs b/crates/app/src/board_setup.rs
+index b84b5f8..55c2699 100644
+--- a/crates/app/src/board_setup.rs
++++ b/crates/app/src/board_setup.rs
+@@ -380,7 +380,7 @@ impl PcbApp {
+         let action = pcbcraft_chrome::catalog::settings_form(ctx, "Board setup", apply_label, can_apply, |ui| {
+             form::pages(ui, &mut page, error.as_deref(), edit.board.is_some(), |ui, page| {
+                 if edit.initializing && edit.populated && !matches!(page, Page::BoardDefaults | Page::NetClasses) {
+-                    ui.label("Applying setup resolves existing surface-mount pads to front copper and through-hole pads across the stack. Placements and package assignments are retained.");
++                    ui.label(pcbcraft_chrome::i18n::tr_label("Applying setup resolves existing surface-mount pads to front copper and through-hole pads across the stack. Placements and package assignments are retained."));
+                 }
+                 match page {
+                     Page::Layers => edit.layers(ui),
+diff --git a/crates/app/src/board_setup/materials.rs b/crates/app/src/board_setup/materials.rs
+index 5dcb446..d33ff9d 100644
+--- a/crates/app/src/board_setup/materials.rs
++++ b/crates/app/src/board_setup/materials.rs
+@@ -331,7 +331,7 @@ impl super::Edit {
+             }
+         }
+         if candidate.materials.is_empty() {
+-            ui.label("No material specifications pinned to this board.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("No material specifications pinned to this board."));
+         }
+         let mut use_material = None;
+         for material in &candidate.materials {
+diff --git a/crates/app/src/board_setup/pages.rs b/crates/app/src/board_setup/pages.rs
+index 650e7fe..e6062aa 100644
+--- a/crates/app/src/board_setup/pages.rs
++++ b/crates/app/src/board_setup/pages.rs
+@@ -91,7 +91,7 @@ impl Edit {
+             }
+         }
+         if self.populated && self.candidate.setup.stackup().strata.len().div_ceil(2) as u64 != self.original_copper {
+-            ui.label("Changing the copper count updates existing through-hole pad spans. Surface-mount pads retain front copper.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("Changing the copper count updates existing through-hole pad spans. Surface-mount pads retain front copper."));
+         }
+     }
+ 
+@@ -115,7 +115,7 @@ impl Edit {
+                     let required = matches!(layer.purpose, LayerPurpose::Copper | LayerPurpose::Outline | LayerPurpose::Courtyard);
+                     ui.add_enabled_ui(!required, |ui| {
+                         pcbcraft_chrome::controls::checkbox(ui, &mut candidate.enabled[index], "")
+-                            .on_hover_text(if required { "Required layer" } else { "Remove this layer from the board catalog" })
++                            .on_hover_text(if required { pcbcraft_chrome::i18n::tr_label("Required layer") } else { pcbcraft_chrome::i18n::tr_label("Remove this layer from the board catalog") })
+                             .widget_info(|| egui::WidgetInfo::labeled(egui::Role::CheckBox, !required, format!("Use layer {}", layer.name)))
+                     });
+                     ui.add_sized(egui::vec2(widths[1], t.control_height), properties::input(&mut candidate.names[index]).id_salt(layer.id))
+@@ -164,7 +164,7 @@ impl Edit {
+                         }
+                     })
+                     .response
+-                    .accessible_name("Technical layer purpose");
++                    .accessible_name(pcbcraft_chrome::i18n::tr_label("Technical layer purpose"));
+             });
+             if self.new_purpose != LayerPurpose::Outline {
+                 form::field(ui, "Side", |ui| {
+@@ -182,7 +182,7 @@ impl Edit {
+                             ui.selectable_value(&mut self.new_side, Some(Side::Back), "Back");
+                         })
+                         .response
+-                        .accessible_name("Technical layer side");
++                        .accessible_name(pcbcraft_chrome::i18n::tr_label("Technical layer side"));
+                 });
+             }
+             if pcbcraft_chrome::controls::button(ui, "Add layer").clicked() {
+diff --git a/crates/app/src/board_update.rs b/crates/app/src/board_update.rs
+index 9223b20..8c58e6c 100644
+--- a/crates/app/src/board_update.rs
++++ b/crates/app/src/board_update.rs
+@@ -184,7 +184,7 @@ impl PcbApp {
+         let has_report = matches!(edit.phase, Phase::Review | Phase::Applied) && context;
+         let response = form::form(ctx, primary, enabled, has_report, |ui| {
+             if !context {
+-                ui.label("The project or source pane changed. Close this review and open Update PCB again.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("The project or source pane changed. Close this review and open Update PCB again."));
+             } else {
+                 if let Some(board) = edit.board.and_then(|target| project.as_ref().and_then(|project| project.board_view(target))) {
+                     ui.strong(format!("{} · All schematic sheets", board.name()));
+@@ -193,10 +193,10 @@ impl PcbApp {
+                 }
+                 match edit.phase {
+                     Phase::Create => {
+-                        ui.label("Create a PCB for this schematic.");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("Create a PCB for this schematic."));
+                     }
+                     Phase::Initialize => {
+-                        ui.label("Existing footprints have no recorded accepted state. Choosing “Use current state” records today's schematic, footprint choices and connections as its starting point; earlier accepted history is unavailable.");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("Existing footprints have no recorded accepted state. Choosing “Use current state” records today's schematic, footprint choices and connections as its starting point; earlier accepted history is unavailable."));
+                         if let Some(project) = project.as_ref() {
+                             let choices = Baseline::current_choices(project);
+                             for component in project.components() {
+@@ -222,19 +222,19 @@ impl PcbApp {
+                                 draw_unplaced(ui, project, &mut action);
+                             }
+                         } else {
+-                            ui.label("The design, footprint choices or review changed. Review again before applying.");
++                            ui.label(pcbcraft_chrome::i18n::tr_label("The design, footprint choices or review changed. Review again before applying."));
+                         }
+                     }
+                     Phase::Applied => {
+                         ui.add_enabled_ui(false, |ui| form::options(ui, &mut edit.place_new_footprints));
+-                        ui.label("PCB updated.");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("PCB updated."));
+                         draw_report(ui, &edit.report, &mut edit.filters, &mut action, true);
+                         if source_current {
+                             if let Some(project) = project.as_ref() {
+                                 draw_unplaced(ui, project, &mut action);
+                             }
+                         } else {
+-                            ui.label("The design changed after this update. Review again before continuing.");
++                            ui.label(pcbcraft_chrome::i18n::tr_label("The design changed after this update. Review again before continuing."));
+                         }
+                     }
+                 }
+@@ -556,10 +556,10 @@ fn draw_unplaced(ui: &mut egui::Ui, project: &Project, action: &mut Action) {
+         })
+         .collect();
+     if unplaced.is_empty() {
+-        ui.label("No unplaced footprints.");
++        ui.label(pcbcraft_chrome::i18n::tr_label("No unplaced footprints."));
+         return;
+     }
+-    ui.label(if unplaced.len() == 1 { "1 footprint ready to place".into() } else { format!("{} footprints ready to place", unplaced.len()) });
++    ui.label(if unplaced.len() == 1 { pcbcraft_chrome::i18n::tr_label("1 footprint ready to place").into() } else { format!("{} footprints ready to place", unplaced.len()) });
+     if pcbcraft_chrome::controls::button(ui, "Place footprints").clicked() {
+         *action = Action::PlaceAll;
+     }
+diff --git a/crates/app/src/board_workspace.rs b/crates/app/src/board_workspace.rs
+index ecbc361..1c30cde 100644
+--- a/crates/app/src/board_workspace.rs
++++ b/crates/app/src/board_workspace.rs
+@@ -418,7 +418,7 @@ impl PcbApp {
+                 }
+             })
+             .response
+-            .on_disabled_hover_text("Finish or cancel the current edit to change router policy.");
++            .on_disabled_hover_text(pcbcraft_chrome::i18n::tr_label("Finish or cancel the current edit to change router policy."));
+             let dismiss = controls::button(ui, "Close");
+             dismiss.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Close Router Settings"));
+             close = dismiss.clicked();
+diff --git a/crates/app/src/board_zones.rs b/crates/app/src/board_zones.rs
+index 0a9f34e..d417b91 100644
+--- a/crates/app/src/board_zones.rs
++++ b/crates/app/src/board_zones.rs
+@@ -180,7 +180,7 @@ pub(super) fn properties(
+         "none" => Connection::None,
+         _ => Connection::Thermal,
+     };
+-    ui.label("Minimum island area (mm²)");
++    ui.label(pcbcraft_chrome::i18n::tr_label("Minimum island area (mm²)"));
+     if let Some(value) = scalar(
+         ui,
+         "Minimum island area",
+@@ -250,7 +250,7 @@ fn scalar(ui: &mut egui::Ui, label: &str, zone: uuid::Uuid, model: u64, scale: u
+         }
+     }
+     if draft.error {
+-        ui.label(shell::error("Value is outside the supported range."));
++        ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("Value is outside the supported range.")));
+     }
+     ui.data_mut(|d| d.insert_temp(id, draft));
+     result
+diff --git a/crates/app/src/clipboard.rs b/crates/app/src/clipboard.rs
+index b1aafaf..973f90c 100644
+--- a/crates/app/src/clipboard.rs
++++ b/crates/app/src/clipboard.rs
+@@ -402,7 +402,7 @@ impl PcbApp {
+                 ui.add_enabled(eligible, egui::Checkbox::new(&mut draft.placement.options.reuse_sheets, "Reuse original unparented sheets"));
+                 if draft.placement.options.reuse_sheets {
+                     draft.placement.options.net_name_suffix.clear();
+-                    ui.label(pcbcraft_chrome::shell::dim("Relocation retains the child sheets' current content, references and net names."));
++                    ui.label(pcbcraft_chrome::shell::dim(pcbcraft_chrome::i18n::tr_label("Relocation retains the child sheets' current content, references and net names.")));
+                 }
+             }
+             pcbcraft_chrome::controls::checkbox(ui, &mut draft.placement.options.preserve_references, "Keep original references");
+diff --git a/crates/app/src/editor_windows.rs b/crates/app/src/editor_windows.rs
+index ae251e3..de186de 100644
+--- a/crates/app/src/editor_windows.rs
++++ b/crates/app/src/editor_windows.rs
+@@ -483,7 +483,7 @@ impl PcbApp {
+             };
+             // A save or open stalled on an unresponsive disk would otherwise hold the close forever.
+             let dismissed = pcbcraft_chrome::shell::dialog(ctx, "close_wait", "Close Project", |ui| {
+-                ui.label("Waiting for the current file operation before closing.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Waiting for the current file operation before closing."));
+                 if let Some(warning) = warning {
+                     ui.label(warning);
+                 }
+diff --git a/crates/app/src/editor_workspace.rs b/crates/app/src/editor_workspace.rs
+index 24b48c4..7403a68 100644
+--- a/crates/app/src/editor_workspace.rs
++++ b/crates/app/src/editor_workspace.rs
+@@ -1249,7 +1249,7 @@ impl PcbApp {
+                 if self.views.view(id).is_some_and(EditorView::unavailable) {
+                     shell::canvas(ui, |ui| {
+                         ui.centered_and_justified(|ui| {
+-                            ui.label("This document is unavailable. Choose a workspace to replace this view.");
++                            ui.label(pcbcraft_chrome::i18n::tr_label("This document is unavailable. Choose a workspace to replace this view."));
+                         });
+                     });
+                     return;
+diff --git a/crates/app/src/external_clipboard.rs b/crates/app/src/external_clipboard.rs
+index 8543efc..0d88a9f 100644
+--- a/crates/app/src/external_clipboard.rs
++++ b/crates/app/src/external_clipboard.rs
+@@ -84,7 +84,7 @@ impl PcbApp {
+                     properties::text(ui, "Net-name suffix", &mut draft.suffix);
+                 }
+                 Workspace::Board => {
+-                    ui.label(shell::dim("Paste a two-column X/Y coordinate table as a Board Outline polyline. CSV and tab-separated numbers are supported; source units are independent of the display units."));
++                    ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("Paste a two-column X/Y coordinate table as a Board Outline polyline. CSV and tab-separated numbers are supported; source units are independent of the display units.")));
+                     properties::choice(
+                         ui,
+                         "Source units",
+@@ -98,7 +98,7 @@ impl PcbApp {
+                     outline_size(ui, &draft);
+                 }
+             }
+-            let label = ui.label("Clipboard text");
++            let label = ui.label(pcbcraft_chrome::i18n::tr_label("Clipboard text"));
+             ui.add(
+                 egui::TextEdit::multiline(&mut draft.text)
+                     .desired_rows(5)
+diff --git a/crates/app/src/footprint_assignment.rs b/crates/app/src/footprint_assignment.rs
+index d474e85..26d493d 100644
+--- a/crates/app/src/footprint_assignment.rs
++++ b/crates/app/src/footprint_assignment.rs
+@@ -209,8 +209,8 @@ impl PcbApp {
+                     Region::Libraries => {
+                         if edit.component_browser {
+                             form::section(ui, "Components");
+-                            let label = ui.label(pcbcraft_chrome::shell::dim("Find component"));
+-                            ui.add(form::input(&mut edit.component_query).desired_width(ui.available_width()).hint_text("Reference or value"))
++                            let label = ui.label(pcbcraft_chrome::shell::dim(pcbcraft_chrome::i18n::tr_label("Find component")));
++                            ui.add(form::input(&mut edit.component_query).desired_width(ui.available_width()).hint_text(pcbcraft_chrome::i18n::tr_label("Reference or value")))
+                                 .labelled_by(label.id);
+                             let query = edit.component_query.to_lowercase();
+                             let components: Vec<_> = project
+@@ -219,7 +219,7 @@ impl PcbApp {
+                                 .filter(|c| format!("{} {} {}", c.reference(), c.value(), c.display_value()).to_lowercase().contains(&query))
+                                 .collect();
+                             if components.is_empty() {
+-                                ui.label("No components match");
++                                ui.label(pcbcraft_chrome::i18n::tr_label("No components match"));
+                             }
+                             let row_height = pcbcraft_chrome::Tokens::get().control_height;
+                             egui::ScrollArea::vertical().id_salt("assignment_components").max_height(if wide { 250. } else { 120. }).show_rows(
+@@ -249,7 +249,7 @@ impl PcbApp {
+                         form::section(ui, "Libraries");
+                         if ui.available_width() < 190. {
+                             egui::ScrollArea::vertical().id_salt("assignment_libraries").show(ui, |ui| {
+-                                if ui.selectable_label(edit.library.is_empty(), "All libraries").clicked() {
++                                if ui.selectable_label(edit.library.is_empty(), pcbcraft_chrome::i18n::tr_label("All libraries")).clicked() {
+                                     edit.library.clear();
+                                 }
+                                 for library in catalog.iter().map(|d| d.library.as_str()).collect::<std::collections::BTreeSet<_>>() {
+@@ -294,8 +294,8 @@ impl PcbApp {
+                         });
+                         ui.add_space(pcbcraft_chrome::Tokens::get().space_8);
+                         ui.add_enabled_ui(editable, |ui| {
+-                            let label = ui.label(pcbcraft_chrome::shell::dim("Search footprints"));
+-                            ui.add(form::input(&mut edit.query).desired_width(ui.available_width()).hint_text("Name or package"))
++                            let label = ui.label(pcbcraft_chrome::shell::dim(pcbcraft_chrome::i18n::tr_label("Search footprints")));
++                            ui.add(form::input(&mut edit.query).desired_width(ui.available_width()).hint_text(pcbcraft_chrome::i18n::tr_label("Name or package")))
+                                 .labelled_by(label.id);
+                             ui.horizontal_wrapped(|ui| {
+                                 pcbcraft_chrome::controls::checkbox(ui, &mut edit.compatible, "Match pin count");
+@@ -319,7 +319,7 @@ impl PcbApp {
+                             let height = if wide { ui.available_height().max(120.) } else { 180. };
+                             egui::ScrollArea::vertical().id_salt("package_results").max_height(height).show(ui, |ui| {
+                                 if matches.is_empty() {
+-                                    ui.label("No footprints match");
++                                    ui.label(pcbcraft_chrome::i18n::tr_label("No footprints match"));
+                                     if pcbcraft_chrome::controls::button(ui, "Clear filters").clicked() {
+                                         edit.query.clear();
+                                         edit.library.clear();
+@@ -365,7 +365,7 @@ impl PcbApp {
+                         let mut details = |ui: &mut egui::Ui| {
+                             let Some(definition) = &edit.definition else {
+                                 form::section(ui, "Preview");
+-                                ui.label("No footprint selected");
++                                ui.label(pcbcraft_chrome::i18n::tr_label("No footprint selected"));
+                                 return;
+                             };
+                             form::identity(
+@@ -425,7 +425,7 @@ impl PcbApp {
+                                             |ui| {
+                                                 if ui
+                                                     .add_enabled(numbers == pads, pcbcraft_chrome::settings::action_button("Match numbers", false))
+-                                                    .on_hover_text("Replace all connections with matching terminal and pad numbers")
++                                                    .on_hover_text(pcbcraft_chrome::i18n::tr_label("Replace all connections with matching terminal and pad numbers"))
+                                                     .clicked()
+                                                 {
+                                                     edit.mapping = numbers.into_iter().map(|id| (id.into(), PadIds::from(id))).collect();
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index 5620e1c..de9105d 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -1540,22 +1540,22 @@ impl PcbApp {
+                     && self.views.active.board.target.is_some()
+                     && self.views.active.camera.mirrored()
+                 {
+-                    ui.label(dim("Bottom view"));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label("Bottom view")));
+                 }
+                 if let Some(message) = message {
+                     ui.label(shell::error(message));
+                 } else if self.views.active.board.clipboard.active() {
+-                    ui.label(dim("Paste · Click to place · R rotate · Esc cancel"));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label("Paste · Click to place · R rotate · Esc cancel")));
+                 } else if self.views.active.workspace == Workspace::Board && self.views.active.board.placement.is_some() {
+-                    ui.label(dim("Place footprints · Click to place · R rotate · Esc cancel"));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label("Place footprints · Click to place · R rotate · Esc cancel")));
+                 } else if self.views.active.workspace == Workspace::Board {
+                     let empty = self.session.project().is_some_and(|project| project.board_target().is_none());
+-                    ui.label(dim(board_status.as_deref().unwrap_or(if empty { "No board" } else { "Board" })));
++                    ui.label(dim(board_status.as_deref().unwrap_or(if empty { pcbcraft_chrome::i18n::tr_label("No board") } else { pcbcraft_chrome::i18n::tr_label("Board") })));
+                     if let Some(net) = &self.views.active.board.highlight_net {
+                         ui.label(dim(format!("Net {net} highlighted · ` over empty space clears")));
+                     }
+                     if self.views.active.board.measure.tool {
+-                        ui.label(dim("Measure · Click a start point, then an end point · Esc clears"));
++                        ui.label(dim(pcbcraft_chrome::i18n::tr_label("Measure · Click a start point, then an end point · Esc clears")));
+                     }
+                     if let Some(status) = self.views.active.board.tracks.preparation_status() {
+                         ui.label(dim(status));
+@@ -1592,28 +1592,28 @@ impl PcbApp {
+                     ui.label(dim(format!("{reference} selected · R rotate · E edit fields · Del delete")));
+                 } else if let Some(tool) = &self.views.active.schematic.tool {
+                     ui.label(match tool {
+-                        Tool::NoConnect { .. } => dim("No connect · Esc cancel"),
+-                        Tool::Field { .. } => dim("Move symbol field · Esc to cancel"),
++                        Tool::NoConnect { .. } => dim(pcbcraft_chrome::i18n::tr_label("No connect · Esc cancel")),
++                        Tool::Field { .. } => dim(pcbcraft_chrome::i18n::tr_label("Move symbol field · Esc to cancel")),
+                         Tool::SheetGesture { drag, .. } => {
+                             dim(if drag.corner.is_some() { "Resize sheet · Esc to cancel" } else { "Move sheet · Esc to cancel" })
+                         }
+-                        Tool::NetLabel { .. } => dim("Place net label · R to rotate · Esc to cancel"),
+-                        Tool::Hierarchy { .. } => dim("Hierarchical sheet or label · Esc to cancel"),
++                        Tool::NetLabel { .. } => dim(pcbcraft_chrome::i18n::tr_label("Place net label · R to rotate · Esc to cancel")),
++                        Tool::Hierarchy { .. } => dim(pcbcraft_chrome::i18n::tr_label("Hierarchical sheet or label · Esc to cancel")),
+                         Tool::PlaceSymbol { definition, .. } => dim(format!("Place {} · R rotate · Esc to cancel", definition.name)),
+-                        Tool::Move { disconnect: true, .. } => dim("Disconnect and move symbol · R rotate · Esc cancel"),
+-                        Tool::Move { pickup: true, .. } => dim("Grab symbol · R rotate · Click to place · Esc cancel"),
+-                        Tool::Move { .. } => dim("Move symbol · R rotate · Esc cancel"),
+-                        Tool::MoveItems { pickup: true, disconnect: true, .. } => dim("Move selection · Click to place · Esc cancel"),
+-                        Tool::MoveItems { pickup: true, .. } => dim("Grab selection · Click to place · Esc cancel"),
+-                        Tool::MoveItems { .. } => dim("Grab selection · Esc to cancel"),
+-                        Tool::Reshape { drag, .. } if drag.pickup => dim("Grab wire · Click to place · Esc cancel"),
+-                        Tool::Reshape { .. } => dim("Reshape wire · Esc to cancel"),
+-                        Tool::BoxSelect { .. } => dim("Select items · Esc to cancel"),
+-                        Tool::Wire { start: None, .. } => dim("Wire · Click a start point"),
+-                        Tool::Wire { start: Some(_), .. } => dim("Wire · Click corners · Enter finish · Space flip · Esc cancel"),
++                        Tool::Move { disconnect: true, .. } => dim(pcbcraft_chrome::i18n::tr_label("Disconnect and move symbol · R rotate · Esc cancel")),
++                        Tool::Move { pickup: true, .. } => dim(pcbcraft_chrome::i18n::tr_label("Grab symbol · R rotate · Click to place · Esc cancel")),
++                        Tool::Move { .. } => dim(pcbcraft_chrome::i18n::tr_label("Move symbol · R rotate · Esc cancel")),
++                        Tool::MoveItems { pickup: true, disconnect: true, .. } => dim(pcbcraft_chrome::i18n::tr_label("Move selection · Click to place · Esc cancel")),
++                        Tool::MoveItems { pickup: true, .. } => dim(pcbcraft_chrome::i18n::tr_label("Grab selection · Click to place · Esc cancel")),
++                        Tool::MoveItems { .. } => dim(pcbcraft_chrome::i18n::tr_label("Grab selection · Esc to cancel")),
++                        Tool::Reshape { drag, .. } if drag.pickup => dim(pcbcraft_chrome::i18n::tr_label("Grab wire · Click to place · Esc cancel")),
++                        Tool::Reshape { .. } => dim(pcbcraft_chrome::i18n::tr_label("Reshape wire · Esc to cancel")),
++                        Tool::BoxSelect { .. } => dim(pcbcraft_chrome::i18n::tr_label("Select items · Esc to cancel")),
++                        Tool::Wire { start: None, .. } => dim(pcbcraft_chrome::i18n::tr_label("Wire · Click a start point")),
++                        Tool::Wire { start: Some(_), .. } => dim(pcbcraft_chrome::i18n::tr_label("Wire · Click corners · Enter finish · Space flip · Esc cancel")),
+                     });
+                 } else if self.views.active.schematic.selected_leg.is_some() {
+-                    ui.label(dim("Wire segment selected · Del delete"));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label("Wire segment selected · Del delete")));
+                 } else if self.views.active.schematic.selection.single_wire().is_some() {
+                     ui.label(dim(if self.views.active.schematic.whole_wire_drag {
+                         "Whole wire selected · Drag to move · Del delete"
+@@ -1621,7 +1621,7 @@ impl PcbApp {
+                         "Wire selected · Drag a segment, corner or free end to reshape · Del delete"
+                     }));
+                 } else if self.files.busy() {
+-                    ui.label(dim("File operation in progress"));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label("File operation in progress")));
+                 } else if let Some(notice) = &self.file_notice {
+                     ui.label(dim(notice.as_str()));
+                 }
+@@ -1652,11 +1652,11 @@ impl PcbApp {
+                 }
+                 if let Some(point) = pointer {
+                     let text = format!("X {}  Y {}", units::readout(point.x_nm, unit), units::readout(point.y_nm, unit));
+-                    ui.label(dim(text)).on_hover_text("Pointer position on the grid");
++                    ui.label(dim(text)).on_hover_text(pcbcraft_chrome::i18n::tr_label("Pointer position on the grid"));
+                 }
+                 #[cfg(not(target_arch = "wasm32"))]
+                 if self.live_control.is_some() && !self.embedded {
+-                    ui.label(dim("Local MCP enabled"));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label("Local MCP enabled")));
+                 }
+             },
+         );
+@@ -1833,7 +1833,7 @@ impl PcbApp {
+                     }
+                     let t = Tokens::get();
+                     ui.centered_and_justified(|ui| {
+-                        ui.label(RichText::new("No project open. Choose File, then New Project.").size(t.font_button).color(t.canvas_ink));
++                        ui.label(RichText::new(pcbcraft_chrome::i18n::tr_label("No project open. Choose File, then New Project.")).size(t.font_button).color(t.canvas_ink));
+                     });
+                     None
+                 })
+@@ -2610,8 +2610,8 @@ impl PcbApp {
+                 let mut close = false;
+                 let closing = shell::dialog(ctx, "about_dialog", "About PCBZ", |ui| {
+                     ui.label(format!("PCBZ {VERSION}"));
+-                    ui.label("Electronics design for people and AI agents working together on the same board.");
+-                    ui.label(dim("MIT OR Apache-2.0. Third-party notices are in ATTRIBUTION.md."));
++                    ui.label(pcbcraft_chrome::i18n::tr_label("Electronics design for people and AI agents working together on the same board."));
++                    ui.label(dim(pcbcraft_chrome::i18n::tr_label("MIT OR Apache-2.0. Third-party notices are in ATTRIBUTION.md.")));
+                     workspace::ribbon_licenses(ui);
+                     pcbcraft_chrome::fonts::licenses(ui);
+                     if !host_build() {
+@@ -2653,7 +2653,7 @@ impl PcbApp {
+         let mut close = false;
+         let dismissed = shell::dialog(ctx, "local_mcp", "Connect AI assistants", |ui| {
+             if let Some(control) = &self.live_control {
+-                ui.label("Clients with this configuration can inspect and edit this project and control its editor windows.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Clients with this configuration can inspect and edit this project and control its editor windows."));
+                 let disable = ui
+                     .horizontal(|ui| {
+                         if pcbcraft_chrome::controls::enabled_button(
+@@ -2675,7 +2675,7 @@ impl PcbApp {
+                     copied = false;
+                 }
+             } else {
+-                ui.label("Let a local MCP client inspect and edit this project and control its editor windows.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Let a local MCP client inspect and edit this project and control its editor windows."));
+                 if pcbcraft_chrome::controls::enabled_button(ui, pcbcraft_chrome::automation::human_input(ctx), "Enable local connection").clicked()
+                     && pcbcraft_chrome::automation::human_input(ctx)
+                 {
+diff --git a/crates/app/src/library_editors.rs b/crates/app/src/library_editors.rs
+index 68bd79d..318ab75 100644
+--- a/crates/app/src/library_editors.rs
++++ b/crates/app/src/library_editors.rs
+@@ -468,7 +468,7 @@ impl Document {
+                     .response
+                     .labelled_by(label.id);
+                 if pcbcraft_chrome::controls::enabled_button(ui, item.other_units.len() < 31, "Add unit")
+-                    .on_hover_text("Add schematic unit")
++                    .on_hover_text(pcbcraft_chrome::i18n::tr_label("Add schematic unit"))
+                     .clicked()
+                 {
+                     let id = (1..=32).map(|n| format!("unit-{n}")).find(|id| id != &item.unit && !item.other_units.contains_key(id));
+@@ -732,7 +732,7 @@ impl PcbApp {
+                     if pcbcraft_chrome::MenuItem::new(if IN_BROWSER { "Download Library Item…" } else { "Save Library Copy…" })
+                         .enabled(can_save)
+                         .show_response(ui)
+-                        .on_hover_text("Save an unfinished draft file; this does not publish it to the catalog.")
++                        .on_hover_text(pcbcraft_chrome::i18n::tr_label("Save an unfinished draft file; this does not publish it to the catalog."))
+                         .clicked()
+                     {
+                         intents.borrow_mut().push(Intent::Save(false));
+@@ -763,7 +763,7 @@ impl PcbApp {
+                     if pcbcraft_chrome::MenuItem::new("Save Library Copy…")
+                         .enabled(can_save)
+                         .show_response(ui)
+-                        .on_hover_text("Save an unfinished draft file; this does not publish it to the catalog.")
++                        .on_hover_text(pcbcraft_chrome::i18n::tr_label("Save an unfinished draft file; this does not publish it to the catalog."))
+                         .clicked()
+                     {
+                         intents.borrow_mut().push(Intent::Save(false));
+diff --git a/crates/app/src/library_editors/canvas.rs b/crates/app/src/library_editors/canvas.rs
+index af2cbdf..69f4b63 100644
+--- a/crates/app/src/library_editors/canvas.rs
++++ b/crates/app/src/library_editors/canvas.rs
+@@ -371,7 +371,7 @@ impl Document {
+                             }
+                         })
+                         .response
+-                        .accessible_name("Drawing layer");
++                        .accessible_name(pcbcraft_chrome::i18n::tr_label("Drawing layer"));
+                 } else {
+                     use pcbcraft_engine::library_graphics::Fill;
+                     pcbcraft_chrome::controls::Choice::from_id_salt("drawing_fill")
+@@ -386,12 +386,12 @@ impl Document {
+                             }
+                         })
+                         .response
+-                        .accessible_name("Drawing fill");
++                        .accessible_name(pcbcraft_chrome::i18n::tr_label("Drawing fill"));
+                 }
+                 let mut width = self.drawing_stroke_nm as f64 / 1_000_000.;
+                 if ui
+                     .add(egui::DragValue::new(&mut width).range(0.01..=2.).speed(0.01).suffix(" mm stroke"))
+-                    .accessible_name("Drawing stroke width")
++                    .accessible_name(pcbcraft_chrome::i18n::tr_label("Drawing stroke width"))
+                     .changed()
+                 {
+                     self.drawing_stroke_nm = (width * 1_000_000.).round() as i64;
+@@ -481,7 +481,7 @@ impl Document {
+                     }
+                 })
+                 .response
+-                .accessible_name("Library grid");
++                .accessible_name(pcbcraft_chrome::i18n::tr_label("Library grid"));
+         });
+     }
+     /// Move retains the captured selection and revision until a completed placement.
+diff --git a/crates/app/src/library_editors/courtyard.rs b/crates/app/src/library_editors/courtyard.rs
+index 4b5dc52..89ba833 100644
+--- a/crates/app/src/library_editors/courtyard.rs
++++ b/crates/app/src/library_editors/courtyard.rs
+@@ -293,7 +293,7 @@ impl Document {
+             };
+             ui.label(shell::dim(summary));
+         } else {
+-            ui.label(shell::dim("No courtyard outline"));
++            ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("No courtyard outline")));
+         }
+         ui.horizontal(|ui| {
+             if controls::enabled_button(ui, !self.pending(), "Generate courtyard…").clicked() {
+@@ -337,7 +337,7 @@ impl Document {
+         if let Some(m) = courtyard::metrics(points) {
+             ui.label(shell::dim(format!("{} × {} mm · {} vertices", format_mm(m.width_nm), format_mm(m.height_nm), m.vertex_count)));
+             if !m.is_simple {
+-                ui.label(shell::error("Outline intersects itself; move a vertex to fix."));
++                ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("Outline intersects itself; move a vertex to fix.")));
+             }
+         }
+         ui.add_space(Tokens::get().space_4);
+@@ -388,16 +388,16 @@ impl Document {
+                     enter_apply = true;
+                 }
+             } else {
+-                ui.label(shell::dim("Click a vertex handle or choose one above to edit coordinates."));
++                ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("Click a vertex handle or choose one above to edit coordinates.")));
+             }
+             let dirty = draft.dirty();
+             let mut apply_clicked = false;
+             ui.horizontal(|ui| {
+                 add_vertex = controls::enabled_button(ui, !dirty && selected_vertex.is_some() && count < courtyard::MAX_VERTICES, "Add vertex")
+-                    .on_hover_text("Insert a vertex at the midpoint of the next edge, on the nanometre grid")
++                    .on_hover_text(pcbcraft_chrome::i18n::tr_label("Insert a vertex at the midpoint of the next edge, on the nanometre grid"))
+                     .clicked();
+                 remove_vertex = controls::enabled_button(ui, !dirty && selected_vertex.is_some() && count > courtyard::MIN_VERTICES, "Remove vertex")
+-                    .on_hover_text("Remove the selected vertex (Backspace)")
++                    .on_hover_text(pcbcraft_chrome::i18n::tr_label("Remove the selected vertex (Backspace)"))
+                     .clicked();
+             });
+             ui.horizontal(|ui| {
+diff --git a/crates/app/src/library_editors/form.rs b/crates/app/src/library_editors/form.rs
+index b9bf44d..41aa272 100644
+--- a/crates/app/src/library_editors/form.rs
++++ b/crates/app/src/library_editors/form.rs
+@@ -59,7 +59,7 @@ impl Draft {
+             hidden.extend(["reference_prefix", "default_value", "footprint_reference"]);
+             let reference = &mut self.value["footprint_reference"];
+             let mut enabled = reference["enabled"].as_bool().unwrap_or_default();
+-            if ui.checkbox(&mut enabled, "Generate silkscreen reference").changed() {
++            if ui.checkbox(&mut enabled, pcbcraft_chrome::i18n::tr_label("Generate silkscreen reference")).changed() {
+                 reference["enabled"] = json!(enabled);
+             }
+             if enabled {
+diff --git a/crates/app/src/library_editors/publishing.rs b/crates/app/src/library_editors/publishing.rs
+index 653b9a5..3ab426b 100644
+--- a/crates/app/src/library_editors/publishing.rs
++++ b/crates/app/src/library_editors/publishing.rs
+@@ -344,7 +344,7 @@ impl PcbApp {
+                 if existing {
+                     if different {
+                         properties::field(ui, "Save as", |ui| {
+-                            ui.label("New item").on_hover_text("Creates a new item and continues editing that copy. The original remains unchanged.");
++                            ui.label(pcbcraft_chrome::i18n::tr_label("New item")).on_hover_text(pcbcraft_chrome::i18n::tr_label("Creates a new item and continues editing that copy. The original remains unchanged."));
+                         });
+                     } else {
+                         let mut mode = if draft.copy { "copy" } else { "revision" }.to_owned();
+@@ -355,7 +355,7 @@ impl PcbApp {
+                             &mut mode,
+                             &[("revision", "New revision".into()), ("copy", "New item".into())],
+                         )
+-                        .on_hover_text("New item creates an independent copy. New revision continues the existing item.");
++                        .on_hover_text(pcbcraft_chrome::i18n::tr_label("New item creates an independent copy. New revision continues the existing item."));
+                         if draft.copy != (mode == "copy") {
+                             draft.copy = mode == "copy";
+                             ctx.request_repaint();
+diff --git a/crates/app/src/library_editors/remap.rs b/crates/app/src/library_editors/remap.rs
+index 9f30b07..728df36 100644
+--- a/crates/app/src/library_editors/remap.rs
++++ b/crates/app/src/library_editors/remap.rs
+@@ -370,7 +370,7 @@ impl PcbApp {
+         let mut cancel = false;
+         let mut changed = false;
+         let dismissed = shell::scrolling_dialog_width(ctx, "library_pin_remap", "Remap symbol pins", 860.0, |ui| {
+-            ui.label("Renumber the library definition only. Placed copies, wires and native part maps stay unchanged.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("Renumber the library definition only. Placed copies, wires and native part maps stay unchanged."));
+             for row in &mut draft.rows {
+                 ui.push_id((&row.pin.unit, row.pin.object), |ui| {
+                     ui.label(format!("{} · {} · {}", row.pin.unit, row.before, row.name));
+@@ -379,8 +379,8 @@ impl PcbApp {
+             }
+             if !changed && let Some(review) = self.library_editors.pin_remap.as_ref().filter(|review| review.owns(&draft)) {
+                 ui.separator();
+-                ui.label("Before → after · current placed nets (not predicted reconnection)");
+-                ui.label("Pin names are unchanged by renumbering.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Before → after · current placed nets (not predicted reconnection)"));
++                ui.label(pcbcraft_chrome::i18n::tr_label("Pin names are unchanged by renumbering."));
+                 let instances = review.report["instances"].as_array().map(Vec::as_slice).unwrap_or_default();
+                 if instances.is_empty() {
+                     ui.label(if review.project.is_some() {
+diff --git a/crates/app/src/library_preview.rs b/crates/app/src/library_preview.rs
+index 3535070..f0dba1d 100644
+--- a/crates/app/src/library_preview.rs
++++ b/crates/app/src/library_preview.rs
+@@ -70,17 +70,17 @@ impl Camera {
+ /// A large read-only preview supports fit, pointer-centred zoom and dragging to pan.
+ pub(super) fn interactive_footprint(ui: &mut egui::Ui, definition: &FootprintDefinition, camera: &mut Camera) {
+     ui.horizontal(|ui| {
+-        ui.label(egui::RichText::new("2D preview").strong());
++        ui.label(egui::RichText::new(pcbcraft_chrome::i18n::tr_label("2D preview")).strong());
+         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+-            if pcbcraft_chrome::controls::button(ui, "Fit").on_hover_text("Fit footprint preview").clicked() {
++            if pcbcraft_chrome::controls::button(ui, "Fit").on_hover_text(pcbcraft_chrome::i18n::tr_label("Fit footprint preview")).clicked() {
+                 *camera = Camera::default();
+             }
+-            let zoom_in = pcbcraft_chrome::controls::button(ui, "+").on_hover_text("Zoom footprint preview in");
++            let zoom_in = pcbcraft_chrome::controls::button(ui, "+").on_hover_text(pcbcraft_chrome::i18n::tr_label("Zoom footprint preview in"));
+             zoom_in.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, "Zoom footprint preview in"));
+             if zoom_in.clicked() {
+                 camera.zoom = (camera.zoom * 1.25).min(16.);
+             }
+-            let zoom_out = pcbcraft_chrome::controls::button(ui, "−").on_hover_text("Zoom footprint preview out");
++            let zoom_out = pcbcraft_chrome::controls::button(ui, "−").on_hover_text(pcbcraft_chrome::i18n::tr_label("Zoom footprint preview out"));
+             zoom_out.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, "Zoom footprint preview out"));
+             if zoom_out.clicked() {
+                 camera.zoom = (camera.zoom / 1.25).max(0.25);
+diff --git a/crates/app/src/library_workspace.rs b/crates/app/src/library_workspace.rs
+index 809a593..dd01c98 100644
+--- a/crates/app/src/library_workspace.rs
++++ b/crates/app/src/library_workspace.rs
+@@ -800,7 +800,7 @@ impl PcbApp {
+             return;
+         }
+         let Some(source) = state.source.as_deref() else {
+-            ui.label("No libraries");
++            ui.label(pcbcraft_chrome::i18n::tr_label("No libraries"));
+             return;
+         };
+         let data = loaded.as_array().into_iter().flatten().find(|s| s["source"] == source);
+@@ -967,7 +967,7 @@ impl PcbApp {
+             self.session.libraries().source_items(state.source.as_deref().unwrap_or("")).iter().collect()
+         };
+         let Some(item) = state.selected.as_ref().and_then(|key| all.iter().find(|i| i.key == *key)) else {
+-            ui.label("Select an item");
++            ui.label(pcbcraft_chrome::i18n::tr_label("Select an item"));
+             return;
+         };
+         egui::ScrollArea::vertical().id_salt("library_preview_content").auto_shrink([false, false]).show(ui, |ui| {
+@@ -984,7 +984,7 @@ impl PcbApp {
+                     .unwrap_or_default();
+                 chrome::detail(ui, "Used by", &usage);
+             } else if self.session.libraries().conflicting(&item.key) {
+-                ui.label(egui::RichText::new("Quarantined: conflicting content at this revision").color(pcbcraft_chrome::Tokens::get().error));
++                ui.label(egui::RichText::new(pcbcraft_chrome::i18n::tr_label("Quarantined: conflicting content at this revision")).color(pcbcraft_chrome::Tokens::get().error));
+             }
+             self.where_used_preview(ui, state, &item.key);
+             if let Some(symbol) = item.symbol() {
+@@ -1120,7 +1120,7 @@ impl PcbApp {
+         }
+         chrome::section(ui, "Packages");
+         if part.packages.is_empty() {
+-            ui.label("No packages");
++            ui.label(pcbcraft_chrome::i18n::tr_label("No packages"));
+         }
+         for package in part.packages.values() {
+             references.push(package.footprint.clone());
+diff --git a/crates/app/src/library_workspace/project.rs b/crates/app/src/library_workspace/project.rs
+index 02fe2ed..8ba1102 100644
+--- a/crates/app/src/library_workspace/project.rs
++++ b/crates/app/src/library_workspace/project.rs
+@@ -55,7 +55,7 @@ impl PcbApp {
+         chrome::detail(ui, "Newest loaded revision", latest);
+         let count = report.instances.len();
+         if count == 0 {
+-            ui.label("No instances use this revision");
++            ui.label(pcbcraft_chrome::i18n::tr_label("No instances use this revision"));
+         } else {
+             ui.label(format!("Instances: {count}"));
+             let height = ui.text_style_height(&egui::TextStyle::Body);
+@@ -252,7 +252,7 @@ impl PcbApp {
+         }
+         let (Some(project), Ok(inventory)) = (project, inventory) else {
+             ui.label(
+-                egui::RichText::new(if project.is_none() { "No project open" } else { "Project inventory unavailable" })
++                egui::RichText::new(if project.is_none() { pcbcraft_chrome::i18n::tr_label("No project open") } else { pcbcraft_chrome::i18n::tr_label("Project inventory unavailable") })
+                     .small()
+                     .color(pcbcraft_chrome::Tokens::get().text_dim),
+             );
+diff --git a/crates/app/src/manufacturing/pane.rs b/crates/app/src/manufacturing/pane.rs
+index 92abaf3..4643698 100644
+--- a/crates/app/src/manufacturing/pane.rs
++++ b/crates/app/src/manufacturing/pane.rs
+@@ -41,9 +41,9 @@ impl PcbApp {
+                     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                         ui.add(egui::Label::new(RichText::new(&opened.name).strong()).truncate()).on_hover_text(&opened.name);
+                         ui.label(format!("PCBZ {} · SHA-256 verified", opened.package.generator_version));
+-                        ui.label("Source revision unavailable");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("Source revision unavailable"));
+                         if reading {
+-                            ui.label("Opening fabrication ZIP…");
++                            ui.label(pcbcraft_chrome::i18n::tr_label("Opening fabrication ZIP…"));
+                         }
+                         if let Some(error) = &state.failure {
+                             ui.add(egui::Label::new(RichText::new(error).color(tokens.error)).wrap());
+@@ -51,7 +51,7 @@ impl PcbApp {
+                         ui.separator();
+                         ui.label(RichText::new("Preflight").strong());
+                         if opened.package.findings.is_empty() {
+-                            ui.label("Required files present. No open outline ends detected.");
++                            ui.label(pcbcraft_chrome::i18n::tr_label("Required files present. No open outline ends detected."));
+                         }
+                         for finding in &opened.package.findings {
+                             if let Finding::OpenOutline { endpoints, first } = finding {
+@@ -74,7 +74,7 @@ impl PcbApp {
+                                 });
+                                 if layer.role.is_drill() {
+                                     if layer.tools.is_empty() {
+-                                        ui.label("No drill hits");
++                                        ui.label(pcbcraft_chrome::i18n::tr_label("No drill hits"));
+                                     }
+                                     for tool in &layer.tools {
+                                         ui.label(format!("T{} · {:.3} mm · {} hits", tool.number, tool.diameter_nm as f64 / 1_000_000.0, tool.hits));
+diff --git a/crates/app/src/native_part_properties.rs b/crates/app/src/native_part_properties.rs
+index 51bc264..3129ce1 100644
+--- a/crates/app/src/native_part_properties.rs
++++ b/crates/app/src/native_part_properties.rs
+@@ -162,7 +162,7 @@ impl PcbApp {
+                     });
+                 }
+                 if edit.candidate().is_ok_and(|candidate| candidate.compatibility()["status"] == "does_not_meet_requirements") {
+-                    ui.label(shell::error("The selected manufacturer part does not meet the current requirements."));
++                    ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("The selected manufacturer part does not meet the current requirements.")));
+                 }
+             }
+             if let Some(error) = &edit.error {
+diff --git a/crates/app/src/native_sources/items.rs b/crates/app/src/native_sources/items.rs
+index 1484668..31f4377 100644
+--- a/crates/app/src/native_sources/items.rs
++++ b/crates/app/src/native_sources/items.rs
+@@ -136,7 +136,7 @@ impl PcbApp {
+                     "Move “{}” to system trash? This removes {count} published {revisions} from this library folder.",
+                     draft.plan.removal().name
+                 ));
+-                ui.label("Existing projects keep their pinned copies. Symbols, footprints and categories are kept.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Existing projects keep their pinned copies. Symbols, footprints and categories are kept."));
+                 pcbcraft_chrome::controls::collapsing(ui, "delete_part_details", "Details", false, None, |ui| {
+                     ui.label(&draft.path);
+                     ui.label(format!("{}/{}", draft.plan.removal().library, draft.plan.removal().id));
+diff --git a/crates/app/src/net_appearance.rs b/crates/app/src/net_appearance.rs
+index 80c7acb..ab95fae 100644
+--- a/crates/app/src/net_appearance.rs
++++ b/crates/app/src/net_appearance.rs
+@@ -81,7 +81,7 @@ impl Edit {
+     /// Draw the appearance fields alongside the other wire properties.
+     fn show(&mut self, ui: &mut egui::Ui) -> Option<Value> {
+         ui.separator();
+-        ui.label("Net appearance");
++        ui.label(pcbcraft_chrome::i18n::tr_label("Net appearance"));
+         ui.horizontal(|ui| {
+             controls::checkbox(ui, &mut self.use_color, "Set wire color");
+             ui.add_enabled_ui(self.use_color, |ui| settings::color(ui, "Wire color", &mut self.color));
+@@ -118,7 +118,7 @@ fn width_field(ui: &mut egui::Ui, width_cp: &mut u16) {
+                 .max_decimals(2)
+                 .suffix("%"),
+         )
+-        .on_hover_text("100% is the default wire width");
++        .on_hover_text(pcbcraft_chrome::i18n::tr_label("100% is the default wire width"));
+     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::SpinButton, ui.is_enabled(), "Wire stroke width"));
+     if response.changed() {
+         *width_cp = (percent / percent_per_cp).round() as u16;
+diff --git a/crates/app/src/net_class_editor.rs b/crates/app/src/net_class_editor.rs
+index 7cabad0..1d2f182 100644
+--- a/crates/app/src/net_class_editor.rs
++++ b/crates/app/src/net_class_editor.rs
+@@ -251,8 +251,8 @@ impl Edit {
+ /// Render authored and inherited values in the same aligned form cells. Disabled fields retain
+ /// their source value and exact edit text, and the host owns each sparse opinion's checkbox.
+ fn class_fields(ui: &mut egui::Ui, draft: &mut ClassDraft) {
+-    ui.label("Class name");
+-    controls::text(ui, &mut draft.name).accessible_name("Class name");
++    ui.label(pcbcraft_chrome::i18n::tr_label("Class name"));
++    controls::text(ui, &mut draft.name).accessible_name(pcbcraft_chrome::i18n::tr_label("Class name"));
+     for preferred in [false, true] {
+         {
+             let mut fields: Vec<_> = draft.fields.iter_mut().filter(|field| field.property.is_preference() == preferred).collect();
+@@ -351,7 +351,7 @@ fn status_label(status: ContributionStatus) -> &'static str {
+ /// the table while keeping technical source identities and assignment origins in a disclosure.
+ fn resolution(ui: &mut egui::Ui, project: &Project, result: &Resolution, unit: units::Unit, bindings: &[ClassBinding], preview: bool) {
+     if preview {
+-        ui.label(shell::dim("Unsaved assignment preview"));
++        ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("Unsaved assignment preview")));
+     }
+     if !result.conflicts.is_empty() {
+         form::conflict(ui, |ui| {
+@@ -490,7 +490,7 @@ impl Edit {
+             properties::tabs(ui, &mut edit.page, &[(Page::Classes, "Class definitions"), (Page::Net, "Effective net rules")])
+         });
+         if !current {
+-            ui.label(shell::error("The project or view changed. Close and reopen Rules to continue."));
++            ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("The project or view changed. Close and reopen Rules to continue.")));
+         }
+         match edit.page {
+             Page::Classes => {
+@@ -555,7 +555,7 @@ impl Edit {
+                 if edit.target.is_some() {
+                     form::section(ui, "Assigned classes", |ui| {
+                         if edit.project.net_classes().definitions.is_empty() {
+-                            ui.label(shell::dim("No class definitions"));
++                            ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("No class definitions")));
+                         }
+                         for class in &edit.project.net_classes().definitions {
+                             let mut selected = edit.classes.contains(&class.id);
+@@ -581,7 +581,7 @@ impl Edit {
+                         }
+                     }
+                 } else if edit.selection_error.is_none() {
+-                    ui.label(shell::dim("No supported net selected"));
++                    ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("No supported net selected")));
+                 }
+             }
+         }
+diff --git a/crates/app/src/net_inspector.rs b/crates/app/src/net_inspector.rs
+index 87057a3..501fa25 100644
+--- a/crates/app/src/net_inspector.rs
++++ b/crates/app/src/net_inspector.rs
+@@ -97,13 +97,13 @@ impl NetInspector {
+                     "Search nets or pins",
+                 );
+                 let Some(snapshot) = &self.snapshot else {
+-                    ui.label(shell::dim("No project open"));
++                    ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("No project open")));
+                     return;
+                 };
+                 let query = self.query.trim().to_lowercase();
+                 pcbcraft_chrome::library_sources::heading(ui, "Connected nets", snapshot.nets.len());
+                 if snapshot.nets.is_empty() {
+-                    ui.label(shell::dim("No connected nets"));
++                    ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("No connected nets")));
+                 }
+                 for (index, net) in snapshot.nets.iter().enumerate().filter(|(_, net)| {
+                     query.is_empty() || net.name.to_lowercase().contains(&query) || net.pins.iter().any(|pin| pin.to_lowercase().contains(&query))
+@@ -125,7 +125,7 @@ impl NetInspector {
+                 }
+                 properties::section(ui, "Unconnected pins");
+                 if snapshot.unconnected.is_empty() {
+-                    ui.label(shell::dim("No unconnected pins"));
++                    ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("No unconnected pins")));
+                 }
+                 for pin in snapshot.unconnected.iter().filter(|pin| query.is_empty() || pin.to_lowercase().contains(&query)) {
+                     row(ui, ("unconnected", pin), pin, 0, None, "");
+diff --git a/crates/app/src/no_connect.rs b/crates/app/src/no_connect.rs
+index d828e54..feaeeeb 100644
+--- a/crates/app/src/no_connect.rs
++++ b/crates/app/src/no_connect.rs
+@@ -302,7 +302,7 @@ impl PcbApp {
+         let closing = shell::dialog_width(ctx, "no_connect_check", "No-connect check", 540., |ui| {
+             ui.label(format!("No-connect markers: {} · Findings: {}", report.total_markers, report.total_findings));
+             if !current {
+-                ui.label(shell::error("The project changed. Reopen the check to inspect current targets."));
++                ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("The project changed. Reopen the check to inspect current targets.")));
+             }
+             if report.truncated {
+                 ui.label(format!(
+diff --git a/crates/app/src/part_documents.rs b/crates/app/src/part_documents.rs
+index 0df3a90..5a0c684 100644
+--- a/crates/app/src/part_documents.rs
++++ b/crates/app/src/part_documents.rs
+@@ -352,7 +352,7 @@ impl PcbApp {
+             .map(|part| part.name.clone())
+             .collect();
+         ui.horizontal_wrapped(|ui| {
+-            ui.label(format!("Used by: {}", if used.is_empty() { "No loaded parts".into() } else { used.join(", ") }));
++            ui.label(format!("Used by: {}", if used.is_empty() { pcbcraft_chrome::i18n::tr_label("No loaded parts").into() } else { used.join(", ") }));
+             if kind == Kind::Symbol && controls::button(ui, "Create part from this symbol").clicked() {
+                 self.message = self.new_part_document(ui.ctx(), Some(address.clone())).map(|_| ()).err();
+             }
+diff --git a/crates/app/src/part_documents/form.rs b/crates/app/src/part_documents/form.rs
+index 169349b..712744f 100644
+--- a/crates/app/src/part_documents/form.rs
++++ b/crates/app/src/part_documents/form.rs
+@@ -483,7 +483,7 @@ fn metadata_fields(
+                 egui::TextEdit::multiline(&mut keywords)
+                     .margin(egui::Margin::symmetric(t.space_8 as i8, t.space_4 as i8))
+                     .min_size(egui::vec2(ui.available_width(), t.control_height * 3.0))
+-                    .hint_text("One keyword per line"),
++                    .hint_text(pcbcraft_chrome::i18n::tr_label("One keyword per line")),
+             )
+             .labelled_by(label.id)
+         })
+@@ -608,7 +608,7 @@ fn supply_ranges(
+         }
+     }
+     if !unavailable.is_empty() {
+-        ui.label("The exact power input is unavailable. Restore it to apply these edits, or discard the unapplied text.");
++        ui.label(pcbcraft_chrome::i18n::tr_label("The exact power input is unavailable. Restore it to apply these edits, or discard the unapplied text."));
+         if controls::button(ui, "Discard unavailable supply edits").clicked() {
+             for key in unavailable {
+                 pending.remove(&key);
+@@ -620,7 +620,7 @@ fn supply_ranges(
+         return;
+     }
+     controls::collapsing(ui, "supply_ranges", "Device supply ranges", false, None, |ui| {
+-        ui.label("Enter volts or SI-prefixed voltages. Leave either bound blank when unknown.");
++        ui.label(pcbcraft_chrome::i18n::tr_label("Enter volts or SI-prefixed voltages. Leave either bound blank when unknown."));
+         for pin in pins.iter().filter(|pin| pin.electrical_type == PowerIn) {
+             let id = &pin.number;
+             ui.push_id(id, |ui| {
+@@ -806,7 +806,7 @@ fn package_form(ui: &mut egui::Ui, part: &mut PartDefinition, doc: &mut Document
+     pcbcraft_chrome::part_form::mapping(ui, &pads, &mut doc.selected_pad, |ui, pad| {
+         if removed.contains(pad) {
+             ui.horizontal(|ui| {
+-                ui.label("Removed pad");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Removed pad"));
+                 let response = controls::button(ui, "Remove assignment");
+                 response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), format!("Remove assignment for pad {pad}")));
+                 if response.clicked() {
+diff --git a/crates/app/src/part_documents/picker.rs b/crates/app/src/part_documents/picker.rs
+index a27c14c..2d2ae21 100644
+--- a/crates/app/src/part_documents/picker.rs
++++ b/crates/app/src/part_documents/picker.rs
+@@ -259,7 +259,7 @@ impl PcbApp {
+             ui.horizontal(|ui| {
+                 let start = (state.page * PAGE_SIZE).min(state.rows.len());
+                 let end = (start + PAGE_SIZE).min(state.rows.len());
+-                ui.label(if state.rows.is_empty() { "0 items".into() } else { format!("{}–{} of {}", start + 1, end, state.rows.len()) });
++                ui.label(if state.rows.is_empty() { pcbcraft_chrome::i18n::tr_label("0 items").into() } else { format!("{}–{} of {}", start + 1, end, state.rows.len()) });
+                 if controls::enabled_button(ui, state.page > 0, "Previous page").clicked() {
+                     state.page = state.page.saturating_sub(1);
+                 }
+@@ -330,7 +330,7 @@ fn result_items(ui: &mut egui::Ui, state: &mut State) {
+ /// Native previews inspect one exact candidate; metadata and missing dependencies stay explicit.
+ fn preview_item(ui: &mut egui::Ui, state: &mut State, catalog: &Catalog) {
+     let Some(key) = &state.selected else {
+-        ui.label("No selection");
++        ui.label(pcbcraft_chrome::i18n::tr_label("No selection"));
+         return;
+     };
+     let item = match catalog.item(key) {
+diff --git a/crates/app/src/part_documents/publishing.rs b/crates/app/src/part_documents/publishing.rs
+index a804e15..4d64730 100644
+--- a/crates/app/src/part_documents/publishing.rs
++++ b/crates/app/src/part_documents/publishing.rs
+@@ -85,7 +85,7 @@ impl PcbApp {
+             |ui| {
+                 let before = draft.source.clone();
+                 if destinations.is_empty() {
+-                    ui.label("Create a library folder to store this part.");
++                    ui.label(pcbcraft_chrome::i18n::tr_label("Create a library folder to store this part."));
+                     create = ui.add(pcbcraft_chrome::controls::action("New library…", true)).clicked();
+                 } else {
+                     create = properties::choice_with_action(
+diff --git a/crates/app/src/parts_browser.rs b/crates/app/src/parts_browser.rs
+index 074eb46..3fa0657 100644
+--- a/crates/app/src/parts_browser.rs
++++ b/crates/app/src/parts_browser.rs
+@@ -708,7 +708,7 @@ fn existing_units(ui: &mut Ui, project: Option<&pcbcraft_engine::Project>) -> Op
+         return None;
+     }
+     let mut picked = None;
+-    ui.menu_button("Existing part units", |ui| {
++    ui.menu_button(pcbcraft_chrome::i18n::tr_label("Existing part units"), |ui| {
+         for (part, unit) in &available {
+             if ui.button(format!("{} {} · {}", part.reference(), unit.unit_id().to_uppercase(), part.definition.name)).clicked() {
+                 picked = Some(Pick::Unit {
+diff --git a/crates/app/src/parts_browser/native_parts.rs b/crates/app/src/parts_browser/native_parts.rs
+index f2c4b90..fc8883e 100644
+--- a/crates/app/src/parts_browser/native_parts.rs
++++ b/crates/app/src/parts_browser/native_parts.rs
+@@ -155,7 +155,7 @@ impl PartsBrowser {
+             Ok(Some(selection)) => {
+                 let compatibility = selection.compatibility();
+                 if compatibility["status"] == "does_not_meet_requirements" {
+-                    ui.label(pcbcraft_chrome::shell::error("Manufacturer specifications do not meet the selected requirements."));
++                    ui.label(pcbcraft_chrome::shell::error(pcbcraft_chrome::i18n::tr_label("Manufacturer specifications do not meet the selected requirements.")));
+                 }
+                 if let Some(manufacturer) = &selection.manufacturer {
+                     for (id, value) in &manufacturer.specifications {
+diff --git a/crates/app/src/preferences.rs b/crates/app/src/preferences.rs
+index b8513fd..71b9571 100644
+--- a/crates/app/src/preferences.rs
++++ b/crates/app/src/preferences.rs
+@@ -707,7 +707,7 @@ fn appearance(ui: &mut Ui, data: &mut PageData<'_>) {
+ fn interface_scale(ui: &mut Ui, scale: &mut u16, pending: &mut Option<u16>) {
+     let mut value = pending.take().unwrap_or(*scale);
+     let slider = egui::Slider::new(&mut value, SCALE_RANGE).step_by(5.0).suffix("%").update_while_editing(false);
+-    let response = ui.add(slider).accessible_name("Interface scale");
++    let response = ui.add(slider).accessible_name(pcbcraft_chrome::i18n::tr_label("Interface scale"));
+     if !ui.input(|input| input.focused) {
+         return;
+     }
+@@ -733,7 +733,7 @@ fn navigation(ui: &mut Ui, data: &mut PageData<'_>) {
+             settings::segmented(ui, &mut navigation.reverse_zoom, &[(false, "Normal"), (true, "Reversed")]);
+         });
+         settings::row(ui, "Zoom speed", |ui| {
+-            ui.add(egui::Slider::new(&mut navigation.zoom_speed_percent, ZOOM_SPEED_RANGE).step_by(10.0).suffix("%")).accessible_name("Zoom speed");
++            ui.add(egui::Slider::new(&mut navigation.zoom_speed_percent, ZOOM_SPEED_RANGE).step_by(10.0).suffix("%")).accessible_name(pcbcraft_chrome::i18n::tr_label("Zoom speed"));
+         });
+     });
+     settings::section(ui, "Zoom", |ui| {
+@@ -793,7 +793,7 @@ fn views(ui: &mut Ui, data: &mut PageData<'_>) {
+ fn ai_page(ui: &mut Ui, data: &mut PageData<'_>) {
+     if settings::is_searching(ui) {
+         settings::row_with_keywords(ui, "AI settings", &["assistant", "agent", "model", "AI features"], |ui| {
+-            ui.label(egui::RichText::new("Press Enter to open").size(pcbcraft_chrome::Tokens::get().font_small));
++            ui.label(egui::RichText::new(pcbcraft_chrome::i18n::tr_label("Press Enter to open")).size(pcbcraft_chrome::Tokens::get().font_small));
+         });
+         return;
+     }
+diff --git a/crates/app/src/properties.rs b/crates/app/src/properties.rs
+index edac48a..118f01c 100644
+--- a/crates/app/src/properties.rs
++++ b/crates/app/src/properties.rs
+@@ -112,7 +112,7 @@ impl Edit {
+     /// Record intent for a future annotator without disabling deliberate reference edits.
+     fn designator_lock(&mut self, ui: &mut Ui) {
+         pcbcraft_chrome::controls::checkbox(ui, &mut self.designator_locked, "Lock designator")
+-            .on_hover_text("Record a lock for future automatic annotation. Manual reference edits remain available.");
++            .on_hover_text(pcbcraft_chrome::i18n::tr_label("Record a lock for future automatic annotation. Manual reference edits remain available."));
+     }
+ 
+     /// Both forms edit the same placement draft. Enter in a coordinate field requests Apply.
+@@ -236,7 +236,7 @@ impl PcbApp {
+                         ui.label(format!("{} pins selected", inspection_labels.len()));
+                     }
+                     if inspection_labels.is_empty() || count > inspection_labels.len() {
+-                        ui.label(if count == 0 { "Nothing selected".to_owned() } else { format!("{count} items selected") });
++                        ui.label(if count == 0 { pcbcraft_chrome::i18n::tr_label("Nothing selected").to_owned() } else { format!("{count} items selected") });
+                     }
+                     if nets_selected {
+                         let rules_label = if bulk { "Manage net classes…" } else { "Net rules…" };
+@@ -320,7 +320,7 @@ impl PcbApp {
+                 apply |= edit.fields(ui);
+                 chrome::field(ui, "Footprint", |ui| {
+                     choose = pcbcraft_chrome::controls::bounded_button(ui, "choose_footprint", &footprint, ui.available_width(), can_choose)
+-                        .on_hover_text("Choose footprint")
++                        .on_hover_text(pcbcraft_chrome::i18n::tr_label("Choose footprint"))
+                         .clicked();
+                 });
+                 if native_part
+@@ -336,7 +336,7 @@ impl PcbApp {
+                         });
+                     }
+                     if part.compatibility()["status"] == "does_not_meet_requirements" {
+-                        ui.label(shell::error("Manufacturer part needs review"));
++                        ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("Manufacturer part needs review")));
+                     }
+                 }
+                 if let Some(error) = &edit.error {
+@@ -471,7 +471,7 @@ impl PcbApp {
+                 }
+                 Tab::Terminals => {
+                     if !can_choose {
+-                        ui.label(shell::dim("Apply or cancel pending placement and field changes before selecting a pin function."));
++                        ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("Apply or cancel pending placement and field changes before selecting a pin function.")));
+                     }
+                     if let Some(project) = project.as_deref()
+                         && let Some(part) = pin_function_owner(project, &edit.symbol)
+diff --git a/crates/app/src/properties/fields.rs b/crates/app/src/properties/fields.rs
+index f5a0e5f..17870c7 100644
+--- a/crates/app/src/properties/fields.rs
++++ b/crates/app/src/properties/fields.rs
+@@ -77,7 +77,7 @@ impl Appearance {
+                     }
+                 })
+                 .response
+-                .accessible_name("Field rotation");
++                .accessible_name(pcbcraft_chrome::i18n::tr_label("Field rotation"));
+         });
+         chrome::field(ui, "Align", |ui| {
+             pcbcraft_chrome::controls::Choice::from_id_salt("text_align")
+@@ -92,7 +92,7 @@ impl Appearance {
+                     ui.selectable_value(&mut self.layout.align, TextAlign::End, "Right");
+                 })
+                 .response
+-                .accessible_name("Field text alignment");
++                .accessible_name(pcbcraft_chrome::i18n::tr_label("Field text alignment"));
+         });
+         pcbcraft_chrome::controls::button(ui, "Reset appearance").clicked()
+     }
+@@ -221,7 +221,7 @@ impl Edit {
+                     }
+                 })
+                 .response
+-                .accessible_name("Field appearance target");
++                .accessible_name(pcbcraft_chrome::i18n::tr_label("Field appearance target"));
+         });
+         let Some(draft) = self.appearance.get_mut(&self.appearance_field) else { return };
+         ui.push_id(&self.appearance_field, |ui| {
+@@ -244,7 +244,7 @@ impl Edit {
+         pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_board, "Exclude from board");
+         pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_simulation, "Exclude from simulation");
+         pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_position_files, "Exclude from pick-and-place files")
+-            .on_hover_text("Omit from assembly position exports. PCBZ stores this setting; export generation is not implemented yet.");
++            .on_hover_text(pcbcraft_chrome::i18n::tr_label("Omit from assembly position exports. PCBZ stores this setting; export generation is not implemented yet."));
+     }
+ }
+ 
+diff --git a/crates/app/src/schematic_canvas/overlaps.rs b/crates/app/src/schematic_canvas/overlaps.rs
+index b53909c..f016178 100644
+--- a/crates/app/src/schematic_canvas/overlaps.rs
++++ b/crates/app/src/schematic_canvas/overlaps.rs
+@@ -181,7 +181,7 @@ impl Index {
+                     names.push(format!("and {} more", group.len() - names.len()));
+                 }
+                 ui.label(format!("{} overlapping symbols: {}.", group.len(), names.join(", ")));
+-                ui.label("Finish placement, then right-click → Select symbol.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Finish placement, then right-click → Select symbol."));
+             });
+         }
+     }
+diff --git a/crates/app/src/sheet_editing.rs b/crates/app/src/sheet_editing.rs
+index dcf92f4..f878987 100644
+--- a/crates/app/src/sheet_editing.rs
++++ b/crates/app/src/sheet_editing.rs
+@@ -56,7 +56,7 @@ impl PcbApp {
+         let closing = shell::dialog(ctx, "sheet_dialog", title, |ui| {
+             if deletion {
+                 ui.label(format!("Delete sheet “{}”?", edit.text));
+-                ui.label("Its symbols, wires, associated board footprints and connections to parent pins will be removed. Child sheets become top-level sheets. Undo restores them.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Its symbols, wires, associated board footprints and connections to parent pins will be removed. Child sheets become top-level sheets. Undo restores them."));
+             } else {
+                 let label = ui.label("Name");
+                 let field = ui.add(egui::TextEdit::singleline(&mut edit.text).desired_width(f32::INFINITY)).labelled_by(label.id);
+diff --git a/crates/app/src/tests/split_editors.rs b/crates/app/src/tests/split_editors.rs
+index 512abda..496b5f2 100644
+--- a/crates/app/src/tests/split_editors.rs
++++ b/crates/app/src/tests/split_editors.rs
+@@ -439,7 +439,7 @@ fn an_overlay_does_not_activate_the_pane_under_its_text_field() {
+             app.frame(ui);
+             if app.views.is_split() {
+                 egui::Window::new("Overlay").fixed_pos(egui::pos2(950.0, 380.0)).show(ui.ctx(), |ui| {
+-                    let label = ui.label("Overlay input");
++                    let label = ui.label(pcbcraft_chrome::i18n::tr_label("Overlay input"));
+                     ui.text_edit_singleline(&mut text).labelled_by(label.id);
+                 });
+             }
+diff --git a/crates/app/src/ui_automation/tests.rs b/crates/app/src/ui_automation/tests.rs
+index f65abc2..cbc39df 100644
+--- a/crates/app/src/ui_automation/tests.rs
++++ b/crates/app/src/ui_automation/tests.rs
+@@ -725,7 +725,7 @@ fn an_overlay_cancels_a_coordinate_press_only_if_it_covers_the_target() {
+                     .order(egui::Order::Foreground)
+                     .fixed_pos(at - egui::vec2(50.0, 12.0))
+                     .show(ui.ctx(), |ui| {
+-                        if ui.add_sized([100.0, 24.0], egui::Button::new("Overlay action")).clicked() {
++                        if ui.add_sized([100.0, 24.0], egui::Button::new(pcbcraft_chrome::i18n::tr_label("Overlay action"))).clicked() {
+                             button_activated.set(true);
+                         }
+                     });
+diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
+index 7bf9da1..e46d255 100644
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -3,6 +3,7 @@
+  "0 items": "0 项",
+  "1 footprint ready to place": "1 个封装待放置",
+  "100% is the default wire width": "100% 是默认走线宽度",
++ "20 mil or 0.5 mm": "20 mil 或 0.5 mm",
+  "2D preview": "2D 预览",
+  "3D model": "3D 模型",
+  "A program that speaks the Agent Client Protocol, with its arguments. It runs without a shell.": "一个支持 Agent Client Protocol 的程序及其参数。运行时不需要 shell。",
+@@ -36,6 +37,7 @@
+  "Add vertex": "添加顶点",
+  "Adjust dielectric thickness": "调整介质厚度",
+  "Advanced": "高级",
++ "Agent permission mode": "智能体权限模式",
+  "All libraries": "全部库",
+  "All vertices": "全部顶点",
+  "Allow this command for this agent from now on": "以后允许该智能体执行此命令",
+@@ -50,8 +52,12 @@
+  "Apply value": "应用值",
+  "Applying setup resolves existing surface-mount pads to front copper and through-hole pads across the stack. Placements and package assignments are retained.": "应用设置后，现有表贴焊盘将归入顶层铜，通孔焊盘贯穿整个叠层。放置和封装分配保持不变。",
+  "Approve agents' requests to use PCBCraft's tools automatically": "自动批准智能体使用 PCBZ 工具的请求",
++ "Approve agents' requests to use PCBZ's tools automatically": "自动批准智能体使用 PCBZ 工具的请求",
+  "Arrangement name": "布局名称",
++ "Ask about the document or request a change…": "询问文档内容或请求更改…",
+  "Assign class": "分配类",
++ "Assistant model": "助手模型",
++ "Assistant permission mode": "助手权限模式",
+  "Auto-heal wires": "自动修复走线",
+  "Back to the original order": "恢复原始顺序",
+  "Back to {OPACITY_DEFAULT}%": "恢复为 {OPACITY_DEFAULT}%",
+@@ -63,7 +69,9 @@
+  "Board materials": "板材料",
+  "Bottom view": "底视图",
+  "Break": "断开",
++ "Browse library": "浏览库",
+  "Browser": "浏览器",
++ "Browser tree actions": "浏览器树操作",
+  "Built-in libraries": "内置库",
+  "Cancel": "取消",
+  "Cancel check": "取消检查",
+@@ -131,12 +139,17 @@
+  "Discard library edits": "放弃库编辑",
+  "Discard material edits": "放弃材料编辑",
+  "Discard unavailable supply edits": "放弃不可用的供应编辑",
++ "Disconnect and move symbol · R rotate · Esc cancel": "断开并移动符号 · R 旋转 · Esc 取消",
+  "Dismiss updates": "忽略更新",
++ "Dock Parts Catalog": "停靠元件目录",
+  "Dock in main window": "停靠到主窗口",
+  "Download Library Item": "下载库条目",
+  "Download Library Item…": "下载库条目…",
+  "Download Project…": "下载工程…",
+  "Drag to float. Release at the left or right edge to dock.": "拖动可浮动。在左边缘或右边缘松开可停靠。",
++ "Drawing fill": "绘图填充",
++ "Drawing layer": "绘图层",
++ "Drawing stroke width": "绘图线宽",
+  "Drill diameter": "钻孔直径",
+  "Duplication creates linked schematic components and physical placements in one edit. Matching net names can join existing nets within their scope; add a suffix to keep the copied circuit separate.": "复制会在一次编辑中创建关联的原理图元件和实际放置。匹配的网络名可在其作用域内并入现有网络；添加后缀可使复制的电路保持独立。",
+  "Edit": "编辑",
+@@ -158,6 +171,9 @@
+  "Expand": "展开",
+  "Expand {title}": "展开{title}",
+  "Export Native Definition…": "导出原生定义…",
++ "Field appearance target": "字段外观目标",
++ "Field rotation": "字段旋转",
++ "Field text alignment": "字段文字对齐",
+  "File": "文件",
+  "File operation in progress": "文件操作进行中",
+  "Filters…": "筛选…",
+@@ -183,11 +199,16 @@
+  "Generate silkscreen reference": "生成丝印参考",
+  "Generic part": "通用元件",
+  "Grab": "抓取",
++ "Grab selection · Click to place · Esc cancel": "抓取选择 · 点击放置 · Esc 取消",
++ "Grab selection · Esc to cancel": "抓取选择 · Esc 取消",
++ "Grab symbol · R rotate · Click to place · Esc cancel": "抓取符号 · R 旋转 · 点击放置 · Esc 取消",
++ "Grab wire · Click to place · Esc cancel": "抓取走线 · 点击放置 · Esc 取消",
+  "Grid": "网格",
+  "Grid opacity": "网格不透明度",
+  "Grid spacing of the focused view (N, Shift+N)": "当前视图的网格间距（N，Shift+N）",
+  "Heal Wire": "修复走线",
+  "Help": "帮助",
++ "Hierarchical sheet or label · Esc to cancel": "层次图纸或标签 · Esc 取消",
+  "Highlight collisions": "高亮冲突",
+  "Hold Ctrl and scroll to zoom. Pinch zooms on a trackpad.": "按住 Ctrl 滚动可缩放。触控板可双指缩放。",
+  "Home": "主页",
+@@ -210,6 +231,7 @@
+  "Libraries…": "库…",
+  "Library": "库",
+  "Library ID": "库 ID",
++ "Library grid": "库网格",
+  "Light": "浅色",
+  "Link URL {}": "链接 URL {}",
+  "Link label {}": "链接标签 {}",
+@@ -234,6 +256,9 @@
+  "More properties…": "更多属性…",
+  "Mouse buttons": "鼠标按键",
+  "Mouse wheel": "鼠标滚轮",
++ "Move selection · Click to place · Esc cancel": "移动选择 · 点击放置 · Esc 取消",
++ "Move symbol field · Esc to cancel": "移动符号字段 · Esc 取消",
++ "Move symbol · R rotate · Esc cancel": "移动符号 · R 旋转 · Esc 取消",
+  "My agent": "我的智能体",
+  "Name or package": "名称或封装",
+  "Needs reopening": "需要重新打开",
+@@ -260,6 +285,7 @@
+  "No board": "没有电路板",
+  "No class definitions": "没有类定义",
+  "No components match": "没有匹配的元件",
++ "No connect · Esc cancel": "未连接 · Esc 取消",
+  "No connected nets": "没有已连接的网络",
+  "No courtyard outline": "没有庭院轮廓",
+  "No drill hits": "没有钻孔",
+@@ -267,6 +293,7 @@
+  "No footprints match": "没有匹配的封装",
+  "No instances use this revision": "没有实例使用此修订",
+  "No libraries": "没有库",
++ "No loaded parts": "没有已加载的元件",
+  "No matching parts": "没有匹配的元件",
+  "No material specifications pinned to this board.": "此电路板未固定任何材料规格。",
+  "No messages match the selected filters.": "没有消息匹配所选筛选条件。",
+@@ -288,7 +315,9 @@
+  "Not to scale": "不按比例",
+  "Nothing selected": "未选择任何内容",
+  "OK": "确定",
++ "Omit from assembly position exports. PCBZ stores this setting; export generation is not implemented yet.": "在装配位置导出中省略。PCBZ 会保存此设置；导出生成尚未实现。",
+  "Omit from assembly position exports. PCBcraft stores this setting; export generation is not implemented yet.": "在装配位置导出中省略。PCBZ 会保存此设置；导出生成尚未实现。",
++ "One keyword per line": "每行一个关键字",
+  "Only the grid fades. Snapping still follows the grid at 0%.": "只有网格淡出。0% 时吸附仍按网格进行。",
+  "Opacity": "不透明度",
+  "Open Library Item…": "打开库条目…",
+@@ -324,6 +353,7 @@
+  "Pin {}": "引脚 {}",
+  "Place footprints": "放置封装",
+  "Place footprints · Click to place · R rotate · Esc cancel": "放置封装 · 点击放置 · R 旋转 · Esc 取消",
++ "Place net label · R to rotate · Esc to cancel": "放置网络标签 · R 旋转 · Esc 取消",
+  "Place through via": "放置通孔过孔",
+  "Place unit {unit}": "放置单元 {unit}",
+  "Placement filters": "放置筛选",
+@@ -338,7 +368,9 @@
+  "Printed text": "印刷文字",
+  "Project file or archive…": "工程文件或归档…",
+  "Project folder…": "工程文件夹…",
++ "Project inventory unavailable": "工程清单不可用",
+  "Properties": "属性",
++ "Provider default": "服务商默认",
+  "Publish Library Item": "发布库条目",
+  "Publish…": "发布…",
+  "Quarantined: conflicting content at this revision": "已隔离：此修订存在冲突内容",
+@@ -369,6 +401,7 @@
+  "Remove the column": "移除该列",
+  "Remove the saved teardrop intents with pcb.edit_teardrops to resume board editing.": "使用 pcb.edit_teardrops 移除已保存的泪滴意图以恢复电路板编辑。",
+  "Remove the selected vertex (Backspace)": "移除所选顶点（Backspace）",
++ "Remove this layer from the board catalog": "从电路板目录中移除此层",
+  "Remove vertex": "移除顶点",
+  "Removed pad": "已移除焊盘",
+  "Rename Sheet…": "重命名图纸…",
+@@ -390,6 +423,7 @@
+  "Reset the settings on this page": "重置此页的设置",
+  "Reset value": "重置值",
+  "Reset {title} size": "重置{title}大小",
++ "Reshape wire · Esc to cancel": "重塑走线 · Esc 取消",
+  "Restart the agent after signing in elsewhere": "在别处登录后重启智能体",
+  "Restore component reference text, default appearance and the library's reference position.": "恢复元件参考文字、默认外观和库中的参考位置。",
+  "Revert assignment changes": "还原分配更改",
+@@ -425,6 +459,7 @@
+  "Select Wire": "选择走线",
+  "Select an item": "选择项目",
+  "Select courtyard": "选择庭院",
++ "Select items · Esc to cancel": "选择项目 · Esc 取消",
+  "Select symbol": "选择符号",
+  "Send (Enter)": "发送（Enter）",
+  "Settings": "设置",
+@@ -460,12 +495,15 @@
+  "System follows your desktop or browser.": "系统将跟随桌面或浏览器。",
+  "Tangent Chain": "相切链",
+  "Tangent chain": "相切链",
++ "Technical layer purpose": "技术层用途",
++ "Technical layer side": "技术层侧别",
+  "Terminal {terminal} {label}: {text:?}": "端子 {terminal} {label}：{text:?}",
+  "Testing…": "正在测试…",
+  "Text and graphics": "文字与图形",
+  "The agent works on open documents through the same commands as the menus. Edits are undoable.": "智能体通过菜单相同的命令处理打开的文档。编辑可撤销。",
+  "The board changed since this check. Run again to refresh.": "自本次检查后电路板已更改。请再次运行以刷新。",
+  "The board changed. Reload properties to continue.": "电路板已更改。请重新加载属性以继续。",
++ "The chat beside this editor is its assistant.": "此编辑器旁的对话就是它的助手。",
+  "The design changed after this update. Review again before continuing.": "此更新后设计已更改。请重新复核后再继续。",
+  "The design, footprint choices or review changed. Review again before applying.": "设计、封装选择或复核已更改。应用前请重新复核。",
+  "The exact power input is unavailable. Restore it to apply these edits, or discard the unapplied text.": "精确电源输入不可用。请恢复它以应用这些编辑，或放弃未应用的文字。",
+@@ -504,6 +542,8 @@
+  "Wire color": "走线颜色",
+  "Wire segment selected · Del delete": "已选择走线段 · Del 删除",
+  "Wire width": "走线宽度",
++ "Wire · Click a start point": "走线 · 点击起点",
++ "Wire · Click corners · Enter finish · Space flip · Esc cancel": "走线 · 点击拐角 · Enter 完成 · Space 翻转 · Esc 取消",
+  "Wires": "走线",
+  "X": "X",
+  "X offset": "X 偏移",
+@@ -543,6 +583,7 @@
+  "navbar.custom.stale": "工具栏已更改，请重新选择槽位。",
+  "navbar.custom.unknown": "该槽位不可用。",
+  "none": "无",
++ "opencode acp": "opencode acp",
+  "search.command_keys": "Enter 运行     Shift+Enter 运行并保持打开     Esc 关闭",
+  "search.keys": "↑ ↓ 选择     Enter 运行     Tab 填入名称     Esc 关闭",
+  "solid": "实心",
+diff --git a/crates/chrome/src/arrangements.rs b/crates/chrome/src/arrangements.rs
+index e24e495..02056ec 100644
+--- a/crates/chrome/src/arrangements.rs
++++ b/crates/chrome/src/arrangements.rs
+@@ -98,7 +98,7 @@ impl Form {
+             if matches!(self.intent, Intent::Remove(_)) {
+                 ui.label(format!("Delete “{}” and its saved view setup? Project documents are kept.", self.name));
+             } else {
+-                let label = ui.label("Arrangement name");
++                let label = ui.label(crate::i18n::tr_label("Arrangement name"));
+                 let mut field = egui::TextEdit::singleline(&mut self.name).desired_width(f32::INFINITY).show(ui);
+                 field.response.response = field.response.response.labelled_by(label.id);
+                 if !self.focused {
+@@ -112,9 +112,9 @@ impl Form {
+                 }
+                 submit = field.response.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
+                 if self.intent == Intent::New {
+-                    ui.label("Start with");
+-                    ui.radio_value(&mut self.single_view, false, "Current views and windows");
+-                    ui.radio_value(&mut self.single_view, true, "Single view in one window");
++                    ui.label(crate::i18n::tr_label("Start with"));
++                    ui.radio_value(&mut self.single_view, false, crate::i18n::tr_label("Current views and windows"));
++                    ui.radio_value(&mut self.single_view, true, crate::i18n::tr_label("Single view in one window"));
+                 }
+                 if let Some(error) = &self.error {
+                     ui.label(crate::shell::error(error));
+diff --git a/crates/chrome/src/assistant.rs b/crates/chrome/src/assistant.rs
+index 812dd77..39fc188 100644
+--- a/crates/chrome/src/assistant.rs
++++ b/crates/chrome/src/assistant.rs
+@@ -296,7 +296,7 @@ pub fn agent_switcher(ui: &mut Ui, label: &str, enabled: bool, add: impl FnOnce(
+             .width(ui.available_width().min(260.0))
+             .show_ui(ui, add)
+             .response
+-            .on_hover_text("Choose an agent");
++            .on_hover_text(crate::i18n::tr_label("Choose an agent"));
+     });
+ }
+ 
+diff --git a/crates/chrome/src/board_setup.rs b/crates/chrome/src/board_setup.rs
+index e7e041c..3573a5a 100644
+--- a/crates/chrome/src/board_setup.rs
++++ b/crates/chrome/src/board_setup.rs
+@@ -80,7 +80,7 @@ pub fn pages(ui: &mut Ui, page: &mut Page, error: Option<&str>, rules_available:
+                         })
+                     })
+                     .inner
+-                    .on_disabled_hover_text("Create the board before editing design rules.")
++                    .on_disabled_hover_text(crate::i18n::tr_label("Create the board before editing design rules."))
+                     .clicked()
+                 {
+                     *page = value;
+@@ -98,13 +98,13 @@ pub fn pages(ui: &mut Ui, page: &mut Page, error: Option<&str>, rules_available:
+                 for value in Page::ALL {
+                     if value == Page::BoardDefaults {
+                         ui.separator();
+-                        ui.label(crate::shell::dim("Design rules"));
++                        ui.label(crate::shell::dim(crate::i18n::tr_label("Design rules")));
+                     }
+                     ui.add_enabled_ui(rules_available || !matches!(value, Page::BoardDefaults | Page::NetClasses), |ui| {
+                         ui.selectable_value(page, value, value.title());
+                     })
+                     .response
+-                    .on_disabled_hover_text("Create the board before editing design rules.");
++                    .on_disabled_hover_text(crate::i18n::tr_label("Create the board before editing design rules."));
+                 }
+             })
+             .response
+@@ -209,7 +209,7 @@ pub fn material_heading(ui: &mut Ui, name: &str, family: Option<&str>, used: boo
+     ui.horizontal(|ui| {
+         ui.label(RichText::new(name).font(fonts::interface_heading(ui, t.font_heading)));
+         if used {
+-            ui.label(RichText::new("In use").color(t.text_dim));
++            ui.label(RichText::new(crate::i18n::tr_label("In use")).color(t.text_dim));
+         }
+     });
+     if let Some(family) = family.filter(|family| *family != name) {
+@@ -304,7 +304,7 @@ pub fn cross_section_heading(ui: &mut Ui, width: f32) {
+     ui.allocate_ui_with_layout(vec2(width, t.control_height), Layout::left_to_right(Align::Center), |ui| {
+         ui.set_width(width);
+         ui.add_space(t.space_4);
+-        ui.label(RichText::new("Not to scale").size(t.font_small).color(t.text_dim));
++        ui.label(RichText::new(crate::i18n::tr_label("Not to scale")).size(t.font_small).color(t.text_dim));
+     });
+ }
+ 
+diff --git a/crates/chrome/src/catalog.rs b/crates/chrome/src/catalog.rs
+index 5e9828a..cf55e3a 100644
+--- a/crates/chrome/src/catalog.rs
++++ b/crates/chrome/src/catalog.rs
+@@ -56,8 +56,8 @@ pub fn parts_form(ctx: &egui::Context, enabled: bool, active: bool, repeat: &mut
+                         vec2(t.space_24 * 2.0, t.control_height),
+                     );
+                     compact = kit::button_at(ui, "dock_parts_catalog", dock, "Dock", kit::Button::Normal)
+-                        .accessible_name("Dock Parts Catalog")
+-                        .on_hover_text("Show compact catalog")
++                        .accessible_name(crate::i18n::tr_label("Dock Parts Catalog"))
++                        .on_hover_text(crate::i18n::tr_label("Show compact catalog"))
+                         .clicked();
+                     let footer_height = t.form_footer_height;
+                     let height = (size.y - header.height() - footer_height).max(0.0);
+@@ -486,7 +486,7 @@ mod tests {
+             let mut output =
+                 ctx.run_ui(egui::RawInput { screen_rect: Some(Rect::from_min_size(egui::Pos2::ZERO, size)), ..Default::default() }, |ui| {
+                     settings_form(ui.ctx(), "Rules", "Save class", false, |ui| {
+-                        ui.label("Class name");
++                        ui.label(crate::i18n::tr_label("Class name"));
+                     });
+                 });
+             output.textures_delta.clear();
+diff --git a/crates/chrome/src/editor.rs b/crates/chrome/src/editor.rs
+index 92453de..77f7165 100644
+--- a/crates/chrome/src/editor.rs
++++ b/crates/chrome/src/editor.rs
+@@ -190,7 +190,7 @@ pub fn pane_header(ui: &mut Ui, path: &str, focused: bool, native: bool, detache
+     painter.galley(pos2(dock_rect.right() + t.space_12, tab.center().y - galley.size().y / 2.0), galley, t.text);
+     painter.line_segment([tab.left_bottom(), tab.right_bottom()], Stroke::new(2.0, if focused { t.accent } else { t.border }));
+     let close = solidcraft_ui_kit::icon_button_at(ui, close_rect, "close", &format!("Close view {path}"));
+-    let mut action = close.on_hover_text("Close view").clicked().then_some(PaneAction::Close);
++    let mut action = close.on_hover_text(crate::i18n::tr_label("Close view")).clicked().then_some(PaneAction::Close);
+     if dock_width > 0.0 && dock_rect.width() > t.space_8 {
+         let dock = ui.interact(dock_rect, ui.scope_id().with("dock_pane"), Sense::click());
+         dock.widget_info(|| WidgetInfo::labeled(Role::Button, true, "Dock in main window"));
+@@ -199,7 +199,7 @@ pub fn pane_header(ui: &mut Ui, path: &str, focused: bool, native: bool, detache
+         ink.rect_filled(button, t.control_radius, if dock.hovered() { t.hover } else { t.panel });
+         ink.rect_stroke(button, t.control_radius, Stroke::new(1.0, if dock.has_focus() { t.accent } else { t.border }), egui::StrokeKind::Inside);
+         ink.text(dock_rect.center(), egui::Align2::CENTER_CENTER, "Dock", FontId::proportional(t.font_label), t.text);
+-        if dock.on_hover_text("Dock in main window").clicked() {
++        if dock.on_hover_text(crate::i18n::tr_label("Dock in main window")).clicked() {
+             action = Some(PaneAction::Dock);
+         }
+     }
+diff --git a/crates/chrome/src/empty_state.rs b/crates/chrome/src/empty_state.rs
+index 112f33d..f6a4a95 100644
+--- a/crates/chrome/src/empty_state.rs
++++ b/crates/chrome/src/empty_state.rs
+@@ -46,7 +46,7 @@ pub fn show(ui: &mut Ui, title: &str, description: &str, actions: [&str; 2], ste
+                     });
+                     ui.add_space(t.space_4);
+                     ui.separator();
+-                    ui.label(RichText::new("Next steps").font(fonts::interface_heading(ui, t.font_heading)));
++                    ui.label(RichText::new(crate::i18n::tr_label("Next steps")).font(fonts::interface_heading(ui, t.font_heading)));
+                     for (index, step) in steps.iter().enumerate() {
+                         ui.horizontal_top(|ui| {
+                             ui.label(RichText::new(format!("{}", index + 1)).color(t.accent));
+diff --git a/crates/chrome/src/grid.rs b/crates/chrome/src/grid.rs
+index 1b783d8..5136906 100644
+--- a/crates/chrome/src/grid.rs
++++ b/crates/chrome/src/grid.rs
+@@ -200,7 +200,7 @@ pub fn shapes(rect: Rect, origin: Pos2, step: f32, color: Color32, style: Style)
+ pub fn opacity_control(ui: &mut Ui, opacity_percent: &mut u8) -> bool {
+     let before = *opacity_percent;
+     let slider = egui::Slider::new(opacity_percent, OPACITY_RANGE).step_by(f64::from(OPACITY_STEP)).suffix("%");
+-    ui.add(slider).accessible_name("Grid opacity");
++    ui.add(slider).accessible_name(crate::i18n::tr_label("Grid opacity"));
+     if crate::controls::enabled_button(ui, *opacity_percent != OPACITY_DEFAULT, "Reset")
+         .on_hover_text(format!("Back to {OPACITY_DEFAULT}%"))
+         .clicked()
+@@ -229,7 +229,7 @@ pub fn spacing_menu(ui: &mut Ui, spacing_nm: &mut i64, presets: &[i64], default_
+         format!("Grid {current}")
+     };
+     let caption = text.replace(&format!(" {}", unit.symbol()), "");
+-    let response = solidcraft_ui_kit::text_button(ui, &caption, true).on_hover_text("Grid spacing of the focused view (N, Shift+N)");
++    let response = solidcraft_ui_kit::text_button(ui, &caption, true).on_hover_text(crate::i18n::tr_label("Grid spacing of the focused view (N, Shift+N)"));
+     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), &text));
+     let field_id = response.id.with("custom_spacing");
+     egui::Popup::menu(&response)
+@@ -259,7 +259,7 @@ pub fn spacing_menu(ui: &mut Ui, spacing_nm: &mut i64, presets: &[i64], default_
+                 ui.spacing_mut().item_spacing.y = t.space_4;
+                 ui.horizontal(|ui| {
+                     let label = ui.label(RichText::new("Custom").size(t.font_label));
+-                    let field = egui::TextEdit::singleline(&mut draft).hint_text("20 mil or 0.5 mm").desired_width(t.control_height * 4.0);
++                    let field = egui::TextEdit::singleline(&mut draft).hint_text(crate::i18n::tr_label("20 mil or 0.5 mm")).desired_width(t.control_height * 4.0);
+                     let field = ui.add(field).labelled_by(label.id);
+                     let entered = field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                     if field.changed() {
+diff --git a/crates/chrome/src/home.rs b/crates/chrome/src/home.rs
+index 4cab86f..a6dbd45 100644
+--- a/crates/chrome/src/home.rs
++++ b/crates/chrome/src/home.rs
+@@ -295,14 +295,14 @@ pub fn recent_card(ui: &mut Ui, id: &str, width: f32, card: RecentCard<'_>, pain
+     }
+     let picked = RecentAction { open: response.clicked() && !remove.clicked(), remove: remove.clicked() };
+     response.on_hover_text(card.path);
+-    remove.on_hover_text("Remove from recent projects");
++    remove.on_hover_text(crate::i18n::tr_label("Remove from recent projects"));
+     picked
+ }
+ 
+ /// Show the empty history without adding an inactive project row.
+ pub fn empty_recents(ui: &mut Ui) {
+     let t = Tokens::get();
+-    ui.label(egui::RichText::new("No recent projects yet").size(t.font_heading).color(t.file_dim));
++    ui.label(egui::RichText::new(crate::i18n::tr_label("No recent projects yet")).size(t.font_heading).color(t.file_dim));
+ }
+ 
+ /// Forget all history, without deleting project files.
+diff --git a/crates/chrome/src/library_workspace.rs b/crates/chrome/src/library_workspace.rs
+index 03331a5..bd60439 100644
+--- a/crates/chrome/src/library_workspace.rs
++++ b/crates/chrome/src/library_workspace.rs
+@@ -146,7 +146,7 @@ fn card(
+                         *collapsed = !*collapsed;
+                     }
+                     let (_, rect) = ui.allocate_space(vec2(Tokens::get().space_24, Tokens::get().space_24));
+-                    let more = kit::button_at(ui, "library_browser_actions", rect, "…", kit::Button::Ghost).accessible_name("Browser tree actions");
++                    let more = kit::button_at(ui, "library_browser_actions", rect, "…", kit::Button::Ghost).accessible_name(crate::i18n::tr_label("Browser tree actions"));
+                     egui::Popup::menu(&more).frame(crate::menu::frame()).show(|ui| {
+                         for (label, choice) in [("Expand all", TreeAction::ExpandAll), ("Collapse all", TreeAction::CollapseAll)] {
+                             if crate::MenuItem::new(label).show(ui) {
+diff --git a/crates/chrome/src/part_form.rs b/crates/chrome/src/part_form.rs
+index 88889bc..6c1c752 100644
+--- a/crates/chrome/src/part_form.rs
++++ b/crates/chrome/src/part_form.rs
+@@ -167,7 +167,7 @@ pub fn documents(ui: &mut Ui, documents: &[(String, bool, String)], selected: Op
+     let browse = egui::Rect::from_min_size(rect.min, egui::vec2(94., rect.height()));
+     let mut actions = Vec::new();
+     if kit::button_at(ui, "browse_library", browse, "Browse", if selected.is_none() { kit::Button::SmallSelected } else { kit::Button::Ghost })
+-        .accessible_name("Browse library")
++        .accessible_name(crate::i18n::tr_label("Browse library"))
+         .clicked()
+     {
+         actions.push(DocumentAction::Browse);
+diff --git a/crates/chrome/src/pcb_update.rs b/crates/chrome/src/pcb_update.rs
+index 1791da1..aff366e 100644
+--- a/crates/chrome/src/pcb_update.rs
++++ b/crates/chrome/src/pcb_update.rs
+@@ -148,12 +148,12 @@ pub fn report(ui: &mut Ui, messages: &[&Message], filters: &mut Filters, trailin
+             });
+         }
+         if !visible {
+-            ui.label("No messages match the selected filters.");
++            ui.label(crate::i18n::tr_label("No messages match the selected filters."));
+         }
+     });
+     ui.label(format!("Total warnings: {warnings}, errors: {errors}."));
+     ui.horizontal_wrapped(|ui| {
+-        ui.label("Show:");
++        ui.label(crate::i18n::tr_label("Show:"));
+         let mut all = filters.errors && filters.warnings && filters.actions && filters.infos;
+         let mixed = !all && (filters.errors || filters.warnings || filters.actions || filters.infos);
+         if kit::checkbox_indeterminate(ui, "All", &mut all, mixed).changed() {
+diff --git a/crates/chrome/src/properties.rs b/crates/chrome/src/properties.rs
+index f3eb8df..f8576ac 100644
+--- a/crates/chrome/src/properties.rs
++++ b/crates/chrome/src/properties.rs
+@@ -148,7 +148,7 @@ pub fn mapping_header(ui: &mut Ui) {
+     let label_width = mapping_label_width(ui.available_width());
+     ui.horizontal(|ui| {
+         field_name(ui, "Symbol terminal", label_width, true);
+-        ui.label(RichText::new("Footprint pad").size(t.font_small).color(t.text_dim));
++        ui.label(RichText::new(crate::i18n::tr_label("Footprint pad")).size(t.font_small).color(t.text_dim));
+     });
+ }
+ 
+diff --git a/crates/chrome/src/settings.rs b/crates/chrome/src/settings.rs
+index 7afafa4..b9c63d5 100644
+--- a/crates/chrome/src/settings.rs
++++ b/crates/chrome/src/settings.rs
+@@ -124,7 +124,7 @@ pub fn paged_window<S>(
+             },
+             |ui| {
+                 defaults =
+-                    kit::text_button(ui, "Restore page defaults", footer.defaults_enabled).on_hover_text("Reset the settings on this page").clicked();
++                    kit::text_button(ui, "Restore page defaults", footer.defaults_enabled).on_hover_text(crate::i18n::tr_label("Reset the settings on this page")).clicked();
+             },
+         )
+     });
+diff --git a/crates/chrome/src/workspace.rs b/crates/chrome/src/workspace.rs
+index 80c8e65..dc9645e 100644
+--- a/crates/chrome/src/workspace.rs
++++ b/crates/chrome/src/workspace.rs
+@@ -477,7 +477,7 @@ pub fn ribbon_with_controls(
+                                 }
+                             }
+                             if wide {
+-                                crate::controls::enabled_button(ui, false, "+").on_disabled_hover_text("Ribbon customization is not available yet.");
++                                crate::controls::enabled_button(ui, false, "+").on_disabled_hover_text(crate::i18n::tr_label("Ribbon customization is not available yet."));
+                             }
+                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                 let show_quick = tabs.get(*tab) != Some(&"View")
+@@ -635,7 +635,7 @@ fn workspace_tile(ui: &mut Ui, workspace: &str, icon: WorkspaceIcon, height: f32
+         vec![tip + vec2(-arm, -arm / 2.0 * direction), tip + vec2(0.0, arm / 2.0 * direction), tip + vec2(arm, -arm / 2.0 * direction)],
+         Stroke::new(1.2, t.text_dim),
+     ));
+-    response.on_hover_text("Choose workspace")
++    response.on_hover_text(crate::i18n::tr_label("Choose workspace"))
+ }
+ 
+ /// Keep a picker in its native viewport when several hosts draw the same ribbon.
+diff --git a/crates/chrome/src/workspace/catalog.rs b/crates/chrome/src/workspace/catalog.rs
+index d9f5d98..df6af13 100644
+--- a/crates/chrome/src/workspace/catalog.rs
++++ b/crates/chrome/src/workspace/catalog.rs
+@@ -228,7 +228,7 @@ impl Panel {
+                             t.text,
+                         );
+                         self.drag(&response, rect, canvas);
+-                        response.on_hover_cursor(egui::CursorIcon::Grab).on_hover_text("Drag to float. Release at the left or right edge to dock.");
++                        response.on_hover_cursor(egui::CursorIcon::Grab).on_hover_text(crate::i18n::tr_label("Drag to float. Release at the left or right edge to dock."));
+                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                             action.close = icon_button(ui, "Close Parts Catalog", HeaderIcon::Close).clicked();
+                             action.expand = icon_button(ui, "Expand Parts Catalog", HeaderIcon::Full).clicked();
+@@ -240,7 +240,7 @@ impl Panel {
+                             let more = icon_button(ui, "Parts Catalog position", HeaderIcon::More);
+                             egui::Popup::menu(&more).frame(menu::frame()).show(|ui| {
+                                 ui.set_width(180.0);
+-                                ui.label(crate::shell::dim("PANEL POSITION"));
++                                ui.label(crate::shell::dim(crate::i18n::tr_label("PANEL POSITION")));
+                                 for (position, label) in
+                                     [(Position::Floating, "Float"), (Position::Left, "Dock left"), (Position::Right, "Dock right")]
+                                 {
+@@ -389,7 +389,7 @@ pub fn grid<T>(ui: &mut Ui, view: View, items: &[T], reveal: Option<usize>, mut
+     let rows = items.len().div_ceil(columns).max(1);
+     let mut render = |ui: &mut Ui, rows: std::ops::Range<usize>| {
+         if items.is_empty() {
+-            ui.label(crate::shell::dim("No matching parts"));
++            ui.label(crate::shell::dim(crate::i18n::tr_label("No matching parts")));
+             return;
+         }
+         let width = (ui.available_width() - 8.0 * (columns - 1) as f32) / columns as f32;

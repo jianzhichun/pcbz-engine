@@ -171,7 +171,7 @@ jobs:
       - name: Chinese catalog scan and remaining-English count
         shell: bash
         run: |
-          python scripts/i18n_check.py . 2>&1 | tee i18n.txt
+          python scripts/i18n_check.py . --max-english 0 2>&1 | tee i18n.txt
       - name: stream proof (a scripted host over leg A, the control channel, read-only)
         id: proof
         continue-on-error: true

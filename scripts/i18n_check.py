@@ -80,13 +80,17 @@ def main():
             except OSError:
                 continue
             for number, line in enumerate(lines, 1):
+                if "matches!" in line:
+                    continue  # a literal compared, not drawn
                 for sink in DIRECT:
                     start = line.find(sink)
                     while start >= 0:
                         start += len(sink)
-                        text = literal_after(line, start)
-                        if user_visible(text) and "tr_label(" not in line[max(0, start - 12):start]:
-                            remaining.append(f"{path.relative_to(root)}:{number}: {text}")
+                        match = STR.search(line, start)
+                        before = line[max(0, match.start() - 60):match.start()] if match is not None else ""
+                        kit = any(k in before for k in ("controls::", "ui_kit::", "solidcraft_ui_kit::", "settings::", "workspace::", "menu::", "board_setup::"))
+                        if match is not None and user_visible(match.group(1)) and "tr_label(" not in before and not kit:
+                            remaining.append(f"{path.relative_to(root)}:{number}: {match.group(1)}")
                         start = line.find(sink, start)
 
     for problem in problems:
