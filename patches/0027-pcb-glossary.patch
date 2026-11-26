@@ -1,6 +1,42 @@
-# Use the same PCB terms for menu labels, rule parameters and dynamic status text.
+# Keep PCB terms consistent and translate the wire inspector controls for multiple selected nets.
+diff --git a/crates/app/src/net_appearance/bulk.rs b/crates/app/src/net_appearance/bulk.rs
+index d2722bc..6362bff 100644
+--- a/crates/app/src/net_appearance/bulk.rs
++++ b/crates/app/src/net_appearance/bulk.rs
+@@ -1,7 +1,7 @@
+ //! Inline batch fields keep mixed values until a deliberate set or clear action.
+ 
+ use super::width_field;
+-use pcbcraft_chrome::{MenuItem, controls, properties, settings, shell, theme::Tokens};
++use pcbcraft_chrome::{MenuItem, controls, i18n::tr_label, properties, settings, shell, theme::Tokens};
+ use pcbcraft_engine::{
+     net_classes::Catalog,
+     nets::{ClassTarget, DEFAULT_WIDTH_CP, PropertyValues},
+@@ -50,9 +50,9 @@ impl<T: Copy + PartialEq> Field<T> {
+             Mode::Set => "Set for all",
+             Mode::Clear => "Theme default",
+         };
+-        controls::Choice::from_id_salt(label).selected_text(current).width(105.0).show_ui(ui, |ui| {
++        controls::Choice::from_id_salt(label).selected_text(tr_label(current)).width(105.0).show_ui(ui, |ui| {
+             for (mode, name) in options {
+-                if MenuItem::new(name).choice(mode == self.mode).show(ui) {
++                if MenuItem::new(tr_label(name)).choice(mode == self.mode).show(ui) {
+                     self.mode = mode;
+                 }
+             }
+@@ -102,8 +102,8 @@ impl Edit {
+             });
+         });
+         ui.label(shell::dim(match self.pending_classes.get(&class) {
+-            Some(true) => "Assign to all on Apply".to_owned(),
+-            Some(false) => "Remove from all on Apply".to_owned(),
++            Some(true) => tr_label("Assign to all on Apply").to_owned(),
++            Some(false) => tr_label("Remove from all on Apply").to_owned(),
+             None => pcbcraft_chrome::i18n::format("dynamic.assigned_on_of_selected_nets_5ec95cd", &[("count", &format!("{}", count)), ("arg1", &format!("{}", self.targets.len()))]),
+         }));
+         ui.horizontal(|ui| {
 diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
-index 23613f8..df5a883 100644
+index 23613f8..3a9ddf9 100644
 --- a/crates/chrome/assets/shared-ui/zh.json
 +++ b/crates/chrome/assets/shared-ui/zh.json
 @@ -108,7 +108,7 @@
@@ -196,3 +232,18 @@ index 23613f8..df5a883 100644
   "fragment.check_canceled": "检查已取消",
   "fragment.board_changed;_check_discarded": "PCB 已更改，已丢弃检查结果",
   "fragment.drc_checking…": "正在检查设计规则…",
+@@ -1409,5 +1409,14 @@
+  "fragment.resize_width_left": "左侧宽度",
+  "fragment.resize_width": "宽度",
+  "fragment.not_recorded": "未记录",
++ "Manage net classes…": "管理网络类…",
++ "Leave as is": "保持不变",
++ "Set for all": "全部设置",
++ "Theme default": "使用主题默认值",
++ "Mixed": "值不一致",
++ "Assign to all on Apply": "应用时分配给全部所选网络",
++ "Remove from all on Apply": "应用时从全部所选网络移除",
++ "Set wire color": "设置导线颜色",
++ "Set wire width": "设置导线宽度",
+  "fragment.invalid_library_documents": "库文档无效"
+ }
