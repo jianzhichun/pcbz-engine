@@ -21,15 +21,14 @@
 # this app's exports instead of eframe's WebRunner.
 
 diff --git a/Cargo.lock b/Cargo.lock
-index e071901..4b12811 100644
+index e071901..c621346 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
-@@ -3045,10 +3045,15 @@ name = "pcbcraft-web"
+@@ -3045,10 +3045,14 @@ name = "pcbcraft-web"
  version = "0.1.0"
  dependencies = [
   "eframe",
 + "egui",
-+ "egui-wgpu",
   "js-sys",
   "log",
   "pcbcraft-app",
@@ -41,10 +40,10 @@ index e071901..4b12811 100644
   "wasm-bindgen-futures",
   "web-sys",
 diff --git a/apps/pcbcraft-web/Cargo.toml b/apps/pcbcraft-web/Cargo.toml
-index 84346b1..5b3d75d 100644
+index 84346b1..4bf9e34 100644
 --- a/apps/pcbcraft-web/Cargo.toml
 +++ b/apps/pcbcraft-web/Cargo.toml
-@@ -7,15 +7,25 @@ rust-version.workspace = true
+@@ -7,15 +7,24 @@ rust-version.workspace = true
  license.workspace = true
  publish.workspace = true
  
@@ -62,7 +61,6 @@ index 84346b1..5b3d75d 100644
  pcbcraft-engine = { workspace = true }
  eframe = { workspace = true }
 +egui = { workspace = true }
-+egui-wgpu = { workspace = true }
  log = { workspace = true }
 +serde = { workspace = true }
 +serde_json = { workspace = true }
@@ -320,10 +318,10 @@ index 0000000..0d43399
 +}
 diff --git a/apps/pcbcraft-web/src/worker/mod.rs b/apps/pcbcraft-web/src/worker/mod.rs
 new file mode 100644
-index 0000000..5b5e6c7
+index 0000000..59a8006
 --- /dev/null
 +++ b/apps/pcbcraft-web/src/worker/mod.rs
-@@ -0,0 +1,415 @@
+@@ -0,0 +1,418 @@
 +//! PCBZ wasm page patch 0012: the editor loop on a worker-owned OffscreenCanvas.
 +//!
 +//! Why: the page and the chat share the host's one main thread; red line a forbids running the
@@ -341,7 +339,8 @@ index 0000000..5b5e6c7
 +
 +use std::cell::RefCell;
 +
-+use egui_wgpu::wgpu;
++// eframe re-exports the renderer it was built with, so the page does not add a second source for it.
++use eframe::egui_wgpu::{self, wgpu};
 +use wasm_bindgen::prelude::*;
 +use wasm_bindgen::JsCast as _;
 +use web_sys::OffscreenCanvas;
@@ -385,9 +384,11 @@ index 0000000..5b5e6c7
 +struct Editor {
 +    ctx: egui::Context,
 +    app: pcbcraft_app::PcbApp,
++    /// Declared before the instance it was made from, and the device it draws with, so it is
++    /// dropped first (Rust drops fields in declaration order).
++    surface: wgpu::Surface<'static>,
 +    /// Kept beside the surface: wgpu's own painter keeps its instance too.
 +    instance: wgpu::Instance,
-+    surface: wgpu::Surface<'static>,
 +    config: wgpu::SurfaceConfiguration,
 +    rs: egui_wgpu::RenderState,
 +    deltas: egui::TexturesDelta,
@@ -481,8 +482,8 @@ index 0000000..5b5e6c7
 +    let editor = Editor {
 +        ctx,
 +        app,
-+        instance,
 +        surface,
++        instance,
 +        config,
 +        rs,
 +        deltas: egui::TexturesDelta::default(),
