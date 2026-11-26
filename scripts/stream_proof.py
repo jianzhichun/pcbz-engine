@@ -256,6 +256,30 @@ class Bridge:
             self.p.kill()
 
 
+# ------------------------------------------------------------------------- raw control channel
+def control_once(port, secret, method, params, timeout=10.0):
+    """One authenticated request on its own control connection (the token on the first JSON
+    frame), read one reply line, close. The token never reaches a log."""
+    sock = socket.create_connection(("127.0.0.1", port), timeout)
+    try:
+        sock.sendall((json.dumps({"id": 1, "method": method, "params": params, "token": secret}) + "\n").encode("utf-8"))
+        buffered = b""
+        deadline = time.perf_counter() + timeout
+        while b"\n" not in buffered:
+            left = deadline - time.perf_counter()
+            if left <= 0:
+                raise TimeoutError(f"no reply to {method} within {timeout} s")
+            sock.settimeout(left)
+            chunk = sock.recv(65536)
+            if not chunk:
+                break
+            buffered += chunk
+        line = buffered.split(b"\n", 1)[0]
+        return json.loads(line.decode("utf-8")) if line else {}
+    finally:
+        sock.close()
+
+
 def headless_name(cli, archive, scratch):
     """The project name in a snapshot, read the way a host would: reopen it headless."""
     path = pathlib.Path(scratch) / f"snap-{secrets.token_hex(3)}.pc"
@@ -299,6 +323,9 @@ def find_key(value, key):
 
 # ------------------------------------------------------------------------------------ session
 MODS0 = {"alt": False, "ctrl": False, "shift": False, "meta": False}
+# Test-only: hold each deferred design check this long so a cancel can land mid-job (patch 0013
+# reads PCBZ_RENDER_TEST_CHECK_MS; the product never sets it). The check is otherwise fast.
+TEST_CHECK_MS = 8000
 
 
 class Session:
@@ -325,7 +352,7 @@ class Session:
         listener.listen(1)
         token = secrets.token_hex(32)
         env = {k: v for k, v in os.environ.items() if k not in ("DISPLAY", "WAYLAND_DISPLAY")}
-        env.update(PCBZ_RENDER_TOKEN=token, PCBZ_RENDER_LOG="info")
+        env.update(PCBZ_RENDER_TOKEN=token, PCBZ_RENDER_LOG="info", PCBZ_RENDER_TEST_CHECK_MS=str(TEST_CHECK_MS))
         self.config_dir = pathlib.Path(tempfile.mkdtemp(prefix="pcbz-cfg-", dir=self.out)).resolve()
         import shutil
         self.project_file = self.out / f"project-{self.name}.pc"
@@ -389,6 +416,17 @@ class Session:
             got = self.leg.poll(max(0.0, end - time.perf_counter()))
             if got:
                 self.handle(*got)
+
+    def pump_count(self, seconds):
+        """Pump leg A for `seconds`, returning how many frames arrived."""
+        end = time.perf_counter() + seconds
+        frames = 0
+        while time.perf_counter() < end:
+            got = self.leg.poll(max(0.0, end - time.perf_counter()))
+            if got:
+                self.handle(*got)
+                frames += int(got[0]["k"] == "frame")
+        return frames
 
     def take_frames(self, n):
         for _ in range(n):
@@ -512,6 +550,59 @@ class Session:
 def sha256(path):
     import hashlib
     return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+
+
+def cancel_running_check(s, label):
+    """Patch 0013: stop a real control-channel job while the editor draws, then prove nothing moved.
+
+    The job is `pcb.check_design`, deferred to its own worker by the editor; PCBZ_RENDER_TEST_CHECK_MS
+    holds it long enough for the cancel to arrive. The bridge's single connection carries the call,
+    so the cancel uses a separate raw control connection, as the plugin's stop does."""
+    err0, snap0 = s.bridge_call(lambda: s.bridge.tool("snapshot_project"))
+    rev0 = s.revision
+    pid = s.proc.pid
+    box = {}
+
+    def run():
+        try:
+            box["r"] = s.bridge.execute("pcb.check_design", {})
+        except Exception as e:  # reported by the checks below
+            box["e"] = e
+
+    t0 = time.perf_counter()
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    # Keep the interface busy the way a person would while the model's step computes: move the
+    # pointer, and count the frames the server still draws and encodes.
+    frames = 0
+    for i in range(10):
+        s.leg.send({"k": "input", "seq": s.seq + 1, "events": [{"e": "move", "x": 300 + i * 40, "y": 380 + i}]})
+        s.seq += 1
+        frames += s.pump_count(0.1)
+    reply = control_once(s.ready["controlPort"], s.ready["controlSecret"], "ui.operations", {"cancel": "agent"})
+    cancelled = reply.get("ok") is True and (reply.get("result") or {}).get("cancelled") == "agent"
+    s.check(f"[{label}] ui.operations cancel is answered by the control socket, not a frame pass", cancelled, reply)
+    t.join(timeout=30)
+    elapsed = time.perf_counter() - t0
+    result = box.get("r")
+    text = json.dumps(result, ensure_ascii=False) if result is not None else str(box.get("e"))
+    stopped = bool(result) and result[0] is True and "stopped:" in text and "nothing was applied" in text
+    s.check(f"[{label}] the in-flight engine.execute answers stopped / nothing was applied", stopped, text[:300])
+    s.check(f"[{label}] the stop returned before the scripted hold ended", elapsed < TEST_CHECK_MS / 1000.0, round(elapsed, 2))
+    s.check(f"[{label}] the editor drew frames while the job computed", frames >= 3, frames)
+    s.check(f"[{label}] the editor never restarted", s.proc.poll() is None and s.proc.pid == pid, (s.proc.poll(), pid))
+    s.settle()
+    err1, snap1 = s.bridge_call(lambda: s.bridge.tool("snapshot_project"))
+    same = not err0 and not err1 and snap0.get("archive_base64") == snap1.get("archive_base64")
+    s.check(f"[{label}] the project snapshot is byte for byte unchanged", same, (err0, err1))
+    s.check(f"[{label}] the revision did not move", s.revision == rev0, (rev0, s.revision))
+    # The same process still serves the control channel afterwards.
+    try:
+        err, info = s.bridge_call(lambda: s.bridge.tool("inspect_project"))
+    except Exception as e:
+        err, info = True, e
+    s.check(f"[{label}] the control channel still answers after the stop", not err, str(info)[:200])
+    return reply
 
 
 def editable_session(args, out):
@@ -660,6 +751,8 @@ def editable_session(args, out):
         except Exception as e:
             err, info = True, e
         s.check("the control channel survives Help > Connect AI assistants", not err, str(info)[:200])
+        # --- patch 0013: stop the model's step from the control channel, nothing applied
+        cancel_running_check(s, "edit")
         s.check("the editor wrote nothing to the project file", sha256(s.project_file) == project_hash, "project file changed")
     finally:
         s.stop()
@@ -734,6 +827,17 @@ def read_only_session(args, out):
                 done = [a for a in s.asks[asks_before:] if a["k"] == "ask_done" and a["ask"] == opens[0]["ask"]]
                 s.check(f"ask_done follows ({'cancel' if answer is None else 'a file'}): ok {answer is not None}", bool(done) and done[0]["ok"] is (answer is not None), s.asks[asks_before:])
         s.snap("readonly-open-zip")
+        # --- patch 0013 read-only: nothing is computing, so the cancel is a clean refusal; a running
+        # read-only check is still stoppable and leaves the same bytes.
+        idle = control_once(s.ready["controlPort"], s.ready["controlSecret"], "ui.operations", {"cancel": "agent"})
+        s.check("a cancel with nothing computing is refused cleanly (read-only)",
+                idle.get("ok") is False and "no operation" in json.dumps(idle), idle)
+        try:
+            err, info = s.bridge_call(lambda: s.bridge.tool("inspect_project"))
+        except Exception as e:
+            err, info = True, e
+        s.check("the read-only editor still answers after the refusal", not err, str(info)[:200])
+        cancel_running_check(s, "readonly")
     finally:
         s.stop()
     return s

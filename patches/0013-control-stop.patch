@@ -1,0 +1,284 @@
+# PCBZ render server patch 0013: the model's long step can be stopped from the control channel.
+# Why: the plugin's per-call budget and the person's Stop this turn both need to end one model step
+# without killing the editor. The render server already answers the model's `engine.execute` calls
+# on the editor's own session; `pcb.check_design` (and the other commands the editor defers) runs
+# on a worker thread, so its answer arrives while the pane keeps drawing. This patch adds
+# `ui.operations {cancel: "agent"}`: the control channel's socket worker handles it itself (off the
+# editor's UI thread, never queued behind a frame), marks the in-flight deferred job for
+# cancellation and answers {"cancelled":"agent"}; the editor's next frame stops the job's queue and
+# answers the waiting engine.execute with a `stopped: ... nothing was applied` failure. A job that
+# lands before the editor sees the request answers with its real result (the caller reports it as
+# landed); a cancel with nothing cancellable running is refused with `no operation `agent` is under
+# way`. Nothing else changes: revisions, undo history and the project file are untouched, and the
+# editor process is never restarted. Read-only sessions refuse a cancel cleanly, like any other
+# request with nothing to stop.
+# Test-only: PCBZ_RENDER_TEST_CHECK_MS holds a deferred check on its worker for that many
+# milliseconds in cancellable slices, so the render server's proof can stop a real job
+# deterministically; the product never sets it (documented in PROTOCOL.md).
+# Files touched: crates/app/src/live_control.rs (shared cancel state, socket-worker method, two
+# answer paths) and crates/app/src/board_drc/jobs.rs (the test-only hold). CRLF and native/worker
+# protocol are unchanged.
+
+diff --git a/crates/app/src/board_drc/jobs.rs b/crates/app/src/board_drc/jobs.rs
+index 2aa67c2..e4a31ad 100644
+--- a/crates/app/src/board_drc/jobs.rs
++++ b/crates/app/src/board_drc/jobs.rs
+@@ -457,6 +457,14 @@ mod native {
+         atomic::{AtomicBool, AtomicUsize, Ordering},
+         mpsc::{self, Receiver, TryRecvError},
+     };
++    /// The proof's test-only check delay (`PCBZ_RENDER_TEST_CHECK_MS`), read once per process.
++    /// Never set by the product; the render server's workflow documents it in PROTOCOL.md.
++    fn test_delay_ms() -> Option<u64> {
++        static MS: std::sync::OnceLock<Option<u64>> = std::sync::OnceLock::new();
++        *MS.get_or_init(|| {
++            std::env::var("PCBZ_RENDER_TEST_CHECK_MS").ok().and_then(|value| value.parse().ok()).filter(|ms| *ms > 0)
++        })
++    }
+     /// Bound CPU checker workers across every view and live MCP endpoint in this process.
+     #[cfg(test)]
+     pub(super) static TEST_LOCK: Mutex<()> = Mutex::new(());
+@@ -508,6 +516,16 @@ mod native {
+             let spawned = std::thread::Builder::new().name("pcbcraft-snapshot".into()).spawn(move || {
+                 let report = {
+                     let _slot = slot;
++                    // Test-only hook (patch 0013): PCBZ_RENDER_TEST_CHECK_MS holds a deferred
++                    // check on this worker for that long, in cancellable slices. It exists so the
++                    // render server's proof can cancel a real control-channel job without
++                    // synthesizing a giant board; unset, it costs one once-cached env lookup.
++                    if let Some(ms) = test_delay_ms() {
++                        let until = std::time::Instant::now() + std::time::Duration::from_millis(ms);
++                        while !stop.load(Ordering::Relaxed) && std::time::Instant::now() < until {
++                            std::thread::sleep(std::time::Duration::from_millis(25));
++                        }
++                    }
+                     loop {
+                         if stop.load(Ordering::Relaxed) {
+                             break Ok(None);
+diff --git a/crates/app/src/live_control.rs b/crates/app/src/live_control.rs
+index d80602e..348e865 100644
+--- a/crates/app/src/live_control.rs
++++ b/crates/app/src/live_control.rs
+@@ -35,9 +35,59 @@ pub(super) struct LiveControl {
+     /// The current request generation ([`Self::next_generation`]); each request is stamped with
+     /// it when it authenticates.
+     generation: Arc<AtomicU64>,
++    /// The editor-side operation a `ui.operations {cancel: "agent"}` stops (patch 0013). Shared
++    /// with the socket workers, so the answer never waits on the editor's thread.
++    agent: Arc<AgentCancel>,
+     worker: Thread,
+ }
+ 
++/// The one cancellable operation on this endpoint (patch 0013).
++///
++/// A `pcb.check_design` model call is answered by a deferred job on its own worker thread
++/// (`RemoteCheck`); `ui.operations {cancel: "agent"}` therefore arrives while the editor is free
++/// to draw and is handled by the socket worker itself, not queued behind the editor's frame. The
++/// worker only raises `requested`; the editor observes it on the next frame, cancels the queue and
++/// answers the in-flight request with a `stopped: ... nothing was applied` failure.
++#[derive(Debug, Default)]
++pub(super) struct AgentCancel {
++    /// A cancel that has not been observed yet.
++    requested: AtomicBool,
++    /// A deferred job that the next frame can stop is in flight.
++    in_flight: AtomicBool,
++    /// How many cancel requests were answered `cancelled` (diagnostics).
++    cancelled: AtomicU64,
++}
++
++impl AgentCancel {
++    /// Mark a cancellable job started; the editor clears it when the request is answered.
++    fn begin(&self) {
++        self.in_flight.store(true, Ordering::Release);
++    }
++
++    /// Mark the job answered (normally, stale or stopped).
++    fn end(&self) {
++        self.in_flight.store(false, Ordering::Release);
++        self.requested.store(false, Ordering::Release);
++    }
++
++    /// Answer `ui.operations {cancel: "agent"}` from a socket worker: raise the flag and report
++    /// whether a job was in flight. A job that lands before the editor reads the flag answers
++    /// with its own result, which the caller reports as landed; that race is not an error.
++    fn request_cancel(&self) -> bool {
++        if !self.in_flight.load(Ordering::Acquire) {
++            return false;
++        }
++        self.requested.store(true, Ordering::Release);
++        self.cancelled.fetch_add(1, Ordering::AcqRel);
++        true
++    }
++
++    /// Take a pending cancel for the editor's next frame.
++    fn take_request(&self) -> bool {
++        self.requested.swap(false, Ordering::AcqRel)
++    }
++}
++
+ #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+ enum RequestDecision {
+     #[default]
+@@ -162,6 +212,45 @@ fn failed_reply(failure: &Failure) -> Value {
+     json!({"error": failure.message(), "code": failure.code(), "details": failure.details()})
+ }
+ 
++/// The reply to `ui.operations` (patch 0013). `cancel: "agent"` stops the in-flight
++/// control-channel job; any other shape is refused without touching the editor. The refusal is
++/// ordinary JSON an unmodified client treats as a tool error (`error` + `code`), with `ok` for
++/// hosts that read the shared browser/node control client's envelope.
++fn operations_reply(agent: &AgentCancel, params: &Value) -> Value {
++    match params["cancel"].as_str() {
++        Some("agent") => {
++            if agent.request_cancel() {
++                json!({"ok": true, "result": {"cancelled": "agent"}})
++            } else {
++                json!({
++                    "ok": false,
++                    "error": "no operation `agent` is under way",
++                    "code": ErrorCode::Cancelled.as_str(),
++                    "details": {},
++                })
++            }
++        }
++        Some(other) => json!({
++            "ok": false,
++            "error": format!("no operation `{other}` is under way"),
++            "code": ErrorCode::InvalidRequest.as_str(),
++            "details": {},
++        }),
++        None => json!({
++            "ok": false,
++            "error": "ui.operations needs `cancel`: \"agent\"",
++            "code": ErrorCode::InvalidRequest.as_str(),
++            "details": {},
++        }),
++    }
++}
++
++/// The answer a stopped control-channel job gives its caller. The `stopped:` prefix is the
++/// product's stop marker: the caller must report this as a stop, not as a failure of the design.
++fn stopped_failure(operation: &str) -> Failure {
++    Failure::new(ErrorCode::Cancelled, format!("stopped: `{operation}` was canceled while it computed; nothing was applied"))
++}
++
+ impl std::fmt::Debug for LiveControl {
+     /// Identify the endpoint in diagnostics without logging its credential.
+     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -187,15 +276,17 @@ impl LiveControl {
+         let (send, requests) = mpsc::sync_channel(1);
+         let ctx = ctx.clone();
+         let generation = Arc::new(AtomicU64::new(0));
++        let agent = Arc::new(AgentCancel::default());
+         let worker_token = Arc::clone(&token);
+         let worker_stop = Arc::clone(&stop);
+         let worker_generation = Arc::clone(&generation);
++        let worker_agent = Arc::clone(&agent);
+         let worker = thread::Builder::new().name("pcbcraft-live-mcp".to_owned()).spawn(move || {
+-            listen(listener, &worker_token, &worker_stop, &worker_generation, &send, &ctx, wait);
++            listen(listener, &worker_token, &worker_stop, &worker_generation, &worker_agent, &send, &ctx, wait);
+             drop(send);
+             ctx.request_repaint();
+         })?;
+-        Ok(Self { port, token, requests, stop, generation, worker: worker.thread().clone() })
++        Ok(Self { port, token, requests, stop, generation, agent, worker: worker.thread().clone() })
+     }
+ 
+     /// Start a new request generation, revoking every request that arrived before: the chat
+@@ -205,6 +296,11 @@ impl LiveControl {
+         self.generation.fetch_add(1, Ordering::AcqRel) + 1
+     }
+ 
++    /// The cancellable operation this endpoint's `ui.operations` stops.
++    pub(super) fn agent(&self) -> Arc<AgentCancel> {
++        Arc::clone(&self.agent)
++    }
++
+     /// The current request generation.
+     pub(super) fn current(&self) -> u64 {
+         self.generation.load(Ordering::Acquire)
+@@ -383,6 +479,11 @@ impl PcbApp {
+                 let port = self.live_control.as_ref().map_or(0, LiveControl::port);
+                 self.remote_check.queue.submit(crate::board_drc::jobs::Request { id: 0, job });
+                 self.remote_check.request = Some((request, chat, port));
++                // Patch 0013: from here until the answer, `ui.operations {cancel: "agent"}` can
++                // stop this job; the socket worker only raises the flag, this thread cancels.
++                if let Some(agent) = self.live_control.as_ref().map(LiveControl::agent) {
++                    agent.begin();
++                }
+                 ctx.request_repaint();
+             }
+             Err(error) => request.answer(Err(error.into())),
+@@ -391,6 +492,19 @@ impl PcbApp {
+ 
+     /// Retire expired/revoked/stale checks without blocking other MCP edits or window input.
+     pub(super) fn poll_remote_check(&mut self, ctx: &egui::Context) {
++        let agent = self.live_control.as_ref().map(LiveControl::agent);
++        // Patch 0013: a `ui.operations {cancel: "agent"}` that the socket worker accepted is
++        // observed here, on a frame that still draws. The deferred job is stopped between its
++        // batches; its caller gets the product's `stopped:` answer and the project is untouched.
++        if let Some(agent) = &agent
++            && agent.take_request()
++            && self.remote_check.request.is_some()
++        {
++            self.remote_check.queue.cancel();
++            if let Some((request, _, _)) = self.remote_check.request.take() {
++                request.answer(Err(stopped_failure(pcbcraft_engine::CHECK_DESIGN)));
++            }
++        }
+         let valid = self.remote_check.request.as_ref().is_some_and(|(request, chat, port)| {
+             !request.expired()
+                 && if *chat {
+@@ -424,6 +538,13 @@ impl PcbApp {
+         if self.remote_check.queue.busy() {
+             ctx.request_repaint_after(Duration::from_millis(8));
+         }
++        // The answer (normal, stale or stopped) has been sent: the next cancel says `no
++        // operation` instead of stopping a job whose result already reached its caller.
++        if let Some(agent) = &agent
++            && self.remote_check.request.is_none()
++        {
++            agent.end();
++        }
+     }
+ 
+     /// Use the engine's prepared path where available. Parameter and policy checks remain shared.
+@@ -853,6 +974,7 @@ fn listen(
+     token: &Token,
+     stop: &AtomicBool,
+     generation: &AtomicU64,
++    agent: &Arc<AgentCancel>,
+     send: &SyncSender<Request>,
+     ctx: &egui::Context,
+     wait: Duration,
+@@ -876,7 +998,7 @@ fn listen(
+                     _ => break,
+                 },
+             };
+-            match thread::Builder::new().spawn_scoped(scope, move || serve_peer(peer, token, stop, generation, send, ctx, wait)) {
++            match thread::Builder::new().spawn_scoped(scope, move || serve_peer(peer, token, stop, generation, agent, send, ctx, wait)) {
+                 Ok(worker) => workers.push(worker),
+                 Err(_) => thread::park_timeout(ACCEPT_POLL),
+             }
+@@ -895,6 +1017,7 @@ fn serve_peer(
+     token: &Token,
+     stop: &AtomicBool,
+     generation: &AtomicU64,
++    agent: &Arc<AgentCancel>,
+     send: &SyncSender<Request>,
+     ctx: &egui::Context,
+     wait: Duration,
+@@ -912,6 +1035,13 @@ fn serve_peer(
+         let _ = peer.send(&failed_reply(&failure));
+         return;
+     }
++    // Patch 0013: the agent's stop is answered here, on this socket worker, while the editor
++    // keeps drawing. It must never queue behind the editor's frame: the whole point is to reach
++    // a job the editor has already handed to its own worker.
++    if body["method"].as_str() == Some("ui.operations") {
++        let _ = peer.send(&operations_reply(agent, &body["params"]));
++        return;
++    }
+     let (reply, response) = mpsc::sync_channel(1);
+     let deadline = Instant::now() + wait;
+     // Stamped once authenticated: a request belongs to the generation it arrived in.

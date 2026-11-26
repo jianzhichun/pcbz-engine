@@ -239,3 +239,28 @@ tools against the session the pane draws: one document, one undo history. Reques
 keep running while the pane is hidden (`visible: false` stops frames, not passes). The live server answers
 `project.snapshot_packed` as the headless engine does (patch 0006), so `snapshot_project` works; its reply is capped at
 16 MiB with base64 (about 12 MiB of archive).
+
+### Stopping the model's step: `ui.operations {cancel: "agent"}` (patch 0013)
+
+A plain control request (token on its first JSON frame, as upstream's loopback transport wants):
+
+```json
+{"id": 1, "method": "ui.operations", "params": {"cancel": "agent"}, "token": "<controlSecret>"}
+```
+
+It is answered by the control channel's socket worker itself, **not** by a frame pass: the editor keeps drawing while a
+deferred job computes. The answer is `{"ok": true, "result": {"cancelled": "agent"}}` when a cancellable job is in
+flight, and `{"ok": false, "error": "no operation `agent` is under way", "code": "cancelled"}` when none is (a read-only
+session included: reading and checking still run, and nothing is computing, so there is nothing to stop).
+
+What can be stopped today is the render server's deferred work on the model's behalf: `pcb.check_design` (and the other
+engine.execute calls that the editor already hands to a worker; a command that runs inside the frame pass cannot be
+interrupted, so none is claimed). The in-flight `engine.execute` whose job was stopped answers with the product's stop
+answer, an error of code `cancelled` whose message begins `stopped:` and says nothing was applied; the project revision,
+the undo history and the file do not change. If the job finishes before the editor sees the cancel, the execute answers
+with its real result: the host must report that step as landed, not as stopped. The editor never restarts.
+
+Test-only hook: with `PCBZ_RENDER_TEST_CHECK_MS=<n>` in the render server's environment, a deferred check is held on its
+worker for `n` ms before it starts, in 25 ms slices that observe cancellation. It exists only so the proof can cancel a
+real control-channel job deterministically (a synthetic board large enough would be slow to carry); the product never
+sets it, and it does nothing when unset.
