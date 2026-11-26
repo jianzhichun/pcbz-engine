@@ -4,14 +4,18 @@
 # busy/home/project/message/notice/read_only, so the page could only infer that state from a test seam.
 # This adds the three fields `inspect_editor` already reports on the desktop -- `dialog_open` (the app's
 # `Dialog`), `text_editing` (`views.editing_text()`, the schematic inline text edit) and `unsaved`
-# (`files.dirty(&session)`) -- read at the same host_tick that publishes the rest. It also puts the IME
-# caret on the worker's frame report from the egui platform output (`ime.cursor_rect`, converted from
-# points to the page's CSS pixels). A Worker has no DOM, so the page parks its hidden textarea at that
-# point and the browser opens the IME candidate window at the caret.
-# Query path only: no editor behaviour changes. Both sites are cfg(target_arch = "wasm32"), so a desktop
-# build compiles neither addition.
-# Files touched: crates/app/src/lib.rs (host_tick status JSON); apps/pcbcraft-web/src/worker/mod.rs
-# (Report.ime_rect and ImeRect, set from platform_output.ime).
+# (`files.dirty(&session)`) -- read at the same host_tick that publishes the rest. `editing_text` was
+# `cfg(not(target_arch = "wasm32"))`; its native-only gate is dropped so the wasm status uses the exact
+# expression `inspect_editor` does. The patch also puts the IME caret on the worker's frame report from
+# the egui platform output (`ime.cursor_rect`, converted from points to the page's CSS pixels). A Worker
+# has no DOM, so the page parks its hidden textarea at that point and the browser opens the IME candidate
+# window at the caret.
+# Query path only: no editor behaviour changes. The status site is cfg(target_arch = "wasm32") and the
+# worker module is wasm-only, so a desktop build compiles neither addition; the editing_text change only
+# makes an existing query available.
+# Files touched: crates/app/src/lib.rs (host_tick status JSON); crates/app/src/editor_workspace.rs
+# (drop the native-only cfg on editing_text); apps/pcbcraft-web/src/worker/mod.rs (Report.ime_rect and
+# ImeRect, set from platform_output.ime).
 
 diff --git a/apps/pcbcraft-web/src/worker/mod.rs b/apps/pcbcraft-web/src/worker/mod.rs
 index 0275ee3..01d4d91 100644
@@ -57,6 +61,18 @@ index 0275ee3..01d4d91 100644
  
          let dirty = !shapes.is_empty() || !self.deltas.set.is_empty() || report.repaint;
          if dirty {
+diff --git a/crates/app/src/editor_workspace.rs b/crates/app/src/editor_workspace.rs
+index a5729dd..24b48c4 100644
+--- a/crates/app/src/editor_workspace.rs
++++ b/crates/app/src/editor_workspace.rs
+@@ -168,7 +168,6 @@ impl EditorViews {
+     }
+ 
+     /// Inline drafts own text input until accepted or cancelled, including in a native host.
+-    #[cfg(not(target_arch = "wasm32"))]
+     pub(super) fn editing_text(&self) -> bool {
+         self.active.schematic.text_edit.is_some() || self.rest.values().any(|view| view.schematic.text_edit.is_some())
+     }
 diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
 index 6d96536..5620e1c 100644
 --- a/crates/app/src/lib.rs
