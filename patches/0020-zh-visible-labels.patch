@@ -1,0 +1,397 @@
+diff --git a/crates/app/src/net_labels.rs b/crates/app/src/net_labels.rs
+index 2a6eaf7..75f9bbb 100644
+--- a/crates/app/src/net_labels.rs
++++ b/crates/app/src/net_labels.rs
+@@ -458,7 +458,7 @@ impl PcbApp {
+             |ui| {
+                 submit |= label_fields(ui, &mut edit, true);
+                 if let Some(error) = &edit.error {
+-                    ui.label(shell::error(error));
++                    ui.label(shell::error(pcbcraft_chrome::i18n::tr_label(error)));
+                 }
+             },
+         );
+@@ -540,7 +540,7 @@ impl PcbApp {
+                 }
+                 apply |= label_fields(ui, &mut edit, false);
+                 if let Some(error) = &edit.error {
+-                    ui.label(shell::error(error));
++                    ui.label(shell::error(pcbcraft_chrome::i18n::tr_label(error)));
+                 }
+                 if edit.read().as_ref() != Ok(&current.label) {
+                     apply |= pcbcraft_chrome::controls::button(ui, "Apply changes").clicked();
+diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
+index f2cdb7a..c230060 100644
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -2,7 +2,7 @@
+  "  Of": "  共",
+  "0 items": "0 项",
+  "1 footprint ready to place": "1 个封装待放置",
+- "100% is the default wire width": "100% 是默认走线宽度",
++ "100% is the default wire width": "100% 是默认导线宽度",
+  "20 mil or 0.5 mm": "20 mil 或 0.5 mm",
+  "2D preview": "2D 预览",
+  "3D model": "3D 模型",
+@@ -65,7 +65,7 @@
+  "Assign class": "分配类",
+  "Assistant model": "助手模型",
+  "Assistant permission mode": "助手权限模式",
+- "Auto-heal wires": "自动修复走线",
++ "Auto-heal wires": "自动修复导线",
+  "BOM": "物料清单",
+  "Back to the original order": "恢复原始顺序",
+  "Back to {OPACITY_DEFAULT}%": "恢复为 {OPACITY_DEFAULT}%",
+@@ -161,7 +161,7 @@
+  "Delete Segment": "删除线段",
+  "Delete Sheet": "删除图纸",
+  "Delete Sheet…": "删除图纸…",
+- "Delete Wire": "删除走线",
++ "Delete Wire": "删除导线",
+  "Delete library": "删除库",
+  "Delete selected items": "删除所选项目",
+  "Delete sheet “{}”?": "删除图纸“{}”？",
+@@ -265,7 +265,7 @@
+  "Grab selection · Click to place · Esc cancel": "抓取选择 · 点击放置 · Esc 取消",
+  "Grab selection · Esc to cancel": "抓取选择 · Esc 取消",
+  "Grab symbol · R rotate · Click to place · Esc cancel": "抓取符号 · R 旋转 · 点击放置 · Esc 取消",
+- "Grab wire · Click to place · Esc cancel": "抓取走线 · 点击放置 · Esc 取消",
++ "Grab wire · Click to place · Esc cancel": "抓取导线 · 点击放置 · Esc 取消",
+  "Graphics": "图形",
+  "Grid": "网格",
+  "Grid Spacing": "网格间距",
+@@ -275,7 +275,7 @@
+  "Grid {current} · {marks} {spacing}": "网格 {current} · {marks} {spacing}",
+  "Ground": "接地",
+  "Heal": "修复",
+- "Heal Wire": "修复走线",
++ "Heal Wire": "修复导线",
+  "Height": "高度",
+  "Help": "帮助",
+  "Hex": "十六进制",
+@@ -294,7 +294,7 @@
+  "Interface scale": "界面缩放",
+  "Isolate active": "隔离活动项",
+  "Item ID": "条目 ID",
+- "Its symbols, wires, associated board footprints and connections to parent pins will be removed. Child sheets become top-level sheets. Undo restores them.": "其符号、走线、关联的板级封装以及与父引脚的连接将被移除。子图纸将成为顶层图纸。撤销可恢复。",
++ "Its symbols, wires, associated board footprints and connections to parent pins will be removed. Child sheets become top-level sheets. Undo restores them.": "其符号、导线、关联的板级封装以及与父引脚的连接将被移除。子图纸将成为顶层图纸。撤销可恢复。",
+  "Keep chat": "保留对话",
+  "Keeps a copy of unsaved work in a recovery folder outside the project, renewed at this interval and right after a slow change. Off keeps nothing. Copies left by earlier sessions are removed after 14 days. Restoring a copy after a crash is not available yet.": "在工程外的恢复文件夹中保留未保存工作的副本，按此间隔以及缓慢更改之后立即更新。关闭则不保留。早前会话留下的副本会在 14 天后删除。崩溃后恢复副本尚不可用。",
+  "Keyboard Shortcuts": "键盘快捷键",
+@@ -563,7 +563,7 @@
+  "Rename part": "重命名元件",
+  "Rename the component in the schematic, PCB and outputs. Apply or reset pending silkscreen edits first.": "在原理图、PCB 和输出中重命名元件。请先应用或重置待处理的丝印编辑。",
+  "Rename…": "重命名…",
+- "Renumber the library definition only. Placed copies, wires and native part maps stay unchanged.": "仅重新编号库定义。已放置的副本、走线和原生元件映射保持不变。",
++ "Renumber the library definition only. Placed copies, wires and native part maps stay unchanged.": "仅重新编号库定义。已放置的副本、导线和原生元件映射保持不变。",
+  "Repeat placement": "重复放置",
+  "Replace all connections with matching terminal and pad numbers": "用匹配的端子与焊盘编号替换所有连接",
+  "Report a bug": "报告问题",
+@@ -580,7 +580,7 @@
+  "Reset the settings on this page": "重置此页的设置",
+  "Reset value": "重置值",
+  "Reset {title} size": "重置{title}大小",
+- "Reshape wire · Esc to cancel": "重塑走线 · Esc 取消",
++ "Reshape wire · Esc to cancel": "重塑导线 · Esc 取消",
+  "Restart the agent after signing in elsewhere": "在别处登录后重启智能体",
+  "Restore component reference text, default appearance and the library's reference position.": "恢复元件参考文字、默认外观和库中的参考位置。",
+  "Restore page defaults": "恢复此页默认值",
+@@ -634,7 +634,7 @@
+  "Select": "选择",
+  "Select All": "全选",
+  "Select Footprints": "选择封装",
+- "Select Wire": "选择走线",
++ "Select Wire": "选择导线",
+  "Select an item": "选择项目",
+  "Select courtyard": "选择庭院",
+  "Select items · Esc to cancel": "选择项目 · Esc 取消",
+@@ -759,13 +759,13 @@
+  "What agents may do without asking. Reading the project always runs.": "智能体可未经询问执行的操作。读取工程始终允许。",
+  "Where used": "使用位置",
+  "Width": "宽度",
+- "Wire": "走线",
+- "Wire color": "走线颜色",
+- "Wire segment selected · Del delete": "已选择走线段 · Del 删除",
+- "Wire width": "走线宽度",
+- "Wire · Click a start point": "走线 · 点击起点",
+- "Wire · Click corners · Enter finish · Space flip · Esc cancel": "走线 · 点击拐角 · Enter 完成 · Space 翻转 · Esc 取消",
+- "Wires": "走线",
++ "Wire": "导线",
++ "Wire color": "导线颜色",
++ "Wire segment selected · Del delete": "已选择导线段 · Del 删除",
++ "Wire width": "导线宽度",
++ "Wire · Click a start point": "导线 · 点击起点",
++ "Wire · Click corners · Enter finish · Space flip · Esc cancel": "导线 · 点击拐角 · Enter 完成 · Space 翻转 · Esc 取消",
++ "Wires": "导线",
+  "Workspace": "工作区",
+  "X": "X",
+  "X offset": "X 偏移",
+@@ -865,7 +865,7 @@
+  "ui.workspace_current": "当前",
+  "ui.workspace_planned": "计划中",
+  "v{VERSION}": "v{VERSION}",
+- "wire end": "走线端点",
++ "wire end": "导线端点",
+  "{action} {label}": "{action} {label}",
+  "{action} {title}": "{action} {title}",
+  "{action} {}": "{action} {}",
+@@ -905,5 +905,64 @@
+  "{}/{} · r{}": "{}/{} · r{}",
+  "{}: set {} before starting PCBCraft.": "{}：启动 PCBZ 前请设置 {}。",
+  "{}: sign in from a terminal, then Retry.": "{}：请在终端中登录，然后重试。",
+- "{}{login}": "{}{login}"
+-}
+\ No newline at end of file
++ "{}{login}": "{}{login}",
++ "Add": "添加",
++ "All mounting types": "全部安装类型",
++ "Assign": "分配",
++ "Assign Footprint": "分配封装",
++ "Auto (follow pin)": "自动（跟随引脚）",
++ "Board Edge": "板边",
++ "Board Outline": "电路板轮廓",
++ "Board defaults": "电路板默认值",
++ "Board defaults…": "电路板默认值…",
++ "Board editor layers": "电路板编辑器层",
++ "Board rules": "电路板规则",
++ "Board setup": "电路板设置",
++ "Board setup…": "电路板设置…",
++ "Bottom": "底层",
++ "Copper": "铜层",
++ "Copper layers": "铜层数",
++ "Default": "默认",
++ "Enter a net name of 1–200 characters without surrounding whitespace or control characters.": "请输入 1–200 个字符的网络名，前后不要有空白或控制字符。",
++ "Global": "全局",
++ "Hard limits": "硬性限制",
++ "Landscape": "横向",
++ "Local": "本地",
++ "Materials": "材料",
++ "Mounting": "安装",
++ "Net classes": "网络类",
++ "Net colors": "网络颜色",
++ "Net label properties": "网络标签属性",
++ "Net name": "网络名",
++ "Net names": "网络名",
++ "Non-plated hole": "非金属化孔",
++ "Pad clearance": "焊盘间距",
++ "Part details": "元件详情",
++ "Part selection": "元件选择",
++ "Physical stackup": "物理叠层",
++ "Place net label": "放置网络标签",
++ "Portrait": "纵向",
++ "Position": "位置",
++ "Preferred track width": "首选走线宽度",
++ "Profiles": "配置",
++ "Project parameters": "项目参数",
++ "Ratsnest": "飞线",
++ "Routing preferences": "布线偏好",
++ "Scope": "范围",
++ "Search library items": "搜索库条目",
++ "Search nets": "搜索网络",
++ "Search nets or pins": "搜索网络或引脚",
++ "Side": "面",
++ "Silkscreen": "丝印",
++ "Stroke width": "线宽",
++ "Surface mount": "表贴",
++ "Text height": "文字高度",
++ "Through hole": "通孔",
++ "Top": "顶层",
++ "Tracks": "走线",
++ "Type": "类型",
++ "User": "用户层",
++ "View or project changed; reopen properties to continue.": "视图或工程已更改；请重新打开属性继续。",
++ "View or project changed; reopen the label action to continue.": "视图或工程已更改；请重新打开标签操作继续。",
++"Apply board defaults": "应用电路板默认值"
++}
+diff --git a/crates/chrome/src/board_setup.rs b/crates/chrome/src/board_setup.rs
+index 3573a5a..785924e 100644
+--- a/crates/chrome/src/board_setup.rs
++++ b/crates/chrome/src/board_setup.rs
+@@ -74,7 +74,7 @@ pub fn pages(ui: &mut Ui, page: &mut Page, error: Option<&str>, rules_available:
+                         nav.add_sized(vec2(nav.available_width(), t.control_height + t.space_8), |ui: &mut Ui| {
+                             solidcraft_ui_kit::button(
+                                 ui,
+-                                value.title(),
++                                crate::i18n::tr_label(value.title()),
+                                 if *page == value { solidcraft_ui_kit::Button::SmallSelected } else { solidcraft_ui_kit::Button::Ghost },
+                             )
+                         })
+@@ -92,7 +92,7 @@ pub fn pages(ui: &mut Ui, page: &mut Page, error: Option<&str>, rules_available:
+         let bar = Rect::from_min_size(body.min, vec2(body.width(), t.form_header_height));
+         let mut nav = ui.new_child(UiBuilder::new().max_rect(bar.shrink2(vec2(t.space_16, t.space_6))));
+         crate::controls::Choice::from_id_salt("setup_page")
+-            .selected_text(page.title())
++            .selected_text(crate::i18n::tr_label(page.title()))
+             .width(nav.available_width())
+             .show_ui(&mut nav, |ui| {
+                 for value in Page::ALL {
+@@ -101,7 +101,7 @@ pub fn pages(ui: &mut Ui, page: &mut Page, error: Option<&str>, rules_available:
+                         ui.label(crate::shell::dim(crate::i18n::tr_label("Design rules")));
+                     }
+                     ui.add_enabled_ui(rules_available || !matches!(value, Page::BoardDefaults | Page::NetClasses), |ui| {
+-                        ui.selectable_value(page, value, value.title());
++                        ui.selectable_value(page, value, crate::i18n::tr_label(value.title()));
+                     })
+                     .response
+                     .on_disabled_hover_text(crate::i18n::tr_label("Create the board before editing design rules."));
+@@ -131,7 +131,7 @@ pub fn pages(ui: &mut Ui, page: &mut Page, error: Option<&str>, rules_available:
+ /// Page headings use the interface face and weight shared with Preferences and the catalog.
+ pub fn heading(ui: &mut Ui, title: &str) {
+     let t = Tokens::get();
+-    ui.label(RichText::new(title).font(fonts::interface_heading(ui, t.font_intro)));
++    ui.label(RichText::new(crate::i18n::tr_label(title)).font(fonts::interface_heading(ui, t.font_intro)));
+     ui.add_space(t.space_8);
+ }
+ 
+diff --git a/crates/chrome/src/catalog.rs b/crates/chrome/src/catalog.rs
+index cf55e3a..80a6347 100644
+--- a/crates/chrome/src/catalog.rs
++++ b/crates/chrome/src/catalog.rs
+@@ -125,7 +125,7 @@ pub fn property_form_enabled(
+ ) -> FormAction {
+     let t = Tokens::get();
+     let id = egui::Id::unique(id);
+-    let window = Window::new(id, "settings", title).fields().actions(primary, "Cancel", None);
++    let window = Window::new(id, "settings", crate::i18n::tr_label(title)).fields().actions(primary, "Cancel", None);
+     let frame = kit::navigation_popup_frame().inner_margin(0);
+     let modal = Container::new(ctx, Surface::Window).modal(id).frame(frame).show(ctx, |ui| {
+         ui.set_width(width.min((ctx.content_rect().width() - 2.0 * t.space_16).max(0.0)));
+@@ -203,7 +203,7 @@ pub(crate) fn form_header(ui: &mut Ui, title: &str) -> (Rect, bool) {
+     crate::automation::publish(ui, &close_response, format!("button:Close {title}"));
+     let closed = close_response.clicked();
+     let label = Rect::from_min_max(header.min + vec2(t.space_24, 0.0), pos2(close.left() - t.space_8, header.bottom()));
+-    kit::paint_text(ui, label, title, fonts::interface_heading(ui, t.font_button), t.text, false);
++    kit::paint_text(ui, label, crate::i18n::tr_label(title), fonts::interface_heading(ui, t.font_button), t.text, false);
+     ui.interact(label, ui.make_persistent_id("form_title"), Sense::hover())
+         .widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, ui.is_enabled(), title));
+     rule(ui, header.bottom(), header.x_range());
+@@ -242,7 +242,7 @@ pub fn settings_form_width(ctx: &egui::Context, title: &str, width: f32, primary
+         let field_style = ui.style().clone();
+         kit::scope(ui, |ui| {
+             ui.spacing_mut().item_spacing.y = 0.0;
+-            kit::panel::header(ui, "settings", title, || closed = true);
++            kit::panel::header(ui, "settings", crate::i18n::tr_label(title), || closed = true);
+             let height =
+                 (ctx.content_rect().height() - kit::header_height() - t.form_footer_height - t.space_24 * 2.0).clamp(0.0, t.control_height * 20.0);
+             let (body, _) = ui.allocate_exact_size(vec2(width, height), Sense::hover());
+@@ -342,7 +342,7 @@ pub fn preview(ui: &mut Ui, paint: impl FnOnce(&egui::Painter, Rect)) {
+ 
+ /// A selected catalog item's heading uses the same heading family as the source manager.
+ pub fn title(ui: &mut Ui, text: &str) {
+-    let response = ui.label(RichText::new(text).font(fonts::interface_heading(ui, Tokens::get().font_intro)));
++    let response = ui.label(RichText::new(crate::i18n::tr_label(text)).font(fonts::interface_heading(ui, Tokens::get().font_intro)));
+     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, format!("Preview {text}")));
+ }
+ 
+diff --git a/crates/chrome/src/controls.rs b/crates/chrome/src/controls.rs
+index cd5cf83..b00878b 100644
+--- a/crates/chrome/src/controls.rs
++++ b/crates/chrome/src/controls.rs
+@@ -127,7 +127,7 @@ pub fn bounded_button(ui: &mut Ui, id: impl egui::AsIdSalt, label: &str, width:
+         ui.add_enabled_ui(enabled, |ui| {
+             ui.scope(|ui| {
+                 ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+-                let response = kit::button_at(ui, "command", rect, label, Button::Normal);
++                let response = kit::button_at(ui, "command", rect, crate::i18n::tr_label(label), Button::Normal);
+                 crate::automation::publish(ui, &response, format!("button:{label}"));
+                 response
+             })
+@@ -143,7 +143,7 @@ pub fn action(label: &str, primary: bool) -> impl Widget + '_ {
+     move |ui: &mut Ui| {
+         let height = ui.spacing().interact_size.y;
+         ui.spacing_mut().interact_size.y = height.max(crate::Tokens::get().control_height);
+-        let response = kit::button(ui, label, if primary { Button::Primary } else { Button::Normal });
++        let response = kit::button(ui, crate::i18n::tr_label(label), if primary { Button::Primary } else { Button::Normal });
+         crate::automation::publish(ui, &response, format!("button:{label}"));
+         ui.spacing_mut().interact_size.y = height;
+         response
+@@ -152,7 +152,8 @@ pub fn action(label: &str, primary: bool) -> impl Widget + '_ {
+ 
+ /// Render a shared checkbox while retaining native change, focus and accessibility responses.
+ pub fn checkbox(ui: &mut Ui, value: &mut bool, label: impl AsRef<str>) -> Response {
+-    let response = kit::checkbox(ui, label.as_ref(), value);
++    // The toolkit draws a checkbox label as given, so translate here; the automation name stays English.
++    let response = kit::checkbox(ui, crate::i18n::tr_label(label.as_ref()), value);
+     crate::automation::publish(ui, &response, format!("checkbox:{}", label.as_ref()));
+     response
+ }
+diff --git a/crates/chrome/src/properties.rs b/crates/chrome/src/properties.rs
+index eacb18f..7a05d52 100644
+--- a/crates/chrome/src/properties.rs
++++ b/crates/chrome/src/properties.rs
+@@ -59,7 +59,7 @@ pub fn text_hint(ui: &mut Ui, label: &str, value: &mut String, hint: &str) -> eg
+ pub fn text_action(ui: &mut Ui, label: &str, value: &mut String, action: &str) -> bool {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        let label_response = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(label).halign(Align::Min));
++        let label_response = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+         let action_width =
+             egui::WidgetText::from(action).into_galley(ui, Some(egui::TextWrapMode::Extend), f32::INFINITY, egui::TextStyle::Button).size().x
+                 + ui.spacing().button_padding.x * 2.0
+@@ -82,10 +82,12 @@ pub fn choice(ui: &mut Ui, label: &str, id: impl egui::AsIdSalt, value: &mut Str
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+         let label = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+-        let selected = options.iter().find(|(key, _)| *key == value.as_str()).map(|(_, text)| text.as_str()).unwrap_or(value.as_str()).to_owned();
++        let selected =
++            crate::i18n::tr_label(options.iter().find(|(key, _)| *key == value.as_str()).map(|(_, text)| text.as_str()).unwrap_or(value.as_str()))
++                .to_owned();
+         solidcraft_ui_kit::dropdown_menu(ui, id, &selected, |ui| {
+             for (key, text) in options {
+-                ui.selectable_value(value, (*key).into(), text);
++                ui.selectable_value(value, (*key).into(), crate::i18n::tr_label(text));
+             }
+         })
+         .labelled_by(label.id)
+@@ -118,9 +120,14 @@ pub fn choice_with_action(ui: &mut Ui, label: &str, id: egui::Id, value: &mut St
+ pub fn select(ui: &mut Ui, label: &str, id: egui::Id, selected: &str, add: impl FnOnce(&mut Ui)) -> egui::Response {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        let label = ui.add_sized(vec2(72., t.control_height), egui::Label::new(label).halign(Align::Min));
++        let label = ui.add_sized(vec2(72., t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+         ui.spacing_mut().interact_size.y = t.control_height;
+-        egui::ComboBox::from_id_salt(id).width(ui.available_width()).selected_text(selected).show_ui(ui, add).response.labelled_by(label.id)
++        egui::ComboBox::from_id_salt(id)
++            .width(ui.available_width())
++            .selected_text(crate::i18n::tr_label(selected))
++            .show_ui(ui, add)
++            .response
++            .labelled_by(label.id)
+     })
+     .inner
+ }
+@@ -129,7 +136,7 @@ pub fn select(ui: &mut Ui, label: &str, id: egui::Id, selected: &str, add: impl
+ pub fn angle(ui: &mut Ui, label: &str, degrees: &mut u16) -> egui::Response {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        let label = ui.add_sized(vec2(72., t.control_height), egui::Label::new(label).halign(Align::Min));
++        let label = ui.add_sized(vec2(72., t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+         ui.add_sized(vec2(ui.available_width(), t.control_height), egui::DragValue::new(degrees).range(0..=359).suffix("°")).labelled_by(label.id)
+     })
+     .inner
+@@ -161,13 +168,14 @@ pub fn mapping_choice(ui: &mut Ui, label: &str, id: egui::Id, value: &mut String
+         ui.spacing_mut().item_spacing.x = t.space_8;
+         ui.spacing_mut().interact_size.y = t.control_height;
+         let label = field_name(ui, label, label_width, false);
+-        let selected = options.iter().find(|(key, _)| *key == value.as_str()).map(|(_, text)| text.as_str()).unwrap_or(value.as_str());
++        let selected =
++            crate::i18n::tr_label(options.iter().find(|(key, _)| *key == value.as_str()).map(|(_, text)| text.as_str()).unwrap_or(value.as_str()));
+         crate::controls::Choice::from_id_salt(id)
+             .width(ui.available_width())
+             .selected_text(selected)
+             .show_ui(ui, |ui| {
+                 for (key, text) in options {
+-                    ui.selectable_value(value, (*key).into(), text);
++                    ui.selectable_value(value, (*key).into(), crate::i18n::tr_label(text));
+                 }
+             })
+             .response
+@@ -185,7 +193,7 @@ pub fn mapping_multi_choice(ui: &mut Ui, label: &str, id: egui::Id, values: &mut
+         ui.spacing_mut().item_spacing.x = t.space_8;
+         ui.spacing_mut().interact_size.y = t.control_height;
+         let label = field_name(ui, label, label_width, false);
+-        let selected = if values.is_empty() { "None".into() } else { values.join(", ") };
++        let selected = if values.is_empty() { crate::i18n::tr_label("None").to_owned() } else { values.join(", ") };
+         solidcraft_ui_kit::dropdown_menu_with_close_behavior(ui, id, &selected, egui::PopupCloseBehavior::CloseOnClickOutside, |ui| {
+             for (key, text) in options {
+                 let mut checked = values.iter().any(|value| value == key);
