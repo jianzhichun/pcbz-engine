@@ -12,6 +12,7 @@ name: wasm-page
 on:
   push:
     branches: [wasm-page]
+    tags: ['engine-*']
     paths: ['patches/**', 'web-harness/**', 'UPSTREAM_COMMIT', '.github/workflows/wasm-page.yml']
   workflow_dispatch:
 permissions:
@@ -94,3 +95,38 @@ jobs:
             sizes.txt
           if-no-files-found: error
           retention-days: 7
+  archive:
+    if: startsWith(github.ref, 'refs/tags/engine-')
+    needs: [wasm-page]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm-page
+          path: art
+      - name: archive
+        shell: bash
+        env:
+          COPYFILE_DISABLE: '1'
+        run: |
+          set -euo pipefail
+          tag=${GITHUB_REF_NAME}; commit=${tag#engine-}; commit=${commit%-*}; n=${tag##*-}
+          [ -f art/upstream/dist/web/index.html ] || { ls -R art | head; exit 1; }
+          name=pcbcraft-web-0.1.0-${commit}-$n
+          mkdir -p "dist/$name"; cp -r art/upstream/dist/web "dist/$name/web"; cp art/proof/wasm-brotli.json "dist/$name/" 2>/dev/null || true
+          (cd dist && tar -czf "$name.tar.gz" "$name" && rm -rf "$name" && ls -l)
+      - name: publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum -- * > SHA256SUMS-wasm.txt; cat SHA256SUMS-wasm.txt
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME" --notes "PCBCraft programs and the wasm page built from tangency-labs/pcbcraft with patches/." || true
+          fi
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber *
