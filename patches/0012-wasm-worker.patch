@@ -318,7 +318,7 @@ index 0000000..0d43399
 +}
 diff --git a/apps/pcbcraft-web/src/worker/mod.rs b/apps/pcbcraft-web/src/worker/mod.rs
 new file mode 100644
-index 0000000..c323392
+index 0000000..0275ee3
 --- /dev/null
 +++ b/apps/pcbcraft-web/src/worker/mod.rs
 @@ -0,0 +1,417 @@
@@ -733,7 +733,7 @@ index 0000000..c323392
 +/// Proof-only overlay: black plate, white Chinese text; the workflow checks its pixels.
 +#[cfg(feature = "proof")]
 +fn overlay(ui: &egui::Ui, text: &str) {
-+    egui::Area::new(egui::Id::from("pcbz-cjk-proof")).fixed_pos(egui::pos2(8.0, 8.0)).order(egui::Order::Foreground).show(ui.ctx(), |ui| {
++    egui::Area::new(egui::Id::new("pcbz-cjk-proof")).fixed_pos(egui::pos2(8.0, 8.0)).order(egui::Order::Foreground).show(ui.ctx(), |ui| {
 +        egui::Frame::new().fill(egui::Color32::BLACK).inner_margin(egui::Margin::same(8)).show(ui, |ui| {
 +            ui.label(egui::RichText::new(text).size(28.0).color(egui::Color32::WHITE));
 +        });
