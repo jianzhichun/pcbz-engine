@@ -509,6 +509,14 @@ function openControl() {
       worker?.postMessage({ t: 'reload', hash: message.hash, revision: typeof message.revision === 'number' ? message.revision : revision })
       clearTimeout(reloadTimer)
       reloadTimer = setTimeout(() => { sendControl({ t: 'error', code: 'reload-timeout' }); locked = false; showLock() }, RELOAD_TIMEOUT_MS)
+    } else if (message.t === 'resume') {
+      // the model turn ended without a file change: unlock in place, keep the page's own state and undo
+      clearTimeout(flushTimer)
+      flushTimer = 0
+      clearTimeout(reloadTimer)
+      reloadTimer = 0
+      locked = false
+      showLock()
     } else if (message.t === 'read-only' && typeof message.readOnly === 'boolean') {
       setReadOnly(message.readOnly, message.reason)
     }

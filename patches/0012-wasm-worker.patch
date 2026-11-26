@@ -14,9 +14,10 @@
 # page's `pcbzOnExport` when it is present, so a host page never produces an unstamped download;
 # a plain browser keeps its download UI.
 # Files touched: apps/pcbcraft-web/{Cargo.toml, src/main.rs, new src/worker/{mod,input}.rs};
-# crates/app/src/{new worker_app.rs, lib.rs module + host_tick read-only + host-mode New/Open guards,
-# host.rs request and host-page flag, the three export inline-JS guards}; crates/chrome/src/fonts.rs
-# (bundled wasm face).
+# crates/app/src/{new worker_app.rs, lib.rs module + host_tick read-only + host-mode New/Open guards
+# + a keep-alive repaint while a file job runs, host.rs request and host-page flag, the three export
+# inline-JS guards, project_files.rs and project_files/web.rs for a larger encode slice on the host
+# page}; crates/chrome/src/fonts.rs (bundled wasm face).
 # No eframe change: wgpu already accepts SurfaceTarget::OffscreenCanvas; the page's worker calls
 # this app's exports instead of eframe's WebRunner.
 
@@ -898,6 +899,46 @@ index 22de19b..74319bb 100644
  ")]
  extern "C" {
      #[wasm_bindgen(js_name=pickLibraryItem)]
+diff --git a/crates/app/src/project_files.rs b/crates/app/src/project_files.rs
+index 5be396c..666c24f 100644
+--- a/crates/app/src/project_files.rs
++++ b/crates/app/src/project_files.rs
+@@ -516,7 +516,12 @@ impl ProjectFiles {
+         let job = self.job.as_mut()?;
+         #[cfg(target_arch = "wasm32")]
+         if let Some(download) = &mut job.download {
+-            download.advance();
++            // One bounded slice per frame keeps the plain browser page smooth. A host page's
++            // editor has a flush budget (its save must answer while the model waits) and paints
++            // offscreen in a worker, so it takes a much larger slice: the same archive would
++            // otherwise need dozens of frames and outlast the host's flush timeout.
++            let records = if crate::host::host_page() { 4096 } else { 256 };
++            download.advance(records);
+         }
+         let revision = job.revision;
+         let result = match job.receiver.try_recv() {
+diff --git a/crates/app/src/project_files/web.rs b/crates/app/src/project_files/web.rs
+index 6dd2b4b..0992c76 100644
+--- a/crates/app/src/project_files/web.rs
++++ b/crates/app/src/project_files/web.rs
+@@ -156,7 +156,7 @@ impl Download {
+     }
+ 
+     /// Encode a bounded batch or download the unchanged bytes. A request cannot confirm a write.
+-    pub(super) fn advance(&mut self) {
++    pub(super) fn advance(&mut self, records: usize) {
+         let result = match &mut self.source {
+             DownloadSource::Documents(documents) => match PackedEncoder::new((**documents).clone()) {
+                 Ok(archive) => {
+@@ -166,7 +166,7 @@ impl Download {
+                 Err(error) => Err(error),
+             },
+             DownloadSource::Unchanged(bytes) => send_download(bytes, &self.name),
+-            DownloadSource::Encode(encoder) => match encoder.step(256) {
++            DownloadSource::Encode(encoder) => match encoder.step(records) {
+                 Ok(Some(documents)) => match PackedEncoder::new(documents) {
+                     Ok(archive) => {
+                         self.source = DownloadSource::Archive(archive);
 diff --git a/crates/app/src/worker_app.rs b/crates/app/src/worker_app.rs
 new file mode 100644
 index 0000000..5fec4a1
