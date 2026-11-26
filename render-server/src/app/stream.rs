@@ -38,6 +38,7 @@ const OPEN_POLL: Duration = Duration::from_millis(10);
 pub struct StreamArgs {
     pub addr: SocketAddr,
     pub dark: bool,
+    pub lang: String,
     pub size: FrameSize,
     pub adapter: Policy,
     pub project: Option<PathBuf>,
@@ -105,7 +106,7 @@ pub fn run(args: StreamArgs) -> i32 {
         log::warn!("file dialogs: a host was installed already");
     }
     let recovery = args.config_dir.as_ref().map(|d| d.join("recovery"));
-    let mut ui = EditorHost::new(ctx, &gpu, args.dark, args.size, args.project.clone(), recovery);
+    let mut ui = EditorHost::new(ctx, &gpu, args.dark, &args.lang, args.size, args.project.clone(), recovery);
     // Before `ready`, as a device that does not open: the reason on stderr, no `bye`.
     let (control_port, control_secret) = match ui.start_control() {
         Ok(endpoint) => endpoint,
@@ -352,6 +353,14 @@ impl Stream {
                 self.read_only = reason;
                 self.schedule.want();
             }
+            HostMsg::Theme { theme } => match theme.as_str() {
+                "dark" | "light" => {
+                    log::debug!("theme: {theme}");
+                    self.ui.set_theme(theme == "dark");
+                    self.schedule.want();
+                }
+                other => log::warn!("theme: dark or light, not {other}"),
+            },
             HostMsg::Answer { ask, path } => {
                 self.asks.answer(ask, path);
                 self.schedule.want();

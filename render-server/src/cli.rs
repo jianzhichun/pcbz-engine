@@ -8,10 +8,11 @@ use std::time::Duration;
 use crate::adapters::gpu::Policy;
 
 pub const USAGE: &str = "usage:
-  pcbcraft-render-server --stream 127.0.0.1:PORT [--session ID] [--size WxH] [--dpr N] [--theme dark|light] [--project FILE] [--config-dir DIR] [--adapter auto|hardware|software]
-  pcbcraft-render-server --snapshot DIR [--frames N] [--size WxH] [--adapter auto|hardware|software] [--project FILE] [--dpr N] [--theme dark|light] [--warmup N] [--gap-ms N] [--config-dir DIR]
+  pcbcraft-render-server --stream 127.0.0.1:PORT [--session ID] [--size WxH] [--dpr N] [--theme dark|light] [--lang zh|en|he|system] [--project FILE] [--config-dir DIR] [--adapter auto|hardware|software]
+  pcbcraft-render-server --snapshot DIR [--frames N] [--size WxH] [--adapter auto|hardware|software] [--project FILE] [--dpr N] [--theme dark|light] [--lang zh|en|he|system] [--warmup N] [--gap-ms N] [--config-dir DIR]
 environment: PCBZ_RENDER_TOKEN (64 lowercase hex; stream mode), PCBZ_RENDER_LOG=error|warn|info|debug
---config-dir DIR (absolute): recovery snapshots go to DIR/recovery, never the per-user folder";
+--config-dir DIR (absolute): recovery snapshots go to DIR/recovery, never the per-user folder
+--lang defaults to zh (Simplified Chinese); the host's attach.lang overrides it at runtime";
 
 #[derive(Debug, PartialEq)]
 pub enum Mode {
@@ -30,6 +31,8 @@ pub struct Options {
     pub css: (u32, u32),
     pub dpr: f32,
     pub dark: bool,
+    /// Interface language (`zh` default; `en`, `he`, `system`). A host's `attach.lang` overrides it.
+    pub lang: String,
     pub adapter: Policy,
     /// A `.pc` archive, a project folder or its `project.json`, opened before the first frame.
     pub project: Option<PathBuf>,
@@ -54,6 +57,7 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Parsed, String> {
         css: (1280, 800),
         dpr: 1.0,
         dark: true,
+        lang: "zh".to_owned(),
         adapter: Policy::Auto,
         project: None,
         config_dir: None,
@@ -83,6 +87,14 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Parsed, String> {
                 }
             }
             "--adapter" => o.adapter = Policy::parse(&value()?).ok_or("--adapter: auto, hardware or software")?,
+            "--lang" => {
+                let lang = value()?;
+                let tag = lang.trim().replace('_', "-").to_ascii_lowercase();
+                match tag.split('-').next().unwrap_or_default() {
+                    "zh" | "en" | "he" | "iw" | "system" => o.lang = tag,
+                    other => return Err(format!("--lang: zh, en, he or system, not {other}")),
+                }
+            }
             "--project" => o.project = Some(PathBuf::from(value()?)),
             "--config-dir" => {
                 let dir = PathBuf::from(value()?);

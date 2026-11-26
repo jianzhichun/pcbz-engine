@@ -44,6 +44,7 @@ fn main() {
         Mode::Stream(addr) => stream::run(StreamArgs {
             addr,
             dark: options.dark,
+            lang: options.lang.clone(),
             size,
             adapter: options.adapter,
             project: options.project,
@@ -55,6 +56,7 @@ fn main() {
             warmup,
             gap,
             dark: options.dark,
+            lang: options.lang.clone(),
             size,
             adapter: options.adapter,
             project: options.project,

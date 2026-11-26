@@ -151,6 +151,27 @@ jobs:
           "$bin" --snapshot out-640 --frames 1 --size 640x400 --adapter ${{ matrix.adapter }} \
             --project upstream/examples/sensor-node.pc 2>&1 | tee -a smoke.log
           python scripts/png_check.py out-640/frame-0001.png 640 400 500 2>&1 | tee -a smoke.log
+      - name: Chinese interface, dark and light (the editor's menus and ribbon are Chinese)
+        shell: bash
+        run: |
+          unset DISPLAY WAYLAND_DISPLAY || true
+          bin="upstream/target/release/pcbcraft-render-server${{ matrix.exe }}"
+          for theme in dark light; do
+            "$bin" --snapshot "out-zh-$theme" --frames 2 --size 960x600 --adapter ${{ matrix.adapter }} \
+              --lang zh --theme "$theme" --project upstream/examples/sensor-node.pc 2>&1 | tee -a zh-$theme.log
+            python scripts/png_check.py "out-zh-$theme/frame-0002.png" 960 600 500 2>&1 | tee -a zh-$theme.log
+          done
+          # The two palettes must differ (a real switch, not one drawing twice).
+          python - "$PWD/out-zh-dark/frame-0002.png" "$PWD/out-zh-light/frame-0002.png" <<'EOF'
+          import sys
+          a = open(sys.argv[1], 'rb').read(); b = open(sys.argv[2], 'rb').read()
+          print('zh dark/light frames differ:', a != b, 'bytes', len(a), len(b))
+          raise SystemExit(0 if a != b else 1)
+          EOF
+      - name: Chinese catalog scan and remaining-English count
+        shell: bash
+        run: |
+          python scripts/i18n_check.py . 2>&1 | tee i18n.txt
       - name: stream proof (a scripted host over leg A, the control channel, read-only)
         id: proof
         continue-on-error: true
@@ -246,6 +267,11 @@ jobs:
           path: |
             out/
             out-640/
+            out-zh-dark/
+            out-zh-light/
+            zh-dark.log
+            zh-light.log
+            i18n.txt
             proof/
             proof.log
             smoke.log

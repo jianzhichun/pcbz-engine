@@ -17,7 +17,7 @@ marked **changed**. The host keeps the same kinds as TypeScript types in its own
 | Where | SolidZ v1 | PCBZ |
 |---|---|---|
 | program, env | `solidcraft-render-server`, `SOLIDCRAFT_RENDER_TOKEN`, `SOLIDCRAFT_CONTROL_TOKEN`, `SOLIDCRAFT_RENDER_LOG` | `pcbcraft-render-server`, `PCBZ_RENDER_TOKEN`, `PCBZ_RENDER_LOG`. **No control token variable:** the editor makes the control secret and returns it in `ready` |
-| flags | `--lang`, `--msaa`, `--open`, `--script`, `--hold-ms` | no `--lang` (the UI is English; the product name is PCBZ), no `--msaa` (the UI is 2D), `--project FILE` (the `.pc` archive or folder to open) in place of `--open`, no `--script`; `--snapshot DIR --frames N --warmup N --gap-ms N` as in M1 |
+| flags | `--lang`, `--msaa`, `--open`, `--script`, `--hold-ms` | `--lang zh\|en\|he\|system` (**default `zh`**, Simplified Chinese; the product name is PCBZ), no `--msaa` (the UI is 2D), `--project FILE` (the `.pc` archive or folder to open) in place of `--open`, no `--script`; `--snapshot DIR --frames N --warmup N --gap-ms N` as in M1 |
 | `--config-dir DIR` | SolidCraft's per-user folders | recovery snapshots go to `DIR/recovery`; with no flag there is **no** recovery (never the per-user folder); the editor keeps no other file (no settings, no token file, no discovery file) |
 | `ready` | `controlPort` | adds `controlSecret: string` (64 hex): give it to `pcbcraft-cli mcp --connect PORT` in `PCBCRAFT_CONTROL_TOKEN`. `samples` is always 1. `ready` comes after the startup project opened |
 | `design_changed` (server → host) | none (the host followed `document.revision` itself) | `{revision: u64}`: the open project's revision moved (an edit, undo or redo, from the pane or the control channel); sent after `ready` for the opened project, then once per pass whose revision differs from the last sent. Revisions only grow within a session |
@@ -61,7 +61,7 @@ the page's `input`, `resize`, `visible`, `ack` (unchanged). Everything else is t
 ## Starting (leg A)
 
 ```
-pcbcraft-render-server --stream 127.0.0.1:PORT [--session ID] [--size WxH] [--dpr N] [--theme dark|light] [--project FILE] [--config-dir DIR] [--adapter auto|hardware|software]
+pcbcraft-render-server --stream 127.0.0.1:PORT [--session ID] [--size WxH] [--dpr N] [--theme dark|light] [--lang zh|en|he|system] [--project FILE] [--config-dir DIR] [--adapter auto|hardware|software]
 ```
 
 Loopback only (`--stream` with another address exits 1 before `hello`). `--config-dir DIR` must be absolute (a relative
@@ -129,6 +129,7 @@ Field names are exactly as written (JSON). Rust: one enum per direction with
 | `visible` | `visible: bool` | false: passes still run (control requests, timers) but nothing is read back or encoded; true: the next frame is `full` |
 | `ack` | `seq: u64`, `decodeMs: f32` | one credit back (start: 2 credits) |
 | `policy` | `readOnly: string \| null` | read-only on with this reason (`Session::set_scope`), or off |
+| `theme` | `theme: "dark" \| "light"` | switch the palette at runtime (the next pass repaints light/dark; document, selection and undo are untouched). Also the theme the process started with via `--theme` |
 | `answer` | `ask: u32`, `path: string \| null` | resolves that ask's picker future; null = cancel |
 | `stop` | `why: string` | finish and exit |
 | `error` | as above | then close |
@@ -141,6 +142,7 @@ location; nothing else on the wire changes.
 ### Host ↔ page only (the render server never sees these)
 
 `attach {v, session, w, h, dpr, theme, lang}` (page → host, first), `choose_cancel {ask}`,
+`theme {theme: "dark"|"light"}` (page → host → server; runtime palette switch),
 `restart {}`; `status {state: "starting"|"live"|"fallback"|"stopped", reason?, readOnly}`,
 `choose_file {ask, exts}`, `notice {level: "info"|"warn", text}` (host → page). Listed so the kinds
 never collide.

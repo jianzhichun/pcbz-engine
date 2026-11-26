@@ -33,6 +33,19 @@ pub struct Pass {
     pub ms: f32,
 }
 
+/// The host's `lang` as the chrome's language preference. Anything unrecognised (and the
+/// default when the host says nothing) is Simplified Chinese; `en` and `he` stay available.
+fn chrome_language(lang: &str) -> pcbcraft_app::LanguageChoice {
+    use pcbcraft_app::LanguageChoice;
+    let tag = lang.trim().replace('_', "-").to_ascii_lowercase();
+    match tag.split('-').next().unwrap_or_default() {
+        "en" => LanguageChoice::English,
+        "he" | "iw" => LanguageChoice::Hebrew,
+        "system" => LanguageChoice::System,
+        _ => LanguageChoice::Chinese,
+    }
+}
+
 pub struct EditorHost {
     pub ctx: egui::Context,
     pub app: PcbApp,
@@ -52,10 +65,22 @@ impl EditorHost {
     /// The editor on `gpu`, opening `project` (a `.pc` archive or project folder) on its first pass.
     /// `ctx` is made by the caller so its repaint callback is set before anything can ask for one.
     /// `recovery`: where recovery snapshots go if the person turns them on (none: nowhere).
-    pub fn new(ctx: egui::Context, gpu: &Gpu, dark: bool, size: FrameSize, project: Option<PathBuf>, recovery: Option<PathBuf>) -> Self {
+    pub fn new(
+        ctx: egui::Context,
+        gpu: &Gpu,
+        dark: bool,
+        lang: &str,
+        size: FrameSize,
+        project: Option<PathBuf>,
+        recovery: Option<PathBuf>,
+    ) -> Self {
         // `new_embedded` also turns on embedded viewports: detached editor windows become windows
         // inside the pane, there is no OS to give them real ones.
         let mut app = PcbApp::new_embedded(&ctx, project);
+        // The host's theme and language: zh unless the host asked for another language. Both take
+        // effect on the first pass and can change later without touching the document.
+        app.set_host_theme(dark);
+        app.set_language(chrome_language(lang));
         if let Some(dir) = recovery {
             app.set_recovery_dir(dir);
         }
@@ -83,6 +108,20 @@ impl EditorHost {
 
     pub fn set_focused(&mut self, focused: bool) {
         self.focused = focused;
+    }
+
+    /// Switch light/dark at runtime: the next pass repaints in the new palette. No document,
+    /// selection or undo state is touched.
+    pub fn set_theme(&mut self, dark: bool) {
+        self.theme = if dark { egui::Theme::Dark } else { egui::Theme::Light };
+        self.app.set_host_theme(dark);
+        self.ctx.request_repaint();
+    }
+
+    /// Switch the interface language at runtime (`attach.lang`).
+    pub fn set_language(&mut self, lang: &str) {
+        self.app.set_language(chrome_language(lang));
+        self.ctx.request_repaint();
     }
 
     /// CSS px per UI point: the UI's own zoom (1 unless a preference changes it).

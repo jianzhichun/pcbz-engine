@@ -104,13 +104,16 @@ pub enum HostMsg {
     Visible { visible: bool },
     Ack { seq: u64, decode_ms: f32 },
     Policy { read_only: Option<String> },
+    /// PCBZ: the host switched light/dark. `theme` is `"dark"` or `"light"`; the editor repaints
+    /// in that palette without touching the document, selection or undo.
+    Theme { theme: String },
     Answer { ask: u32, path: Option<String> },
     Stop { why: String },
     Error { code: String, message: String },
 }
 
 /// The kinds the host may send (PROTOCOL.md, "Host → render server").
-const HOST_KINDS: [&str; 8] = ["input", "resize", "visible", "ack", "policy", "answer", "stop", "error"];
+const HOST_KINDS: [&str; 9] = ["input", "resize", "visible", "ack", "policy", "theme", "answer", "stop", "error"];
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -267,6 +270,7 @@ mod tests {
         let parse = |v: Value| parse_host(v.to_string().as_bytes());
         assert_eq!(parse(json!({"k": "ack", "seq": 4, "decodeMs": 1.5})), Ok(HostMsg::Ack { seq: 4, decode_ms: 1.5 }));
         assert_eq!(parse(json!({"k": "policy", "readOnly": null})), Ok(HostMsg::Policy { read_only: None }));
+        assert_eq!(parse(json!({"k": "theme", "theme": "light"})), Ok(HostMsg::Theme { theme: "light".into() }));
         assert_eq!(parse(json!({"k": "answer", "ask": 2, "path": "/s/a.step"})), Ok(HostMsg::Answer { ask: 2, path: Some("/s/a.step".into()) }));
         assert!(matches!(parse(json!({"k": "input", "seq": 1, "events": [{"e": "gone"}]})), Ok(HostMsg::Input { seq: 1, .. })));
     }

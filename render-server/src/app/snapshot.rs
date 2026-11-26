@@ -27,6 +27,7 @@ pub struct SnapshotArgs {
     pub warmup: u32,
     pub gap: Duration,
     pub dark: bool,
+    pub lang: String,
     pub size: FrameSize,
     pub adapter: Policy,
     pub project: Option<PathBuf>,
@@ -56,7 +57,7 @@ pub fn run(options: SnapshotArgs) -> i32 {
     eprintln!("graphics: {} {} ({}, software {})", gpu.backend, gpu.adapter, gpu.device_type, gpu.software);
     let started = Instant::now();
     let recovery = options.config_dir.as_ref().map(|d| d.join("recovery"));
-    let host = EditorHost::new(egui::Context::default(), &gpu, options.dark, size, options.project.clone(), recovery);
+    let host = EditorHost::new(egui::Context::default(), &gpu, options.dark, &options.lang, size, options.project.clone(), recovery);
     let mut run = Snapshot { gpu, host };
     run.go(&options, device_ms, started)
 }
