@@ -318,10 +318,10 @@ index 0000000..0d43399
 +}
 diff --git a/apps/pcbcraft-web/src/worker/mod.rs b/apps/pcbcraft-web/src/worker/mod.rs
 new file mode 100644
-index 0000000..59a8006
+index 0000000..c323392
 --- /dev/null
 +++ b/apps/pcbcraft-web/src/worker/mod.rs
-@@ -0,0 +1,418 @@
+@@ -0,0 +1,417 @@
 +//! PCBZ wasm page patch 0012: the editor loop on a worker-owned OffscreenCanvas.
 +//!
 +//! Why: the page and the chat share the host's one main thread; red line a forbids running the
@@ -342,12 +342,11 @@ index 0000000..59a8006
 +// eframe re-exports the renderer it was built with, so the page does not add a second source for it.
 +use eframe::egui_wgpu::{self, wgpu};
 +use wasm_bindgen::prelude::*;
-+use wasm_bindgen::JsCast as _;
 +use web_sys::OffscreenCanvas;
 +
 +mod input;
 +
-+/// The one editor a worker has.
++// The one editor a worker has.
 +thread_local! {
 +    static EDITOR: RefCell<Option<Editor>> = RefCell::new(None);
 +    /// The page's wake function. egui requires its repaint callback to be `Send + Sync`; a
@@ -652,7 +651,7 @@ index 0000000..59a8006
 +        }
 +    }
 +
-+    fn paint(&mut self, shapes: Vec<egui::ClippedShape>, pixels_per_point: f32) -> Result<bool, String> {
++    fn paint(&mut self, shapes: Vec<egui::epaint::ClippedShape>, pixels_per_point: f32) -> Result<bool, String> {
 +        let primitives = self.ctx.tessellate(shapes, pixels_per_point);
 +        let width = pixels(self.css_w, self.dpr);
 +        let height = pixels(self.css_h, self.dpr);
@@ -734,7 +733,7 @@ index 0000000..59a8006
 +/// Proof-only overlay: black plate, white Chinese text; the workflow checks its pixels.
 +#[cfg(feature = "proof")]
 +fn overlay(ui: &egui::Ui, text: &str) {
-+    egui::Area::new(egui::Id::new("pcbz-cjk-proof")).fixed_pos(egui::pos2(8.0, 8.0)).order(egui::Order::Foreground).show(ui.ctx(), |ui| {
++    egui::Area::new(egui::Id::from("pcbz-cjk-proof")).fixed_pos(egui::pos2(8.0, 8.0)).order(egui::Order::Foreground).show(ui.ctx(), |ui| {
 +        egui::Frame::new().fill(egui::Color32::BLACK).inner_margin(egui::Margin::same(8)).show(ui, |ui| {
 +            ui.label(egui::RichText::new(text).size(28.0).color(egui::Color32::WHITE));
 +        });
