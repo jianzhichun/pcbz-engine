@@ -1,0 +1,273 @@
+# patch 0014: no upstream links in a host build
+#
+# Why: in the native render server (patch 0010) and the wasm page (patch 0012) the app is drawn
+# inside AngAI, a different product: user-visible text and links must not carry the upstream
+# project name or open its pages. Host builds get no "Report a bug" button, no Help → Report an
+# Issue item, and no link in About; the datasheet links of a part are the user data, left as they are.
+#
+# files: crates/app/src/lib.rs (the host flag and four gated sites), embedded.rs and worker_app.rs
+# (their constructors mark the build). Additive and guarded; a normal desktop build is unchanged.
+
+diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
+index 0e4769b..6d96536 100644
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -38,11 +38,17 @@ mod editor_layout;
+ mod editor_view;
+ mod editor_windows;
+ mod editor_workspace;
++#[cfg(not(target_arch = "wasm32"))]
++mod embedded;
+ mod external_clipboard;
+ mod field_actions;
+ mod footprint_assignment;
+ mod hierarchy;
+ mod home;
++#[cfg(target_arch = "wasm32")]
++pub mod host;
++#[cfg(target_arch = "wasm32")]
++mod worker_app;
+ mod inline_text;
+ mod inspection_selection;
+ mod library_editors;
+@@ -110,6 +116,30 @@ use project_files::SaveFormat;
+ 
+ const VERSION: &str = env!("CARGO_PKG_VERSION");
+ const BUG_REPORT_URL: &str = "https://github.com/tangency-labs/pcbcraft/issues/new";
++
++/// A host draws this build (the native render server's `new_embedded`, the wasm page's worker): the app is not the
++/// upstream project's own product then, and no link may leave it for the upstream site (patch 0014).
++static HOST_BUILD: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
++/// Mark this process as a host's build (patches 0010 and 0012 call it from their constructors).
++pub(crate) fn mark_host_build() {
++    HOST_BUILD.store(true, std::sync::atomic::Ordering::Relaxed);
++}
++
++#[cfg(target_arch = "wasm32")]
++fn wasm_host_page() -> bool {
++    crate::host::host_page()
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++fn wasm_host_page() -> bool {
++    false
++}
++
++/// Is the app drawn inside a host (so upstream links stay out of it)?
++fn host_build() -> bool {
++    HOST_BUILD.load(std::sync::atomic::Ordering::Relaxed) || wasm_host_page()
++}
+ const PREFERENCES_KEY: &str = "pcbcraft.preferences";
+ #[cfg(not(target_arch = "wasm32"))]
+ const RECENT_PROJECTS_KEY: &str = "pcbcraft.recent_projects";
+@@ -157,13 +187,13 @@ const IN_BROWSER: bool = cfg!(target_arch = "wasm32");
+ /// Connect AI assistants is desktop only: the browser can't host a local connection.
+ fn help_menu(ui: &mut Ui) -> Option<Help> {
+     let mut pick = None;
+-    if MenuItem::new("About PCBCraft").icon(MenuIcon::Help).show(ui) {
++    if MenuItem::new("About PCBZ").icon(MenuIcon::Help).show(ui) {
+         pick = Some(Help::About);
+     }
+     if MenuItem::new("Keyboard Shortcuts").icon(MenuIcon::Keyboard).show(ui) {
+         pick = Some(Help::Shortcuts);
+     }
+-    if MenuItem::new("Report an Issue…").icon(MenuIcon::Bug).show(ui) {
++    if !host_build() && MenuItem::new("Report an Issue…").icon(MenuIcon::Bug).show(ui) {
+         pick = Some(Help::Report);
+     }
+     #[cfg(not(target_arch = "wasm32"))]
+@@ -195,7 +225,7 @@ fn utilities(ui: &mut Ui, width: f32, assistant: Option<(bool, bool)>) -> Utilit
+     if width >= 950.0 {
+         ui.label(dim(format!("v{VERSION}")));
+         ui.add_space(Tokens::get().space_8);
+-        if menu::labeled_action(ui, MenuIcon::Bug, "Report a bug").clicked() {
++        if !host_build() && menu::labeled_action(ui, MenuIcon::Bug, "Report a bug").clicked() {
+             ui.ctx().open_url(egui::OpenUrl::new_tab(BUG_REPORT_URL));
+         }
+     }
+@@ -383,6 +413,9 @@ pub struct PcbApp {
+     /// Recovery snapshots of unsaved work and the opt-in timed save to the project.
+     #[cfg(not(target_arch = "wasm32"))]
+     autosave: autosave::Autosave,
++    /// A host draws this app inside its own surface (`embedded::PcbApp::new_embedded`): no OS
++    /// windows, and the host, not the person, owns the project file.
++    embedded: bool,
+ }
+ 
+ /// The Schematic workspace's ribbon tabs, in order.
+@@ -606,6 +639,13 @@ impl PcbApp {
+ 
+     /// Start a new project, first asking whether to save any unsaved changes it would replace.
+     fn new_project(&mut self, ctx: &egui::Context) {
++        // [F11] In the page, a new empty project must never be saved over the file the session has bound. While one
++        // is open, New is refused; an empty session (no project yet) may create its first one.
++        #[cfg(target_arch = "wasm32")]
++        if host::host_page() && self.session.project().is_some() {
++            self.message = Some("页面里不能把新工程存到已有的文件上；请在对话里让助手新建工程。".to_owned());
++            return;
++        }
+         self.unless_unsaved(unsaved::Then::New, ctx);
+     }
+ 
+@@ -651,6 +691,13 @@ impl PcbApp {
+ 
+     /// Open a file that replaces the current session, first asking whether to save unsaved changes.
+     fn open_project_file(&mut self, ctx: &egui::Context) {
++        // The page loads the session's bound file itself; switching projects is the host page's file card's job. Opening
++        // here would re-fetch the same file and drop edits made since the last save (design §2.1).
++        #[cfg(target_arch = "wasm32")]
++        if host::host_page() {
++            self.message = Some("页面里请用会话的文件卡切换工程。".to_owned());
++            return;
++        }
+         self.unless_unsaved(unsaved::Then::Open, ctx);
+     }
+ 
+@@ -718,6 +765,13 @@ impl PcbApp {
+ 
+     /// Start a save or download for the current snapshot and report setup failures.
+     fn save_project_file(&mut self, encoding: Option<SaveFormat>, ctx: &egui::Context) {
++        // An embedded host keeps the project file itself: a plain Save would write the file the
++        // project was opened from, behind the host's lease. Save As (a format chosen) goes through
++        // the file dialog, which the host answers with a place of its own.
++        if self.embedded && encoding.is_none() {
++            self.message = Some("PCBZ saves the project itself".to_owned());
++            return;
++        }
+         self.message = self.files.save(&self.session, encoding, ctx).err();
+         self.file_notice = None;
+     }
+@@ -951,7 +1005,11 @@ impl PcbApp {
+         match pick {
+             Help::About => self.dialog = Dialog::About,
+             Help::Shortcuts => self.dialog = Dialog::Preferences(preferences::PreferencesWindow::at_shortcuts(self.preferences)),
+-            Help::Report => ctx.open_url(egui::OpenUrl::new_tab(BUG_REPORT_URL)),
++            Help::Report => {
++                if !host_build() {
++                    ctx.open_url(egui::OpenUrl::new_tab(BUG_REPORT_URL));
++                }
++            }
+             #[cfg(not(target_arch = "wasm32"))]
+             Help::Connect => self.dialog = Dialog::LocalMcp { error: None, copied: false },
+         }
+@@ -1597,7 +1655,7 @@ impl PcbApp {
+                     ui.label(dim(text)).on_hover_text("Pointer position on the grid");
+                 }
+                 #[cfg(not(target_arch = "wasm32"))]
+-                if self.live_control.is_some() {
++                if self.live_control.is_some() && !self.embedded {
+                     ui.label(dim("Local MCP enabled"));
+                 }
+             },
+@@ -2550,13 +2608,15 @@ impl PcbApp {
+             }
+             Dialog::About => {
+                 let mut close = false;
+-                let closing = shell::dialog(ctx, "about_dialog", "About PCBCraft", |ui| {
+-                    ui.label(format!("PCBCraft {VERSION}"));
++                let closing = shell::dialog(ctx, "about_dialog", "About PCBZ", |ui| {
++                    ui.label(format!("PCBZ {VERSION}"));
+                     ui.label("Electronics design for people and AI agents working together on the same board.");
+                     ui.label(dim("MIT OR Apache-2.0. Third-party notices are in ATTRIBUTION.md."));
+                     workspace::ribbon_licenses(ui);
+                     pcbcraft_chrome::fonts::licenses(ui);
+-                    ui.hyperlink_to("Report a bug", BUG_REPORT_URL);
++                    if !host_build() {
++                        ui.hyperlink_to("Report a bug", BUG_REPORT_URL);
++                    }
+                     close = pcbcraft_chrome::controls::button(ui, "Close").clicked();
+                 });
+                 if !(closing || close) {
+@@ -2584,6 +2644,12 @@ impl PcbApp {
+     /// Synthetic input may still revoke the endpoint or close this dialog.
+     #[cfg(not(target_arch = "wasm32"))]
+     fn local_mcp_dialog(&mut self, ctx: &egui::Context, mut error: Option<String>, mut copied: bool) {
++        // An embedded host owns this editor's one connection (patch 0010): Disable would cut its
++        // chat off, and Enable would start an endpoint the host does not know.
++        if self.embedded {
++            self.message = Some("The chat is already connected to this editor".to_owned());
++            return;
++        }
+         let mut close = false;
+         let dismissed = shell::dialog(ctx, "local_mcp", "Connect AI assistants", |ui| {
+             if let Some(control) = &self.live_control {
+@@ -2679,6 +2745,67 @@ impl PcbApp {
+         self.frame_inner(ui, false);
+     }
+ 
++    /// Apply requests the host page queued across the wasm boundary: open its project bytes,
++    /// save the open project, or run one catalog command. Each goes through the path a menu
++    /// action uses; a request that cannot start yet stays queued for the next frame.
++    #[cfg(target_arch = "wasm32")]
++    fn host_tick(&mut self, ctx: &egui::Context) {
++        host::remember_context(ctx);
++        for _ in 0..8 {
++            let Some(request) = host::take() else { break };
++            match request {
++                host::Request::Open(bytes) => {
++                    if self.files.busy() {
++                        host::retry(host::Request::Open(bytes));
++                        break;
++                    }
++                    if let Err(error) = self.files.open_host(bytes, self.session.revision(), ctx) {
++                        self.message = Some(error);
++                    }
++                }
++                host::Request::Save => {
++                    if self.session.project().is_none() || self.files.busy() {
++                        host::retry(host::Request::Save);
++                        break;
++                    }
++                    self.save_project_file(None, ctx);
++                }
++                host::Request::ReadOnly(read_only) => {
++                    self.set_read_only(read_only.then_some("PCBZ 只读：当前授权不能修改这个工程。"));
++                }
++                host::Request::Command { id, params } => {
++                    if self.files.busy() {
++                        host::retry(host::Request::Command { id, params });
++                        break;
++                    }
++                    let params = serde_json::from_str(&params).unwrap_or(Value::Null);
++                    self.run(&id, &params);
++                    self.repaint_editors(ctx);
++                }
++            }
++        }
++        let project = self.session.project().map(|project| project.name.clone());
++        host::publish_status(
++            json!({
++                "revision": self.session.revision(),
++                "busy": self.files.busy(),
++                "home": self.home,
++                "project": project,
++                "message": self.message,
++                "notice": self.file_notice,
++                "read_only": host::read_only(),
++            })
++            .to_string(),
++        );
++        // A file job (open, save) advances only on later frames; an idle egui asks for none, so
++        // without this the page's save would wait forever for the pump it just stopped. Ask for
++        // the next pass while one is in flight (the page's worker pump turns the request into a
++        // timer frame).
++        if self.files.busy() {
++            ctx.request_repaint_after(std::time::Duration::from_millis(16));
++        }
++    }
++
+     /// Adopt project file results and handle Close before considering a timed Save, even in
+     /// a logic-only native pass. Repaint hosts when adoption or finishing a job changes them.
+     fn project_file_tick(&mut self, ctx: &egui::Context) {
+@@ -2724,6 +2851,10 @@ impl PcbApp {
+     /// path uses the same monotonic clock as logic-only passes; embedded hosts use input time.
+     fn frame_inner(&mut self, ui: &mut Ui, _native_framework: bool) {
+         let ctx = ui.ctx().clone();
++        // Requests the page queued across the wasm boundary run before this frame's file poll,
++        // through the same open, save and catalog-command paths as the menus below.
++        #[cfg(target_arch = "wasm32")]
++        self.host_tick(&ctx);
+         // Apply source availability before restored readers capture their catalog generation.
+         self.sync_library_preferences();
+         self.poll_library_sources(&ctx);
