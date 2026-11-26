@@ -1,5 +1,50 @@
+diff --git a/crates/app/src/project_files.rs b/crates/app/src/project_files.rs
+index 082b4f9..a5909ee 100644
+--- a/crates/app/src/project_files.rs
++++ b/crates/app/src/project_files.rs
+@@ -196,14 +196,14 @@ struct Upgrades {
+ impl Upgrades {
+     /// The open notice for these changes, or `None` when nothing changed.
+     fn notice(self) -> Option<String> {
+-        let save = if crate::IN_BROWSER { "Download" } else { "Save" };
++        let save = pcbcraft_chrome::i18n::tr_label(if crate::IN_BROWSER { "Download" } else { "Save" });
+         let what = match (self.libraries, self.paper) {
+             (false, false) => return None,
+             (true, false) => "migrate bundled library references",
+             (false, true) => "add paper to older sheets",
+             (true, true) => "migrate bundled library references and add paper to older sheets",
+         };
+-        Some(format!("Project opened · {save} will {what}"))
++        Some(pcbcraft_chrome::i18n::format("Project opened · {save} will {what}", &[("save", save), ("what", pcbcraft_chrome::i18n::tr_label(what))]))
+     }
+ }
+ 
+@@ -501,8 +501,8 @@ impl ProjectFiles {
+         #[cfg(target_arch = "wasm32")]
+         {
+             match &self.saved {
+-                Some(saved) if saved.needs_manifest => "Project opened · Download will upgrade the project package".to_owned(),
+-                _ => "Project opened".to_owned(),
++                Some(saved) if saved.needs_manifest => pcbcraft_chrome::i18n::tr_label("Project opened · Download will upgrade the project package").to_owned(),
++                _ => pcbcraft_chrome::i18n::tr_label("Project opened").to_owned(),
+             }
+         }
+     }
+diff --git a/crates/app/src/project_files/native.rs b/crates/app/src/project_files/native.rs
+index b0447ed..f442cef 100644
+--- a/crates/app/src/project_files/native.rs
++++ b/crates/app/src/project_files/native.rs
+@@ -47,7 +47,7 @@ impl Target {
+ 
+     /// Explain the next save when an archive needs migration or a verified manifest.
+     pub(super) fn open_notice(&self) -> String {
+-        if self.needs_manifest { "Project opened · Save will upgrade the project package".to_owned() } else { "Project opened".to_owned() }
++        if self.needs_manifest { pcbcraft_chrome::i18n::tr_label("Project opened · Save will upgrade the project package").to_owned() } else { pcbcraft_chrome::i18n::tr_label("Project opened").to_owned() }
+     }
+ 
+     /// `archive` for a packed `.pc` file, `folder` for a project folder, as `file.save_as` names them.
 diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
-index e46d255..683f9ea 100644
+index e46d255..99112b3 100644
 --- a/crates/chrome/assets/shared-ui/zh.json
 +++ b/crates/chrome/assets/shared-ui/zh.json
 @@ -6,8 +6,10 @@
@@ -121,7 +166,7 @@ index e46d255..683f9ea 100644
   "Delete Segment": "删除线段",
   "Delete Sheet": "删除图纸",
   "Delete Sheet…": "删除图纸…",
-@@ -131,32 +165,45 @@
+@@ -131,32 +165,46 @@
   "Delete selected items": "删除所选项目",
   "Delete sheet “{}”?": "删除图纸“{}”？",
   "Delete “{}” and its saved view setup? Project documents are kept.": "删除“{}”及其保存的视图设置？工程文档会保留。",
@@ -142,6 +187,7 @@ index e46d255..683f9ea 100644
   "Dock Parts Catalog": "停靠元件目录",
 + "Dock View": "停靠视图",
   "Dock in main window": "停靠到主窗口",
++ "Download": "下载",
   "Download Library Item": "下载库条目",
   "Download Library Item…": "下载库条目…",
   "Download Project…": "下载工程…",
@@ -167,7 +213,7 @@ index e46d255..683f9ea 100644
   "Electrical type": "电气类型",
   "Electronics design for people and AI agents working together on the same board.": "让人类与 AI 智能体在同一块电路板上协作的电子设计工具。",
   "Enable local connection": "启用本地连接",
-@@ -185,8 +232,19 @@
+@@ -185,8 +233,19 @@
   "Fit footprint preview": "适合封装预览",
   "Fit schematic": "适合原理图",
   "Fit unlocked dielectrics": "适合未锁定的介质",
@@ -187,7 +233,7 @@ index e46d255..683f9ea 100644
   "Footprint and pin map": "封装与引脚映射",
   "Footprint pad": "封装焊盘",
   "Footprint preview": "封装预览",
-@@ -195,73 +253,117 @@
+@@ -195,73 +254,119 @@
   "Frame": "边框",
   "Function name": "功能名称",
   "General": "常规",
@@ -207,6 +253,8 @@ index e46d255..683f9ea 100644
 + "Grid Spacing": "网格间距",
   "Grid opacity": "网格不透明度",
   "Grid spacing of the focused view (N, Shift+N)": "当前视图的网格间距（N，Shift+N）",
++ "Grid {current}": "网格 {current}",
++ "Grid {current} · {marks} {spacing}": "网格 {current} · {marks} {spacing}",
 + "Ground": "接地",
 + "Heal": "修复",
   "Heal Wire": "修复走线",
@@ -305,7 +353,7 @@ index e46d255..683f9ea 100644
   "Net appearance": "网络外观",
   "Net class": "网络类",
   "Net color…": "网络颜色…",
-@@ -271,13 +373,20 @@
+@@ -271,13 +376,20 @@
   "Net-name suffix": "网络名后缀",
   "Nets": "网络",
   "New": "新建",
@@ -326,7 +374,7 @@ index e46d255..683f9ea 100644
   "Newer revision available": "有更新的修订",
   "Next instances": "下一个实例",
   "Next page": "下一页",
-@@ -285,8 +394,10 @@
+@@ -285,8 +397,10 @@
   "No board": "没有电路板",
   "No class definitions": "没有类定义",
   "No components match": "没有匹配的元件",
@@ -337,7 +385,7 @@ index e46d255..683f9ea 100644
   "No courtyard outline": "没有庭院轮廓",
   "No drill hits": "没有钻孔",
   "No footprint selected": "未选择封装",
-@@ -308,6 +419,7 @@
+@@ -308,6 +422,7 @@
   "No supported net selected": "未选择受支持的网络",
   "No unconnected pins": "没有未连接的引脚",
   "No unplaced footprints.": "没有未放置的封装。",
@@ -345,7 +393,7 @@ index e46d255..683f9ea 100644
   "No-connect markers: {} · Findings: {}": "未连接标记：{} · 检查结果：{}",
   "None": "无",
   "Not installed": "未安装",
-@@ -320,37 +432,60 @@
+@@ -320,37 +435,60 @@
   "One keyword per line": "每行一个关键字",
   "Only the grid fades. Snapping still follows the grid at 0%.": "只有网格淡出。0% 时吸附仍按网格进行。",
   "Opacity": "不透明度",
@@ -406,7 +454,7 @@ index e46d255..683f9ea 100644
   "Place footprints": "放置封装",
   "Place footprints · Click to place · R rotate · Esc cancel": "放置封装 · 点击放置 · R 旋转 · Esc 取消",
   "Place net label · R to rotate · Esc to cancel": "放置网络标签 · R 旋转 · Esc 取消",
-@@ -359,13 +494,18 @@
+@@ -359,31 +497,45 @@
   "Placement filters": "放置筛选",
   "Ply {}": "层压板 {}",
   "Pointer position on the grid": "网格上的指针位置",
@@ -425,7 +473,13 @@ index e46d255..683f9ea 100644
   "Project file or archive…": "工程文件或归档…",
   "Project folder…": "工程文件夹…",
   "Project inventory unavailable": "工程清单不可用",
-@@ -375,15 +515,20 @@
++ "Project opened": "工程已打开",
++ "Project opened · Download will upgrade the project package": "工程已打开 · 下载将升级工程包",
++ "Project opened · Save will upgrade the project package": "工程已打开 · 保存将升级工程包",
++ "Project opened · {save} will {what}": "工程已打开 · {save}将{what}",
+  "Properties": "属性",
+  "Provider default": "服务商默认",
+  "Publish Library Item": "发布库条目",
   "Publish…": "发布…",
   "Quarantined: conflicting content at this revision": "已隔离：此修订存在冲突内容",
   "Quit": "退出",
@@ -446,7 +500,7 @@ index e46d255..683f9ea 100644
   "Remove alternate": "移除替代项",
   "Remove assignment": "移除分配",
   "Remove authored range": "移除编写的范围",
-@@ -398,12 +543,14 @@
+@@ -398,12 +550,14 @@
   "Remove marker": "移除标记",
   "Remove parameter": "移除参数",
   "Remove ply": "移除层压板",
@@ -461,7 +515,7 @@ index e46d255..683f9ea 100644
   "Rename Sheet…": "重命名图纸…",
   "Rename part": "重命名元件",
   "Rename the component in the schematic, PCB and outputs. Apply or reset pending silkscreen edits first.": "在原理图、PCB 和输出中重命名元件。请先应用或重置待处理的丝印编辑。",
-@@ -413,9 +560,11 @@
+@@ -413,9 +567,11 @@
   "Replace all connections with matching terminal and pad numbers": "用匹配的端子与焊盘编号替换所有连接",
   "Report a bug": "报告问题",
   "Report an Issue…": "报告问题…",
@@ -473,7 +527,7 @@ index e46d255..683f9ea 100644
   "Reset appearance": "重置外观",
   "Reset changes": "重置更改",
   "Reset range": "重置范围",
-@@ -426,48 +575,82 @@
+@@ -426,48 +582,82 @@
   "Reshape wire · Esc to cancel": "重塑走线 · Esc 取消",
   "Restart the agent after signing in elsewhere": "在别处登录后重启智能体",
   "Restore component reference text, default appearance and the library's reference position.": "恢复元件参考文字、默认外观和库中的参考位置。",
@@ -556,7 +610,7 @@ index e46d255..683f9ea 100644
   "Show compact catalog": "显示紧凑目录",
   "Show grid outside paper": "在图纸外显示网格",
   "Show in folder": "在文件夹中显示",
-@@ -475,20 +658,32 @@
+@@ -475,20 +665,32 @@
   "Show {label}": "显示{label}",
   "Show:": "显示：",
   "Sign in to continue.": "登录以继续。",
@@ -589,7 +643,7 @@ index e46d255..683f9ea 100644
   "Symbols": "符号",
   "System": "跟随系统",
   "System follows your desktop or browser language.": "系统将跟随桌面或浏览器语言。",
-@@ -498,7 +693,9 @@
+@@ -498,7 +700,9 @@
   "Technical layer purpose": "技术层用途",
   "Technical layer side": "技术层侧别",
   "Terminal {terminal} {label}: {text:?}": "端子 {terminal} {label}：{text:?}",
@@ -599,7 +653,7 @@ index e46d255..683f9ea 100644
   "Text and graphics": "文字与图形",
   "The agent works on open documents through the same commands as the menus. Edits are undoable.": "智能体通过菜单相同的命令处理打开的文档。编辑可撤销。",
   "The board changed since this check. Run again to refresh.": "自本次检查后电路板已更改。请再次运行以刷新。",
-@@ -515,41 +712,59 @@
+@@ -515,41 +719,59 @@
   "The selected manufacturer part does not meet the current requirements.": "所选制造商元件不满足当前要求。",
   "Theme": "主题",
   "This document is unavailable. Choose a workspace to replace this view.": "此文档不可用。请选择工作区替换此视图。",
@@ -659,7 +713,26 @@ index e46d255..683f9ea 100644
   "Zoom In": "放大",
   "Zoom Out": "缩小",
   "Zoom around": "缩放中心",
-@@ -636,6 +851,7 @@
+@@ -557,6 +779,7 @@
+  "Zoom footprint preview in": "放大封装预览",
+  "Zoom footprint preview out": "缩小封装预览",
+  "Zoom speed": "缩放速度",
++ "add paper to older sheets": "为旧图纸补上图纸",
+  "color.blue": "蓝",
+  "color.copy": "点击复制颜色值",
+  "color.edit": "点击编辑颜色",
+@@ -576,6 +799,10 @@
+  "color.step_down": "减小",
+  "color.step_up": "增大",
+  "color.value": "明度（百分比）",
++ "dots": "点",
++ "lines": "线",
++ "migrate bundled library references": "迁移内置库引用",
++ "migrate bundled library references and add paper to older sheets": "迁移内置库引用并为旧图纸补上图纸",
+  "navbar.custom.add_slot": "添加{slot}",
+  "navbar.custom.duplicate": "该槽位已在工具栏上。",
+  "navbar.custom.full": "移除一个槽位以添加另一个。",
+@@ -636,6 +863,7 @@
   "ui.workspace_current": "当前",
   "ui.workspace_planned": "计划中",
   "v{VERSION}": "v{VERSION}",
@@ -701,11 +774,44 @@ index 62deba1..cd5cf83 100644
      crate::automation::publish(ui, &response, name);
      response
  }
+diff --git a/crates/chrome/src/grid.rs b/crates/chrome/src/grid.rs
+index 5136906..f344a1e 100644
+--- a/crates/chrome/src/grid.rs
++++ b/crates/chrome/src/grid.rs
+@@ -223,10 +223,11 @@ pub fn spacing_menu(ui: &mut Ui, spacing_nm: &mut i64, presets: &[i64], default_
+     let before = *spacing_nm;
+     let current = spacing_label(*spacing_nm, unit);
+     let text = if every > 1 && style != Style::Off {
+-        let marks = if style == Style::Lines { "lines" } else { "dots" };
+-        format!("Grid {current} · {marks} {}", spacing_label(spacing_nm.saturating_mul(i64::from(every)), unit))
++        let marks = crate::i18n::tr_label(if style == Style::Lines { "lines" } else { "dots" });
++        let spacing = spacing_label(spacing_nm.saturating_mul(i64::from(every)), unit);
++        crate::i18n::format("Grid {current} · {marks} {spacing}", &[("current", &current), ("marks", marks), ("spacing", &spacing)])
+     } else {
+-        format!("Grid {current}")
++        crate::i18n::format("Grid {current}", &[("current", &current)])
+     };
+     let caption = text.replace(&format!(" {}", unit.symbol()), "");
+     let response = solidcraft_ui_kit::text_button(ui, &caption, true).on_hover_text(crate::i18n::tr_label("Grid spacing of the focused view (N, Shift+N)"));
 diff --git a/crates/chrome/src/i18n.rs b/crates/chrome/src/i18n.rs
-index e5d4e57..56aba1a 100644
+index e5d4e57..1f7e9e0 100644
 --- a/crates/chrome/src/i18n.rs
 +++ b/crates/chrome/src/i18n.rs
-@@ -337,8 +337,12 @@ mod tests {
+@@ -207,6 +207,13 @@ pub fn tr_label(label: &str) -> &str {
+     solidcraft_ui_text::tr_label(label)
+ }
+ 
++/// Translate a `{name}` template and substitute the named arguments (the shared crate's format), so
++/// sentences with numbers or names can be translated as one string. Unknown arguments and untranslated
++/// templates pass through unchanged.
++pub fn format(template: &str, args: &[(&str, &str)]) -> String {
++    solidcraft_ui_text::format(template, args)
++}
++
+ /// Look up `id` in logical (reading) order for accessibility names, falling back to
+ /// [`solidcraft_ui_text::tr`] when `id` is absent from the active catalog.
+ pub fn logical_tr(id: &str) -> &str {
+@@ -337,8 +344,12 @@ mod tests {
      #[test]
      fn scoped_chinese_translation_and_labels() {
          crate::install_text();
