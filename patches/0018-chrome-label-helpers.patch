@@ -1,5 +1,5 @@
 diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
-index e46d255..61704df 100644
+index e46d255..683f9ea 100644
 --- a/crates/chrome/assets/shared-ui/zh.json
 +++ b/crates/chrome/assets/shared-ui/zh.json
 @@ -6,8 +6,10 @@
@@ -21,13 +21,14 @@ index e46d255..61704df 100644
   "Add agent…": "添加智能体…",
   "Add allowed value": "添加允许值",
   "Add alternate": "添加替代项",
-@@ -38,10 +41,13 @@
+@@ -38,10 +41,14 @@
   "Adjust dielectric thickness": "调整介质厚度",
   "Advanced": "高级",
   "Agent permission mode": "智能体权限模式",
 + "All items": "全部项目",
   "All libraries": "全部库",
   "All vertices": "全部顶点",
++ "Allow": "允许",
   "Allow this command for this agent from now on": "以后允许该智能体执行此命令",
   "Always allow": "始终允许",
 + "Analyze": "分析",
@@ -35,7 +36,7 @@ index e46d255..61704df 100644
   "Appearance": "外观",
   "Apply": "应用",
   "Apply changes": "应用更改",
-@@ -59,6 +65,7 @@
+@@ -59,6 +66,7 @@
   "Assistant model": "助手模型",
   "Assistant permission mode": "助手权限模式",
   "Auto-heal wires": "自动修复走线",
@@ -43,7 +44,7 @@ index e46d255..61704df 100644
   "Back to the original order": "恢复原始顺序",
   "Back to {OPACITY_DEFAULT}%": "恢复为 {OPACITY_DEFAULT}%",
   "Base URL": "基础 URL",
-@@ -69,17 +76,24 @@
+@@ -69,17 +77,26 @@
   "Board materials": "板材料",
   "Bottom view": "底视图",
   "Break": "断开",
@@ -56,10 +57,12 @@ index e46d255..61704df 100644
   "Cancel": "取消",
   "Cancel check": "取消检查",
   "Cancel close": "取消关闭",
++ "Cancel pour": "取消铺铜",
   "Cancel rename": "取消重命名",
   "Canvas color": "画布颜色",
 + "Capture": "捕获",
 + "Catalog Presentation": "目录呈现",
++ "Category": "类别",
 + "Center View": "居中视图",
   "Change color for layer {}": "更改层 {} 的颜色",
   "Changing the copper count updates existing through-hole pad spans. Surface-mount pads retain front copper.": "更改铜层数量会更新现有通孔焊盘的跨层。表贴焊盘仍归顶层铜。",
@@ -68,7 +71,7 @@ index e46d255..61704df 100644
   "Choose an agent": "选择智能体",
   "Choose bundle…": "选择包…",
   "Choose folder…": "选择文件夹…",
-@@ -93,14 +107,18 @@
+@@ -93,14 +110,21 @@
   "Clearance (mm)": "间距（mm）",
   "Click a vertex handle or choose one above to edit coordinates.": "点击顶点手柄或在上方选择一个顶点以编辑坐标。",
   "Clients with this configuration can inspect and edit this project and control its editor windows.": "使用此配置的客户端可以查看和编辑本工程，并控制其编辑器窗口。",
@@ -76,18 +79,21 @@ index e46d255..61704df 100644
   "Clipboard text": "剪贴板文本",
   "Close": "关闭",
   "Close Library Item": "关闭库条目",
++ "Close Project": "关闭工程",
 + "Close View": "关闭视图",
 + "Close Window": "关闭窗口",
   "Close view": "关闭视图",
   "Close without waiting": "不等待直接关闭",
   "Collapse": "折叠",
   "Column pitch (mm)": "列间距（mm）",
++ "Columns": "列",
   "Components": "元件",
 + "Connect": "连接",
++ "Connect AI assistants": "连接 AI 助手",
   "Connect AI assistants…": "连接 AI 助手…",
   "Connect Git…": "连接 Git…",
   "Connect an agent to start.": "连接一个智能体以开始。",
-@@ -108,7 +126,9 @@
+@@ -108,8 +132,12 @@
   "Coordinates and the grid show in this unit, and numbers typed without one use it. Stored geometry never changes.": "坐标和网格以此单位显示，未带单位的输入也按此单位。存储的几何数据不会改变。",
   "Copper clearance": "铜间距",
   "Copy": "复制",
@@ -95,9 +101,12 @@ index e46d255..61704df 100644
   "Copy the install command": "复制安装命令",
 + "Courtyard": "庭院",
   "Courtyard outline": "庭院轮廓",
++ "Create": "创建",
++ "Create Array": "创建阵列",
   "Create a PCB for this schematic.": "为此原理图创建 PCB。",
   "Create a library folder to store this part.": "创建库文件夹以存放此元件。",
-@@ -121,8 +141,14 @@
+  "Create part from this symbol": "从此符号创建元件",
+@@ -121,8 +149,14 @@
   "Custom": "自定义",
   "Custom…": "自定义…",
   "Cut": "剪切",
@@ -112,7 +121,12 @@ index e46d255..61704df 100644
   "Delete Segment": "删除线段",
   "Delete Sheet": "删除图纸",
   "Delete Sheet…": "删除图纸…",
-@@ -134,6 +160,7 @@
+@@ -131,32 +165,45 @@
+  "Delete selected items": "删除所选项目",
+  "Delete sheet “{}”?": "删除图纸“{}”？",
+  "Delete “{}” and its saved view setup? Project documents are kept.": "删除“{}”及其保存的视图设置？工程文档会保留。",
++ "Deny": "拒绝",
++ "Description": "描述",
   "Design Rules": "设计规则",
   "Design requirements": "设计要求",
   "Design rules": "设计规则",
@@ -120,7 +134,9 @@ index e46d255..61704df 100644
   "Disable connection": "禁用连接",
   "Discard class changes": "放弃类更改",
   "Discard library edits": "放弃库编辑",
-@@ -142,21 +169,30 @@
+  "Discard material edits": "放弃材料编辑",
+  "Discard unavailable supply edits": "放弃不可用的供应编辑",
++ "Disconnect": "断开",
   "Disconnect and move symbol · R rotate · Esc cancel": "断开并移动符号 · R 旋转 · Esc 取消",
   "Dismiss updates": "忽略更新",
   "Dock Parts Catalog": "停靠元件目录",
@@ -151,7 +167,7 @@ index e46d255..61704df 100644
   "Electrical type": "电气类型",
   "Electronics design for people and AI agents working together on the same board.": "让人类与 AI 智能体在同一块电路板上协作的电子设计工具。",
   "Enable local connection": "启用本地连接",
-@@ -185,8 +221,16 @@
+@@ -185,8 +232,19 @@
   "Fit footprint preview": "适合封装预览",
   "Fit schematic": "适合原理图",
   "Fit unlocked dielectrics": "适合未锁定的介质",
@@ -159,17 +175,24 @@ index e46d255..61704df 100644
 + "Flip Board View": "翻转电路板视图",
   "Flip track posture": "翻转走线姿态",
 + "Flip view": "翻转视图",
++ "Floating separates the ribbon and panels into cards. Compact joins them to the window edge and each other. Cards over the canvas stay floating.": "浮动会把功能区和面板拆成卡片。紧凑会让它们贴合窗口边缘并彼此相连。画布上的卡片始终浮动。",
 + "Focus Library Workspace": "聚焦库工作区",
 + "Focus Part Document": "聚焦元件文档",
 + "Focus View": "聚焦视图",
++ "Folder": "文件夹",
   "Follow selection": "跟随选择",
++ "Follow selection mode": "跟随选择模式",
 + "Footprint": "封装",
 + "Footprint Editor": "封装编辑器",
   "Footprint and pin map": "封装与引脚映射",
   "Footprint pad": "封装焊盘",
   "Footprint preview": "封装预览",
-@@ -197,23 +241,31 @@
+@@ -195,73 +253,117 @@
+  "Frame": "边框",
+  "Function name": "功能名称",
   "General": "常规",
++ "Generate": "生成",
++ "Generate Courtyard": "生成庭院",
   "Generate courtyard…": "生成庭院…",
   "Generate silkscreen reference": "生成丝印参考",
 + "Generate…": "生成…",
@@ -187,12 +210,15 @@ index e46d255..61704df 100644
 + "Ground": "接地",
 + "Heal": "修复",
   "Heal Wire": "修复走线",
++ "Height": "高度",
   "Help": "帮助",
++ "Hex": "十六进制",
 + "Hierarchical label": "层次标签",
   "Hierarchical sheet or label · Esc to cancel": "层次图纸或标签 · Esc 取消",
   "Highlight collisions": "高亮冲突",
   "Hold Ctrl and scroll to zoom. Pinch zooms on a trackpad.": "按住 Ctrl 滚动可缩放。触控板可双指缩放。",
   "Home": "主页",
++ "Identity": "标识",
 + "Images": "图像",
   "In use": "使用中",
   "Insert a vertex at the midpoint of the next edge, on the nanometre grid": "在下一段边的中点、按纳米网格插入顶点",
@@ -200,8 +226,11 @@ index e46d255..61704df 100644
   "Install with: {install}": "安装命令：{install}",
   "Instances: {count}": "实例：{count}",
   "Interface scale": "界面缩放",
-@@ -222,46 +274,71 @@
++ "Isolate active": "隔离活动项",
+  "Item ID": "条目 ID",
+  "Its symbols, wires, associated board footprints and connections to parent pins will be removed. Child sheets become top-level sheets. Undo restores them.": "其符号、走线、关联的板级封装以及与父引脚的连接将被移除。子图纸将成为顶层图纸。撤销可恢复。",
   "Keep chat": "保留对话",
++ "Keeps a copy of unsaved work in a recovery folder outside the project, renewed at this interval and right after a slow change. Off keeps nothing. Copies left by earlier sessions are removed after 14 days. Restoring a copy after a crash is not available yet.": "在工程外的恢复文件夹中保留未保存工作的副本，按此间隔以及缓慢更改之后立即更新。关闭则不保留。早前会话留下的副本会在 14 天后删除。崩溃后恢复副本尚不可用。",
   "Keyboard Shortcuts": "键盘快捷键",
   "Keyboard Shortcuts…": "键盘快捷键…",
 + "Labels": "标签",
@@ -224,10 +253,12 @@ index e46d255..61704df 100644
 + "Library View": "库视图",
   "Library grid": "库网格",
 + "Library sources": "库来源",
++ "License": "许可",
   "Light": "浅色",
 + "Line": "线",
   "Link URL {}": "链接 URL {}",
   "Link label {}": "链接标签 {}",
++ "Links": "链接",
   "Local MCP enabled": "本地 MCP 已启用",
   "Look for installed agents again": "重新查找已安装的智能体",
   "Looking for installed agents…": "正在查找已安装的智能体…",
@@ -237,6 +268,7 @@ index e46d255..61704df 100644
 + "Manage Library Source": "管理库来源",
   "Manage libraries…": "管理库…",
 + "Manufacture": "制造",
++ "Manufacturer": "制造商",
   "Manufacturer and MPN": "制造商与 MPN",
   "Manufacturer part": "制造商元件",
   "Manufacturer part needs review": "制造商元件需要复核",
@@ -264,6 +296,7 @@ index e46d255..61704df 100644
   "Move symbol field · Esc to cancel": "移动符号字段 · Esc 取消",
   "Move symbol · R rotate · Esc cancel": "移动符号 · R 旋转 · Esc 取消",
   "My agent": "我的智能体",
++ "Name": "名称",
   "Name or package": "名称或封装",
 + "Navigate Layers": "切换层",
 + "Navigation": "导航",
@@ -272,7 +305,7 @@ index e46d255..61704df 100644
   "Net appearance": "网络外观",
   "Net class": "网络类",
   "Net color…": "网络颜色…",
-@@ -271,13 +348,19 @@
+@@ -271,13 +373,20 @@
   "Net-name suffix": "网络名后缀",
   "Nets": "网络",
   "New": "新建",
@@ -282,6 +315,7 @@ index e46d255..61704df 100644
   "New Project": "新建工程",
   "New Sheet…": "新建图纸…",
 + "New Window": "新建窗口",
++ "New Zone": "新建区域",
   "New arrangement": "新建布局",
   "New class": "新建类",
   "New item": "新建条目",
@@ -292,7 +326,7 @@ index e46d255..61704df 100644
   "Newer revision available": "有更新的修订",
   "Next instances": "下一个实例",
   "Next page": "下一页",
-@@ -285,8 +368,10 @@
+@@ -285,8 +394,10 @@
   "No board": "没有电路板",
   "No class definitions": "没有类定义",
   "No components match": "没有匹配的元件",
@@ -303,7 +337,7 @@ index e46d255..61704df 100644
   "No courtyard outline": "没有庭院轮廓",
   "No drill hits": "没有钻孔",
   "No footprint selected": "未选择封装",
-@@ -308,6 +393,7 @@
+@@ -308,6 +419,7 @@
   "No supported net selected": "未选择受支持的网络",
   "No unconnected pins": "没有未连接的引脚",
   "No unplaced footprints.": "没有未放置的封装。",
@@ -311,7 +345,7 @@ index e46d255..61704df 100644
   "No-connect markers: {} · Findings: {}": "未连接标记：{} · 检查结果：{}",
   "None": "无",
   "Not installed": "未安装",
-@@ -320,17 +406,29 @@
+@@ -320,37 +432,60 @@
   "One keyword per line": "每行一个关键字",
   "Only the grid fades. Snapping still follows the grid at 0%.": "只有网格淡出。0% 时吸附仍按网格进行。",
   "Opacity": "不透明度",
@@ -341,7 +375,9 @@ index e46d255..61704df 100644
   "PCB grid": "PCB 网格",
   "PCB updated.": "PCB 已更新。",
   "PCBCraft {VERSION}": "PCBZ {VERSION}",
-@@ -339,18 +437,25 @@
+  "PCBcraft {} · SHA-256 verified": "PCBZ {} · SHA-256 已验证",
++ "Package": "封装",
+  "Package {package} is unavailable": "封装 {package} 不可用",
   "Packed project (.pc)…": "打包工程（.pc）…",
   "Pad diameter": "焊盘直径",
   "Page {} of {} · {} instances": "第 {} 页，共 {} 页 · {} 个实例",
@@ -349,12 +385,15 @@ index e46d255..61704df 100644
   "Panel style": "面板样式",
   "Paper": "图纸",
   "Paper background": "图纸背景",
++ "Parameter": "参数",
++ "Part": "元件",
 + "Part Document History": "元件文档历史",
   "Part number": "元件编号",
 + "Parts Catalog": "元件目录",
   "Parts Catalog placement filters": "元件目录放置筛选",
 + "Parts Library": "元件库",
   "Paste": "粘贴",
++ "Paste Options": "粘贴选项",
 + "Paste Options…": "粘贴选项…",
   "Paste a two-column X/Y coordinate table as a Board Outline polyline. CSV and tab-separated numbers are supported; source units are independent of the display units.": "粘贴两列 X/Y 坐标表作为板框折线。支持 CSV 和制表符分隔的数字；源单位与显示单位无关。",
   "Paste labels": "粘贴标签",
@@ -367,15 +406,18 @@ index e46d255..61704df 100644
   "Place footprints": "放置封装",
   "Place footprints · Click to place · R rotate · Esc cancel": "放置封装 · 点击放置 · R 旋转 · Esc 取消",
   "Place net label · R to rotate · Esc to cancel": "放置网络标签 · R 旋转 · Esc 取消",
-@@ -359,6 +464,7 @@
+@@ -359,13 +494,18 @@
   "Placement filters": "放置筛选",
   "Ply {}": "层压板 {}",
   "Pointer position on the grid": "网格上的指针位置",
 + "Pour copper": "铺铜",
++ "Pouring copper": "正在铺铜",
++ "Power": "电源",
   "Preferences": "首选项",
   "Preferences…": "首选项…",
   "Press Enter to open": "按 Enter 打开",
-@@ -366,6 +472,7 @@
++ "Preview": "预览",
+  "Preview current nets": "预览当前网络",
   "Previous instances": "上一个实例",
   "Previous page": "上一页",
   "Printed text": "印刷文字",
@@ -383,7 +425,7 @@ index e46d255..61704df 100644
   "Project file or archive…": "工程文件或归档…",
   "Project folder…": "工程文件夹…",
   "Project inventory unavailable": "工程清单不可用",
-@@ -375,9 +482,11 @@
+@@ -375,15 +515,20 @@
   "Publish…": "发布…",
   "Quarantined: conflicting content at this revision": "已隔离：此修订存在冲突内容",
   "Quit": "退出",
@@ -393,9 +435,18 @@ index e46d255..61704df 100644
   "Recovery snapshots": "恢复快照",
 + "Rectangle": "矩形",
   "Redo": "重做",
++ "Reference": "参考",
   "Reference or value": "参考或值",
++ "Refresh": "刷新",
   "Regenerate…": "重新生成…",
-@@ -398,12 +507,14 @@
+  "Reload properties": "重新加载属性",
+  "Relocation retains the child sheets' current content, references and net names.": "重定位会保留子图纸的当前内容、参考和网络名。",
+  "Remap pins…": "重映射引脚…",
++ "Remove": "移除",
+  "Remove alternate": "移除替代项",
+  "Remove assignment": "移除分配",
+  "Remove authored range": "移除编写的范围",
+@@ -398,12 +543,14 @@
   "Remove marker": "移除标记",
   "Remove parameter": "移除参数",
   "Remove ply": "移除层压板",
@@ -410,7 +461,7 @@ index e46d255..61704df 100644
   "Rename Sheet…": "重命名图纸…",
   "Rename part": "重命名元件",
   "Rename the component in the schematic, PCB and outputs. Apply or reset pending silkscreen edits first.": "在原理图、PCB 和输出中重命名元件。请先应用或重置待处理的丝印编辑。",
-@@ -413,9 +524,11 @@
+@@ -413,9 +560,11 @@
   "Replace all connections with matching terminal and pad numbers": "用匹配的端子与焊盘编号替换所有连接",
   "Report a bug": "报告问题",
   "Report an Issue…": "报告问题…",
@@ -422,12 +473,13 @@ index e46d255..61704df 100644
   "Reset appearance": "重置外观",
   "Reset changes": "重置更改",
   "Reset range": "重置范围",
-@@ -426,27 +539,40 @@
+@@ -426,48 +575,82 @@
   "Reshape wire · Esc to cancel": "重塑走线 · Esc 取消",
   "Restart the agent after signing in elsewhere": "在别处登录后重启智能体",
   "Restore component reference text, default appearance and the library's reference position.": "恢复元件参考文字、默认外观和库中的参考位置。",
 + "Restore page defaults": "恢复此页默认值",
 + "Resume": "继续",
++ "Retry": "重试",
 + "Reveal schematic": "显示原理图",
   "Revert assignment changes": "还原分配更改",
   "Revert changes": "还原更改",
@@ -441,8 +493,11 @@ index e46d255..61704df 100644
   "Ribbon customization is not available yet.": "功能区自定义尚不可用。",
   "Right-button drag": "右键拖动",
   "Rotate": "旋转",
++ "Rotation": "旋转",
 + "Router Settings": "布线器设置",
++ "Router policy": "布线器策略",
   "Row pitch (mm)": "行间距（mm）",
++ "Rows": "行",
 + "Rule areas": "规则区域",
 + "Rules": "规则",
   "Run again": "再次运行",
@@ -459,11 +514,14 @@ index e46d255..61704df 100644
   "Save as": "另存为",
   "Save as preset": "保存为预设",
   "Save to project": "保存到工程",
++ "Saves a project that already has a folder or .pc file after it has been changed, the same way Save does. Older project formats wait for an explicit Save first to upgrade, and a project changed by another program is not overwritten.": "工程已有文件夹或 .pc 文件且发生更改后，像“保存”一样保存。较旧的工程格式会先等待显式保存再升级，另一个程序改过的工程不会被覆盖。",
 + "Saving": "正在保存",
   "Scale presets": "缩放预设",
   "Schematic": "原理图",
   "Schematic X": "原理图 X",
-@@ -455,19 +581,32 @@
+  "Schematic Y": "原理图 Y",
+  "Schematic canvas": "原理图画布",
++ "Scrolling": "滚动",
   "Search": "搜索",
   "Search commands": "搜索命令",
   "Search footprints": "搜索封装",
@@ -478,6 +536,7 @@ index e46d255..61704df 100644
 + "Selected definition": "所选定义",
 + "Selection Filters": "选择筛选",
 + "Selection filters": "选择筛选",
++ "Send": "发送",
   "Send (Enter)": "发送（Enter）",
   "Settings": "设置",
 + "Setup": "设置",
@@ -493,28 +552,34 @@ index e46d255..61704df 100644
 + "Show Net Colors": "显示网络颜色",
 + "Show Net Names": "显示网络名称",
 + "Show Panel": "显示面板",
++ "Show all": "显示全部",
   "Show compact catalog": "显示紧凑目录",
   "Show grid outside paper": "在图纸外显示网格",
   "Show in folder": "在文件夹中显示",
-@@ -475,11 +614,15 @@
+@@ -475,20 +658,32 @@
   "Show {label}": "显示{label}",
   "Show:": "显示：",
   "Sign in to continue.": "登录以继续。",
++ "Simplifies overlapping routes, detours and loops while drawing or moving. Turn off to preserve their shape; use Heal for manual cleanup.": "在绘制或移动时简化重叠路径、绕行和回路。关闭可保留其形状；手动清理请使用“修复”。",
 + "Simulate": "仿真",
   "Single view in one window": "单窗口单视图",
 + "Size": "尺寸",
   "Slice": "切割",
   "Sort A to Z": "按 A 到 Z 排序",
   "Sort Z to A": "按 Z 到 A 排序",
++ "Source": "来源",
   "Source revision unavailable": "源修订不可用",
 + "Sources": "来源",
++ "Spacing": "间距",
 + "Split": "分割",
   "Start a new chat? This clears the conversation and draft.": "开始新对话？这会清除当前对话和草稿。",
   "Start new chat": "开始新对话",
   "Start the agent and check that it answers": "启动智能体并检查其是否响应",
-@@ -487,8 +630,11 @@
+  "Start with": "起始于",
   "Status": "状态",
++ "Stop": "停止",
   "Stop waiting": "停止等待",
++ "Stroke": "线宽",
   "Stroke (mm)": "线宽（mm）",
 + "Subsheet": "子图纸",
   "Surface": "表面",
@@ -524,15 +589,17 @@ index e46d255..61704df 100644
   "Symbols": "符号",
   "System": "跟随系统",
   "System follows your desktop or browser language.": "系统将跟随桌面或浏览器语言。",
-@@ -499,6 +645,7 @@
+@@ -498,7 +693,9 @@
+  "Technical layer purpose": "技术层用途",
   "Technical layer side": "技术层侧别",
   "Terminal {terminal} {label}: {text:?}": "端子 {terminal} {label}：{text:?}",
++ "Test": "测试",
   "Testing…": "正在测试…",
 + "Text": "文字",
   "Text and graphics": "文字与图形",
   "The agent works on open documents through the same commands as the menus. Edits are undoable.": "智能体通过菜单相同的命令处理打开的文档。编辑可撤销。",
   "The board changed since this check. Run again to refresh.": "自本次检查后电路板已更改。请再次运行以刷新。",
-@@ -515,14 +662,19 @@
+@@ -515,41 +712,59 @@
   "The selected manufacturer part does not meet the current requirements.": "所选制造商元件不满足当前要求。",
   "Theme": "主题",
   "This document is unavailable. Choose a workspace to replace this view.": "此文档不可用。请选择工作区替换此视图。",
@@ -544,16 +611,20 @@ index e46d255..61704df 100644
   "Unconnected pins": "未连接的引脚",
   "Undo": "撤销",
   "Unit {} · {} pins": "单元 {} · {} 个引脚",
++ "Units": "单位",
   "Unsaved assignment preview": "未保存的分配预览",
 + "Update PCB": "更新 PCB",
 + "Update PCB from Schematic": "从原理图更新 PCB",
   "Update PCB from schematic…": "从原理图更新 PCB…",
 + "Updates": "更新",
   "Updating the preview": "正在更新预览",
++ "Use": "使用",
   "Use for stackup": "用于叠层",
   "Use part reference": "使用元件参考",
-@@ -531,25 +683,33 @@
+  "Use theme": "使用主题",
+  "Use theme defaults": "使用主题默认值",
   "Used by: {}": "使用者：{}",
++ "Value": "值",
   "Value field": "值字段",
   "Value is outside the supported range.": "值超出支持范围。",
 + "Variants": "变体",
@@ -568,6 +639,8 @@ index e46d255..61704df 100644
   "Waiting for the current file operation before closing.": "正在等待当前文件操作完成后再关闭。",
   "Walk around obstacles": "绕开障碍",
   "What agents may do without asking. Reading the project always runs.": "智能体可未经询问执行的操作。读取工程始终允许。",
++ "Where used": "使用位置",
++ "Width": "宽度",
 + "Wire": "走线",
   "Wire color": "走线颜色",
   "Wire segment selected · Del delete": "已选择走线段 · Del 删除",
@@ -586,7 +659,7 @@ index e46d255..61704df 100644
   "Zoom In": "放大",
   "Zoom Out": "缩小",
   "Zoom around": "缩放中心",
-@@ -636,6 +796,7 @@
+@@ -636,6 +851,7 @@
   "ui.workspace_current": "当前",
   "ui.workspace_planned": "计划中",
   "v{VERSION}": "v{VERSION}",
@@ -686,9 +759,45 @@ index 30a3365..3959afa 100644
      icon.paint(painter, rect.left_center() + vec2(t.space_8 + t.space_16 / 2.0, 0.0), t, true);
      painter.galley(pos2(rect.left() + t.space_8 + t.space_16 + t.space_6, rect.center().y - text.size().y / 2.0), text, t.text);
 diff --git a/crates/chrome/src/properties.rs b/crates/chrome/src/properties.rs
-index f8576ac..f51f571 100644
+index f8576ac..028fe52 100644
 --- a/crates/chrome/src/properties.rs
 +++ b/crates/chrome/src/properties.rs
+@@ -14,7 +14,7 @@ pub fn identity(ui: &mut Ui, reference: &str, value: &str) {
+ pub fn field<R>(ui: &mut Ui, label: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(label).halign(Align::Min));
++        ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+         ui.with_layout(Layout::left_to_right(Align::Center), add).inner
+     })
+     .inner
+@@ -33,7 +33,7 @@ pub fn input(value: &mut String) -> egui::TextEdit<'_> {
+ pub fn text(ui: &mut Ui, label: &str, value: &mut String) -> egui::Response {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        let label_response = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(label).halign(Align::Min));
++        let label_response = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+         let response = crate::controls::text(ui, value).labelled_by(label_response.id);
+         crate::automation::publish(ui, &response, format!("field:{label}"));
+         response
+@@ -46,7 +46,7 @@ pub fn text(ui: &mut Ui, label: &str, value: &mut String) -> egui::Response {
+ pub fn text_hint(ui: &mut Ui, label: &str, value: &mut String, hint: &str) -> egui::Response {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        let label_response = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(label).halign(Align::Min));
++        let label_response = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(crate::i18n::tr_label(label)).halign(Align::Min));
+         let response = solidcraft_ui_kit::text_field_reserving(ui, value, hint, 0.0).1.labelled_by(label_response.id);
+         crate::automation::publish(ui, &response, format!("field:{label}"));
+         response
+@@ -212,7 +212,7 @@ fn mapping_label_width(width: f32) -> f32 {
+ pub fn rotation(ui: &mut Ui, degrees: &mut u16) {
+     let t = Tokens::get();
+     ui.horizontal(|ui| {
+-        let label = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new("Rotation").halign(Align::Min));
++        let label = ui.add_sized(vec2(72.0, t.control_height), egui::Label::new(crate::i18n::tr_label("Rotation")).halign(Align::Min));
+         crate::controls::Choice::from_id_salt("property_rotation")
+             .selected_text(format!("{degrees}°"))
+             .show_ui(ui, |ui| {
 @@ -251,7 +251,7 @@ pub fn browser_area(mut area: egui::Rect) -> egui::Rect {
  pub fn section(ui: &mut Ui, title: &str) {
      let t = Tokens::get();
@@ -716,6 +825,16 @@ index f8576ac..f51f571 100644
      });
  }
  
+@@ -371,7 +371,8 @@ fn field_name(ui: &mut Ui, name: &str, width: f32, header: bool) -> egui::Respon
+     let t = Tokens::get();
+     ui.allocate_ui_with_layout(vec2(width, t.control_height), Layout::left_to_right(Align::Center), |ui| {
+         ui.set_min_width(width);
+-        let text = if header { RichText::new(name).small().color(t.text_dim) } else { RichText::new(name) };
++        let shown = crate::i18n::tr_label(name);
++        let text = if header { RichText::new(shown).small().color(t.text_dim) } else { RichText::new(shown) };
+         ui.add(egui::Label::new(text).halign(Align::Min).wrap())
+     })
+     .inner
 diff --git a/crates/chrome/src/settings.rs b/crates/chrome/src/settings.rs
 index b9c63d5..0a368da 100644
 --- a/crates/chrome/src/settings.rs

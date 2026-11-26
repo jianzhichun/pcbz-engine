@@ -677,6 +677,19 @@ def editable_session(args, out):
         s.check("a click on PCB Layout opens the Board workspace", "board" in ws, ws)
         s.check("the frame changed after the click", s.display.differs_from(before) > 2000, s.display.differs_from(before))
 
+        # --- the host switches light/dark at runtime: the editor repaints in the new palette, the revision
+        # (and so the document and its undo) does not move, and switching back repaints again
+        rev_theme = s.revision
+        dark_frame = s.snap("theme-dark")
+        s.leg.send({"k": "theme", "theme": "light"})
+        s.pump(1.5)
+        light_frame = s.snap("theme-light")
+        s.leg.send({"k": "theme", "theme": "dark"})
+        s.pump(1.5)
+        dark_again = s.snap("theme-dark-again")
+        s.check("a theme message repaints the pane", light_frame != dark_frame and dark_again != light_frame, (len(dark_frame), len(light_frame), len(dark_again)))
+        s.check("a theme switch does not move the revision", s.revision == rev_theme, (rev_theme, s.revision))
+
         # --- Save As: the encoding chooser. "Project folder..." names a new folder: cancelled with a notice.
         # "Packed project (.pc)..." is a file dialog: ask_save goes to the host, which answers with a place of its own.
         mark = len(s.asks)
