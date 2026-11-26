@@ -90,9 +90,10 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Parsed, String> {
             "--lang" => {
                 let lang = value()?;
                 let tag = lang.trim().replace('_', "-").to_ascii_lowercase();
-                match tag.split('-').next().unwrap_or_default() {
+                let base = tag.split('-').next().unwrap_or_default().to_owned();
+                match base.as_str() {
                     "zh" | "en" | "he" | "iw" | "system" => o.lang = tag,
-                    other => return Err(format!("--lang: zh, en, he or system, not {other}")),
+                    _ => return Err(format!("--lang: zh, en, he or system, not {base}")),
                 }
             }
             "--project" => o.project = Some(PathBuf::from(value()?)),

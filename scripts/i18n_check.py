@@ -11,7 +11,9 @@ Checks, all fatal except the count:
   - prints the number of still-English user-visible literals drawn directly by egui in
     `crates/chrome/src` and `crates/app/src` (labels the shared kit draws are translated by
     `solidcraft_ui_text::tr_label`, so only egui-native text is counted). `--max-english` fails
-    above the given budget; omitted, the count is reported only (the first cut's honest number).
+    above the given budget; omitted, the count is reported only (the first cut's honest number);
+  - also prints the number of `format!` templates with English text. Those interpolate values, so
+    they cannot go through the literal catalog as they are; the number is reported, not gated.
 Stdlib only.
 """
 import json
@@ -93,10 +95,27 @@ def main():
                             remaining.append(f"{path.relative_to(root)}:{number}: {match.group(1)}")
                         start = line.find(sink, start)
 
+    fmt = set()
+    FMT = re.compile(r'format!\(\s*"((?:[^"\\]|\\.)*)"')
+    for crate in ("chrome", "app"):
+        for path in sorted((root / "upstream" / "crates" / crate / "src").rglob("*.rs")):
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for match in FMT.finditer(text):
+                template = match.group(1)
+                # a displayed sentence: letters and a space or a capital, not a path/id fragment
+                if re.search("[A-Za-z]", template) and (" " in template or re.search("[A-Z]", template)):
+                    fmt.add(template)
+
     for problem in problems:
         print(f"i18n: {problem}")
     print(f"i18n: zh catalog keys={len(zh)} en keys={len(en)} missing={len(missing)} forbidden={sum(1 for p in problems if 'names' in p)}")
     print(f"i18n: remaining English UI literals in chrome/app (direct egui sinks)={len(remaining)}")
+    print(f"i18n: English format! templates left in chrome/app (interpolated; reported, not gated)={len(fmt)}")
+    for template in sorted(fmt)[:12]:
+        print(f"  {template}")
     for line in remaining[:40]:
         print(f"  {line}")
     if len(remaining) > 40:
