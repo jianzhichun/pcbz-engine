@@ -1,0 +1,23 @@
+diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
+index e8946cb..920ae27 100644
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -1007,5 +1007,17 @@
+  "Dimensions": "尺寸标注",
+  "Locked objects": "锁定对象",
+  "Pads": "焊盘",
+- "Zones": "覆铜区"
++ "Zones": "覆铜区",
++ "Close library item?": "关闭库条目？",
++ "Delete part": "删除元件",
++ "Library canvas": "库画布",
++ "Publish": "发布",
++ "Redo Library Edit": "重做库编辑",
++ "Remap symbol pins": "重映射符号引脚",
++ "Rename Project": "重命名工程",
++ "Rename Project…": "重命名工程…",
++ "Undo Library Edit": "撤销库编辑",
++ "Unsaved library items": "未保存的库条目",
++ "Vertex X (mm)": "顶点 X（mm）",
++ "Vertex Y (mm)": "顶点 Y（mm）"
+ }
