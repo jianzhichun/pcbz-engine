@@ -253,12 +253,14 @@ deferred job computes. The answer is `{"ok": true, "result": {"cancelled": "agen
 flight, and `{"ok": false, "error": "no operation `agent` is under way", "code": "cancelled"}` when none is (a read-only
 session included: reading and checking still run, and nothing is computing, so there is nothing to stop).
 
-What can be stopped today is the render server's deferred work on the model's behalf: `pcb.check_design` (and the other
-engine.execute calls that the editor already hands to a worker; a command that runs inside the frame pass cannot be
-interrupted, so none is claimed). The in-flight `engine.execute` whose job was stopped answers with the product's stop
-answer, an error of code `cancelled` whose message begins `stopped:` and says nothing was applied; the project revision,
-the undo history and the file do not change. If the job finishes before the editor sees the cancel, the execute answers
-with its real result: the host must report that step as landed, not as stopped. The editor never restarts.
+What can be stopped today is `pcb.check_design`, the deferred read-only check the editor marks while it computes.
+Copper-edit preparation and package completion are deferred to workers too, but they are not marked cancellable: a
+cancel while one runs is refused (``no operation `agent` is under way``) and that call answers with its real result,
+which the host reports as landed. A command that runs inside the frame pass cannot be interrupted, so none is claimed.
+The in-flight `engine.execute` whose check was stopped answers with the product's stop answer, an error of code
+`cancelled` whose message begins `stopped:` and says nothing was applied; the project revision, the undo history and
+the file do not change. If the job finishes before the editor sees the cancel, the execute answers with its real
+result: the host must report that step as landed, not as stopped. The editor never restarts.
 
 Test-only hook: with `PCBZ_RENDER_TEST_CHECK_MS=<n>` in the render server's environment, a deferred check is held on its
 worker for `n` ms before it starts, in 25 ms slices that observe cancellation. It exists only so the proof can cancel a

@@ -1,8 +1,9 @@
 # PCBZ render server patch 0013: the model's long step can be stopped from the control channel.
 # Why: the plugin's per-call budget and the person's Stop this turn both need to end one model step
 # without killing the editor. The render server already answers the model's `engine.execute` calls
-# on the editor's own session; `pcb.check_design` (and the other commands the editor defers) runs
-# on a worker thread, so its answer arrives while the pane keeps drawing. This patch adds
+# on the editor's own session; `pcb.check_design`, the read-only check the editor defers, runs
+# on a worker thread, so its answer arrives while the pane keeps drawing. (Copper-edit preparation
+# and package completion are deferred too, but this patch does not mark them cancellable.) This patch adds
 # `ui.operations {cancel: "agent"}`: the control channel's socket worker handles it itself (off the
 # editor's UI thread, never queued behind a frame), marks the in-flight deferred job for
 # cancellation and answers {"cancelled":"agent"}; the editor's next frame stops the job's queue and
