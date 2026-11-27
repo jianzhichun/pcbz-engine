@@ -2,11 +2,9 @@
 # Why: the one place the app starts gio / osascript / powershell for the person's files is the library folder trash. A host that must start
 # no helper process calls pcbcraft_storage::library::refuse_system_trash (new_embedded does); the removal then fails, registration kept.
 
-diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
-index d680fa4..c9a59a8 100644
 --- a/crates/app/src/embedded.rs
 +++ b/crates/app/src/embedded.rs
-@@ -17,6 +17,8 @@ impl PcbApp {
+@@ -17,6 +17,8 @@
          // Detached editor windows become windows inside the host's surface (egui's embedded
          // viewports): there is no operating system to give them real ones.
          ctx.set_embed_viewports(true);
@@ -15,26 +13,36 @@ index d680fa4..c9a59a8 100644
          let storage: Option<&dyn eframe::Storage> = None;
          let preferences = storage.and_then(|s| s.get_string(PREFERENCES_KEY)).map(|text| Preferences::parse(&text)).unwrap_or_default();
          let mut views = EditorViews::default();
-diff --git a/crates/storage/src/library.rs b/crates/storage/src/library.rs
-index 1d33431..17cc3b2 100644
 --- a/crates/storage/src/library.rs
 +++ b/crates/storage/src/library.rs
-@@ -251,9 +251,21 @@ pub fn trash_library(root: &Path) -> Result<(), String> {
-     trash_directory(root)
+@@ -244,6 +244,13 @@
+     load(root)
  }
  
-+static TRASH_REFUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-+
 +/// A host that must start no helper process for the person's files (the editor drawn inside
 +/// another application) calls this once: the system trash is then never asked, and a folder
 +/// removal that needs it fails with its registration kept, as when the trash service is missing.
 +pub fn refuse_system_trash() {
++    crate::trash::refuse_system();
++}
++
+ /// Move a confirmed library folder to the platform's trash. A failed or unavailable trash
+ /// service preserves the registration and reports an error; there is no permanent-delete fallback.
+ pub fn trash_library(root: &Path) -> Result<(), String> {
+--- a/crates/storage/src/trash.rs
++++ b/crates/storage/src/trash.rs
+@@ -2,8 +2,17 @@
+ 
+ use std::{fs, path::Path};
+ 
++static TRASH_REFUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
++pub(crate) fn refuse_system() {
 +    TRASH_REFUSED.store(true, std::sync::atomic::Ordering::Relaxed);
 +}
 +
- /// The item remover supplies a private recovery directory after validating and staging its
- /// exact records. Folder deletion validates its manifest before entering this shared adapter.
- fn trash_directory(root: &Path) -> Result<(), String> {
+ /// Move a folder through the platform trash service with no permanent-delete fallback.
+ pub(crate) fn directory(root: &Path) -> Result<(), String> {
 +    if TRASH_REFUSED.load(std::sync::atomic::Ordering::Relaxed) {
 +        return Err("System trash is unavailable in this editor; registration retained".into());
 +    }

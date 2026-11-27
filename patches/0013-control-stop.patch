@@ -20,11 +20,9 @@
 # answer paths) and crates/app/src/board_drc/jobs.rs (the test-only hold). CRLF and native/worker
 # protocol are unchanged.
 
-diff --git a/crates/app/src/board_drc/jobs.rs b/crates/app/src/board_drc/jobs.rs
-index 2aa67c2..e4a31ad 100644
 --- a/crates/app/src/board_drc/jobs.rs
 +++ b/crates/app/src/board_drc/jobs.rs
-@@ -457,6 +457,14 @@ mod native {
+@@ -457,6 +457,14 @@
          atomic::{AtomicBool, AtomicUsize, Ordering},
          mpsc::{self, Receiver, TryRecvError},
      };
@@ -39,7 +37,7 @@ index 2aa67c2..e4a31ad 100644
      /// Bound CPU checker workers across every view and live MCP endpoint in this process.
      #[cfg(test)]
      pub(super) static TEST_LOCK: Mutex<()> = Mutex::new(());
-@@ -508,6 +516,16 @@ mod native {
+@@ -508,6 +516,16 @@
              let spawned = std::thread::Builder::new().name("pcbcraft-snapshot".into()).spawn(move || {
                  let report = {
                      let _slot = slot;
@@ -56,11 +54,9 @@ index 2aa67c2..e4a31ad 100644
                      loop {
                          if stop.load(Ordering::Relaxed) {
                              break Ok(None);
-diff --git a/crates/app/src/live_control.rs b/crates/app/src/live_control.rs
-index d80602e..348e865 100644
 --- a/crates/app/src/live_control.rs
 +++ b/crates/app/src/live_control.rs
-@@ -35,9 +35,59 @@ pub(super) struct LiveControl {
+@@ -43,9 +43,59 @@
      /// The current request generation ([`Self::next_generation`]); each request is stamped with
      /// it when it authenticates.
      generation: Arc<AtomicU64>,
@@ -120,7 +116,7 @@ index d80602e..348e865 100644
  #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
  enum RequestDecision {
      #[default]
-@@ -162,6 +212,45 @@ fn failed_reply(failure: &Failure) -> Value {
+@@ -170,6 +220,45 @@
      json!({"error": failure.message(), "code": failure.code(), "details": failure.details()})
  }
  
@@ -166,7 +162,7 @@ index d80602e..348e865 100644
  impl std::fmt::Debug for LiveControl {
      /// Identify the endpoint in diagnostics without logging its credential.
      fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-@@ -187,15 +276,17 @@ impl LiveControl {
+@@ -195,15 +284,17 @@
          let (send, requests) = mpsc::sync_channel(1);
          let ctx = ctx.clone();
          let generation = Arc::new(AtomicU64::new(0));
@@ -186,7 +182,7 @@ index d80602e..348e865 100644
      }
  
      /// Start a new request generation, revoking every request that arrived before: the chat
-@@ -205,6 +296,11 @@ impl LiveControl {
+@@ -213,6 +304,11 @@
          self.generation.fetch_add(1, Ordering::AcqRel) + 1
      }
  
@@ -198,7 +194,7 @@ index d80602e..348e865 100644
      /// The current request generation.
      pub(super) fn current(&self) -> u64 {
          self.generation.load(Ordering::Acquire)
-@@ -383,6 +479,11 @@ impl PcbApp {
+@@ -455,6 +551,11 @@
                  let port = self.live_control.as_ref().map_or(0, LiveControl::port);
                  self.remote_check.queue.submit(crate::board_drc::jobs::Request { id: 0, job });
                  self.remote_check.request = Some((request, chat, port));
@@ -210,7 +206,7 @@ index d80602e..348e865 100644
                  ctx.request_repaint();
              }
              Err(error) => request.answer(Err(error.into())),
-@@ -391,6 +492,19 @@ impl PcbApp {
+@@ -463,6 +564,19 @@
  
      /// Retire expired/revoked/stale checks without blocking other MCP edits or window input.
      pub(super) fn poll_remote_check(&mut self, ctx: &egui::Context) {
@@ -230,7 +226,7 @@ index d80602e..348e865 100644
          let valid = self.remote_check.request.as_ref().is_some_and(|(request, chat, port)| {
              !request.expired()
                  && if *chat {
-@@ -424,6 +538,13 @@ impl PcbApp {
+@@ -496,6 +610,13 @@
          if self.remote_check.queue.busy() {
              ctx.request_repaint_after(Duration::from_millis(8));
          }
@@ -243,8 +239,8 @@ index d80602e..348e865 100644
 +        }
      }
  
-     /// Use the engine's prepared path where available. Parameter and policy checks remain shared.
-@@ -853,6 +974,7 @@ fn listen(
+     /// Use the bounded worker for prepared copper edits and footprint revisions. Parameter and policy checks remain shared.
+@@ -937,6 +1058,7 @@
      token: &Token,
      stop: &AtomicBool,
      generation: &AtomicU64,
@@ -252,7 +248,7 @@ index d80602e..348e865 100644
      send: &SyncSender<Request>,
      ctx: &egui::Context,
      wait: Duration,
-@@ -876,7 +998,7 @@ fn listen(
+@@ -960,7 +1082,7 @@
                      _ => break,
                  },
              };
@@ -261,7 +257,7 @@ index d80602e..348e865 100644
                  Ok(worker) => workers.push(worker),
                  Err(_) => thread::park_timeout(ACCEPT_POLL),
              }
-@@ -895,6 +1017,7 @@ fn serve_peer(
+@@ -979,6 +1101,7 @@
      token: &Token,
      stop: &AtomicBool,
      generation: &AtomicU64,
@@ -269,7 +265,7 @@ index d80602e..348e865 100644
      send: &SyncSender<Request>,
      ctx: &egui::Context,
      wait: Duration,
-@@ -912,6 +1035,13 @@ fn serve_peer(
+@@ -996,6 +1119,13 @@
          let _ = peer.send(&failed_reply(&failure));
          return;
      }

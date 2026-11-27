@@ -5,11 +5,9 @@
 # Identifiers, storage keys, licence texts, file headers and the engine's other messages (which only the model reads, through the plugin's
 # wording) are not touched.
 
-diff --git a/crates/app/src/assistant.rs b/crates/app/src/assistant.rs
-index a9d2af9..8eeebe0 100644
 --- a/crates/app/src/assistant.rs
 +++ b/crates/app/src/assistant.rs
-@@ -754,7 +754,7 @@ impl Assistant {
+@@ -754,7 +754,7 @@
                                  ui.label(dim(format!("{}: sign in from a terminal, then Retry.", method.name)));
                              }
                              craft_agents::acp::AuthKind::EnvVar { vars } => {
@@ -18,11 +16,9 @@ index a9d2af9..8eeebe0 100644
                              }
                          }
                      }
-diff --git a/crates/app/src/assistant/settings.rs b/crates/app/src/assistant/settings.rs
-index 7a7172f..c5824c5 100644
 --- a/crates/app/src/assistant/settings.rs
 +++ b/crates/app/src/assistant/settings.rs
-@@ -147,8 +147,8 @@ impl Assistant {
+@@ -147,8 +147,8 @@
                  }
              });
              let mut automatic = self.settings.agents.auto_approve_bridge;
@@ -33,7 +29,7 @@ index 7a7172f..c5824c5 100644
                       request in the agent's own words, which shows that the call comes from it, at the cost of a \
                       second question for commands the mode asks about.",
              );
-@@ -424,7 +424,7 @@ impl Assistant {
+@@ -424,7 +424,7 @@
                  ui.label(dim("A program that speaks the Agent Client Protocol, with its arguments. It runs without a shell."));
              } else {
                  ui.label(dim(
@@ -42,7 +38,7 @@ index 7a7172f..c5824c5 100644
                  ));
                  if form.key_stored {
                      pcbcraft_chrome::controls::checkbox(ui, &mut form.forget_key, "Remove the stored key");
-@@ -542,7 +542,7 @@ mod tests {
+@@ -542,7 +542,7 @@
              assistant,
          );
          h.run();
@@ -51,11 +47,9 @@ index 7a7172f..c5824c5 100644
              let at = h.get_by_label(label).rect().center();
              pcbcraft_chrome::automation::mark_synthetic_input(&h.ctx, true);
              h.input_mut().events.extend([
-diff --git a/crates/app/src/board_setup/profile_io.rs b/crates/app/src/board_setup/profile_io.rs
-index 62ad19b..8b2436a 100644
 --- a/crates/app/src/board_setup/profile_io.rs
 +++ b/crates/app/src/board_setup/profile_io.rs
-@@ -108,7 +108,7 @@ fn native(save: Option<(String, Vec<u8>)>) -> Result<Outcome, String> {
+@@ -108,7 +108,7 @@
          let Some(path) = rfd::FileDialog::new()
              .set_title("Export setup profile to a new file")
              .set_file_name(name)
@@ -64,7 +58,7 @@ index 62ad19b..8b2436a 100644
              .save_file()
          else {
              return Ok(Outcome::Cancelled);
-@@ -116,7 +116,7 @@ fn native(save: Option<(String, Vec<u8>)>) -> Result<Outcome, String> {
+@@ -116,7 +116,7 @@
          publish(&path, &bytes)?;
          Ok(Outcome::Exported)
      } else {
@@ -73,11 +67,9 @@ index 62ad19b..8b2436a 100644
              return Ok(Outcome::Cancelled);
          };
          read(&path).map(|profile| Outcome::Imported(Box::new(profile)))
-diff --git a/crates/app/src/clipboard/tests.rs b/crates/app/src/clipboard/tests.rs
-index 8db14ec..70e54af 100644
 --- a/crates/app/src/clipboard/tests.rs
 +++ b/crates/app/src/clipboard/tests.rs
-@@ -113,7 +113,7 @@ fn invalid_clipboard_text_is_rejected_without_a_partial_edit() {
+@@ -113,7 +113,7 @@
      let before = h.state().session.snapshot().unwrap();
      h.event(Event::Paste("{invalid native clipboard JSON}".into()));
      h.run();
@@ -86,25 +78,21 @@ index 8db14ec..70e54af 100644
      assert!(!h.state().views.active.schematic.clipboard.active());
      assert!(Arc::ptr_eq(&before, &h.state().session.snapshot().unwrap()));
  }
-diff --git a/crates/app/src/editor_windows.rs b/crates/app/src/editor_windows.rs
-index 85ae49d..ae251e3 100644
 --- a/crates/app/src/editor_windows.rs
 +++ b/crates/app/src/editor_windows.rs
-@@ -29,7 +29,7 @@ pub(super) struct EditorWindows {
+@@ -29,7 +29,7 @@
  }
  
  /// The application name in native window titles, shown alone or after the window's document.
 -pub const APP_TITLE: &str = "PCBCraft";
 +pub const APP_TITLE: &str = "PCBZ";
  
- /// The smallest client size of the main native window, in logical points.
- pub const MAIN_WINDOW_MIN_SIZE: [f32; 2] = [640.0, 400.0];
-diff --git a/crates/app/src/home.rs b/crates/app/src/home.rs
-index 9981185..ec15c65 100644
+ /// Give a native editor viewport the application's integrated title bar.
+ pub fn desktop_window_chrome(viewport: egui::ViewportBuilder) -> egui::ViewportBuilder {
 --- a/crates/app/src/home.rs
 +++ b/crates/app/src/home.rs
-@@ -70,7 +70,7 @@ impl PcbApp {
-         let first_save = 3;
+@@ -72,7 +72,7 @@
+         rows.push(("home:close_project", "Close Project", String::new(), self.can_close_document(), Some(Action::CloseProject)));
          let first_app = rows.len();
          rows.push(("home:preferences", "Preferences", ui.ctx().format_shortcut(&COMMAND_COMMA), true, Some(Action::Preferences)));
 -        rows.push(("home:about", "About PCBCraft", String::new(), true, Some(Action::About)));
@@ -112,11 +100,9 @@ index 9981185..ec15c65 100644
          #[cfg(not(target_arch = "wasm32"))]
          rows.push(("home:connect", "Connect AI assistants…", String::new(), true, Some(Action::Connect)));
          for (index, (id, label, shortcut, enabled, picked)) in rows.into_iter().enumerate() {
-diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index aa08346..6363f15 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
-@@ -159,7 +159,7 @@ const IN_BROWSER: bool = cfg!(target_arch = "wasm32");
+@@ -161,7 +161,7 @@
  /// Connect AI assistants is desktop only: the browser can't host a local connection.
  fn help_menu(ui: &mut Ui) -> Option<Help> {
      let mut pick = None;
@@ -125,22 +111,20 @@ index aa08346..6363f15 100644
          pick = Some(Help::About);
      }
      if MenuItem::new("Keyboard Shortcuts").icon(MenuIcon::Keyboard).show(ui) {
-@@ -2562,8 +2562,8 @@ impl PcbApp {
+@@ -2663,8 +2663,8 @@
              }
              Dialog::About => {
                  let mut close = false;
 -                let closing = shell::dialog(ctx, "about_dialog", "About PCBCraft", |ui| {
--                    ui.label(format!("PCBCraft {VERSION}"));
+-                    ui.label(format!("PCBCraft {}", display_version()));
 +                let closing = shell::dialog(ctx, "about_dialog", "About PCBZ", |ui| {
-+                    ui.label(format!("PCBZ {VERSION}"));
++                    ui.label(format!("PCBZ {}", display_version()));
                      ui.label("Electronics design for people and AI agents working together on the same board.");
                      ui.label(dim("MIT OR Apache-2.0. Third-party notices are in ATTRIBUTION.md."));
                      workspace::ribbon_licenses(ui);
-diff --git a/crates/app/src/library_editors/io.rs b/crates/app/src/library_editors/io.rs
-index f6fa6cf..22de19b 100644
 --- a/crates/app/src/library_editors/io.rs
 +++ b/crates/app/src/library_editors/io.rs
-@@ -85,7 +85,7 @@ impl Files {
+@@ -85,7 +85,7 @@
          std::thread::Builder::new()
              .name("library-bundle".into())
              .spawn(move || {
@@ -149,7 +133,7 @@ index f6fa6cf..22de19b 100644
                  finish(match dialog.set_file_name(&export.file_name).save_file() {
                      Some(path) => publish(&path, &export.bytes).map(|()| Outcome::Exported(export.report)),
                      None => Ok(Outcome::Cancelled),
-@@ -139,7 +139,7 @@ fn publish(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+@@ -139,7 +139,7 @@
  #[cfg(not(target_arch = "wasm32"))]
  fn native(save: Option<(u64, Arc<Item>, bool)>) -> Result<Outcome, String> {
      match save {
@@ -158,11 +142,9 @@ index f6fa6cf..22de19b 100644
              Some(path) => read(&path).map(|item| Outcome::Opened(Box::new(item))),
              None => Ok(Outcome::Cancelled),
          },
-diff --git a/crates/app/src/manufacturing.rs b/crates/app/src/manufacturing.rs
-index 627eced..3f7616e 100644
 --- a/crates/app/src/manufacturing.rs
 +++ b/crates/app/src/manufacturing.rs
-@@ -177,7 +177,7 @@ impl PcbApp {
+@@ -178,7 +178,7 @@
          let docked = self.views.host == self.views.main;
          let ready = !self.manufacturing_files.busy();
          let latest = self.fabrication_exports.latest(&self.session).map(std::path::Path::to_owned);
@@ -171,11 +153,9 @@ index 627eced..3f7616e 100644
          if latest.is_some() {
              open.push(tool(ToolIcon::Outputs, "Last export", "Open the last saved fabrication ZIP", ready));
          }
-diff --git a/crates/app/src/manufacturing/pane.rs b/crates/app/src/manufacturing/pane.rs
-index 6e3e2a7..92abaf3 100644
 --- a/crates/app/src/manufacturing/pane.rs
 +++ b/crates/app/src/manufacturing/pane.rs
-@@ -16,7 +16,7 @@ impl PcbApp {
+@@ -16,7 +16,7 @@
          let reading = self.manufacturing_files.reading(id, &state.binding);
          let Some(opened) = state.opened.as_ref() else {
              ui.painter().rect_filled(ui.max_rect(), 0, tokens.board_canvas);
@@ -184,7 +164,7 @@ index 6e3e2a7..92abaf3 100644
              ui.centered_and_justified(|ui| {
                  ui.add(egui::Label::new(RichText::new(label).color(tokens.board_ink)).wrap());
              });
-@@ -40,7 +40,7 @@ impl PcbApp {
+@@ -40,7 +40,7 @@
                  egui::Frame::new().inner_margin(tokens.space_8).show(ui, |ui| {
                      egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                          ui.add(egui::Label::new(RichText::new(&opened.name).strong()).truncate()).on_hover_text(&opened.name);
@@ -193,11 +173,9 @@ index 6e3e2a7..92abaf3 100644
                          ui.label("Source revision unavailable");
                          if reading {
                              ui.label("Opening fabrication ZIP…");
-diff --git a/crates/app/src/native_sources.rs b/crates/app/src/native_sources.rs
-index af00106..91936f9 100644
 --- a/crates/app/src/native_sources.rs
 +++ b/crates/app/src/native_sources.rs
-@@ -157,7 +157,7 @@ impl Sources {
+@@ -157,7 +157,7 @@
              .name("pcbcraft-library-picker".into())
              .spawn(move || {
                  let result = rfd::FileDialog::new()
@@ -206,7 +184,7 @@ index af00106..91936f9 100644
                      .pick_folder()
                      .map(|path| {
                          let locator = path.to_str().ok_or("Library folder path is not valid UTF-8")?.to_owned();
-@@ -195,7 +195,7 @@ impl Sources {
+@@ -195,7 +195,7 @@
              .spawn(move || {
                  use std::io::Read;
                  let result = rfd::FileDialog::new()
@@ -215,11 +193,9 @@ index af00106..91936f9 100644
                      .pick_file()
                      .map(|path| {
                          let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
-diff --git a/crates/app/src/preferences.rs b/crates/app/src/preferences.rs
-index c1e95bd..b8513fd 100644
 --- a/crates/app/src/preferences.rs
 +++ b/crates/app/src/preferences.rs
-@@ -561,7 +561,7 @@ const INTERVAL_CHOICES: [(u8, &str); 4] = [(0, "Off"), (1, "1 min"), (5, "5 min"
+@@ -561,7 +561,7 @@
  /// Recovery snapshots of unsaved work, and the opt-in timed save to the project folder.
  #[cfg(not(target_arch = "wasm32"))]
  fn saving(ui: &mut Ui, data: &mut PageData<'_>) {
@@ -228,7 +204,7 @@ index c1e95bd..b8513fd 100644
      let effective = (data.preferences.autosave_minutes, data.preferences.save_to_project_minutes);
      let mut draft = data.saving.unwrap_or(effective);
      settings::section(ui, "Recovery", |ui| {
-@@ -615,7 +615,7 @@ fn paper_color(ui: &mut Ui, name: &str, saved: &mut Option<[u8; 3]>, theme_color
+@@ -615,7 +615,7 @@
  /// Theme, scale, panel style, grid display, schematic paper/canvas colours and units.
  /// The PCB style reflects effective visibility; choosing dots or lines restores a hidden grid.
  fn appearance(ui: &mut Ui, data: &mut PageData<'_>) {
@@ -237,7 +213,7 @@ index c1e95bd..b8513fd 100644
      let preferences = &mut *data.preferences;
      settings::section(ui, "Theme", |ui| {
          settings::row(ui, "Theme", |ui| {
-@@ -802,7 +802,7 @@ fn ai_page(ui: &mut Ui, data: &mut PageData<'_>) {
+@@ -802,7 +802,7 @@
  
  /// The keys PCBCraft answers to, grouped as in the menus. Read-only for now.
  fn shortcuts_page(ui: &mut Ui, data: &mut PageData<'_>) {
@@ -246,11 +222,9 @@ index c1e95bd..b8513fd 100644
      let mut sections: Vec<&str> = Vec::new();
      for (section, _, _) in data.shortcuts {
          if !sections.contains(section) {
-diff --git a/crates/app/src/project_files/abandon.rs b/crates/app/src/project_files/abandon.rs
-index 63c14fc..6042013 100644
 --- a/crates/app/src/project_files/abandon.rs
 +++ b/crates/app/src/project_files/abandon.rs
-@@ -35,14 +35,14 @@ impl ProjectFiles {
+@@ -35,14 +35,14 @@
              }
              Some(job) if job.operation != "open" => {
                  return Err(
@@ -267,11 +241,9 @@ index 63c14fc..6042013 100644
          }
          let Job { receiver, operation, destination, .. } = self.job.take().ok_or("No file operation is running.")?;
          self.stalled.push(receiver);
-diff --git a/crates/app/src/project_files/native.rs b/crates/app/src/project_files/native.rs
-index 1c65e03..b0447ed 100644
 --- a/crates/app/src/project_files/native.rs
 +++ b/crates/app/src/project_files/native.rs
-@@ -74,7 +74,7 @@ fn snapshot_needs_layout_upgrade(snapshot: &Project) -> bool {
+@@ -84,7 +84,7 @@
  
  /// Pick and fully validate a project before making it available to the editor.
  pub(super) fn open(pick_folder: bool) -> Result<Outcome, String> {
@@ -280,20 +252,18 @@ index 1c65e03..b0447ed 100644
      let Some(path) = (if pick_folder { dialog.pick_folder() } else { dialog.pick_file() }) else {
          return Ok(Outcome::Cancelled);
      };
-@@ -171,7 +171,7 @@ pub(super) fn save(snapshot: Arc<Project>, previous: Option<(Arc<Project>, Targe
-     let format = format.unwrap_or_default();
+@@ -194,7 +194,7 @@
      let path = match format {
          SaveFormat::Folder => dialog.set_title("Create project folder").set_file_name(suggestion).save_file(),
--        SaveFormat::Archive => dialog.add_filter("Packed PCBCraft project", &["pc"]).set_file_name(format!("{suggestion}.pc")).save_file(),
-+        SaveFormat::Archive => dialog.add_filter("Packed PCBZ project", &["pc"]).set_file_name(format!("{suggestion}.pc")).save_file(),
+         SaveFormat::Archive | SaveFormat::ArchiveFolder { .. } => {
+-            dialog.add_filter("Packed PCBCraft project", &["pc"]).set_file_name(format!("{suggestion}.pc")).save_file()
++            dialog.add_filter("Packed PCBZ project", &["pc"]).set_file_name(format!("{suggestion}.pc")).save_file()
+         }
      };
      let Some(path) = path else {
-         return Ok(Outcome::Cancelled);
-diff --git a/crates/app/src/properties/fields.rs b/crates/app/src/properties/fields.rs
-index e753be6..f5a0e5f 100644
 --- a/crates/app/src/properties/fields.rs
 +++ b/crates/app/src/properties/fields.rs
-@@ -244,7 +244,7 @@ impl Edit {
+@@ -244,7 +244,7 @@
          pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_board, "Exclude from board");
          pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_simulation, "Exclude from simulation");
          pcbcraft_chrome::controls::checkbox(ui, &mut a.exclude_from_position_files, "Exclude from pick-and-place files")
@@ -302,11 +272,9 @@ index e753be6..f5a0e5f 100644
      }
  }
  
-diff --git a/crates/app/src/tests.rs b/crates/app/src/tests.rs
-index b55e3c5..e819f90 100644
 --- a/crates/app/src/tests.rs
 +++ b/crates/app/src/tests.rs
-@@ -358,7 +358,7 @@ fn app_bar_brand_aligns_with_the_controls() {
+@@ -364,7 +364,7 @@
      let harness = harness();
      let center = |label| harness.get_by_label(label).rect().center().y;
      let file = center("File");
@@ -315,7 +283,7 @@ index b55e3c5..e819f90 100644
      assert!((center("Save Project") - file).abs() <= 1.0);
      assert!((center("Preferences") - file).abs() <= 1.0);
  }
-@@ -667,7 +667,7 @@ fn narrow_bars_reach_help_rows_from_home() {
+@@ -673,7 +673,7 @@
      harness.run();
      assert!(harness.query_by_label("Help").is_none());
      open_home(&mut harness);
@@ -324,7 +292,7 @@ index b55e3c5..e819f90 100644
      click(&mut harness, "Connect AI assistants…");
      assert!(matches!(harness.state().dialog, Dialog::LocalMcp { .. }));
  }
-@@ -765,9 +765,9 @@ fn narrow_app_bar_keeps_the_unsaved_marker() {
+@@ -771,9 +771,9 @@
      assert!(marker.right() <= preferences.left(), "{marker:?} overlaps {preferences:?}");
      assert!(preferences.right() <= width, "{preferences:?} extends past the window");
      // About moves from the narrow bar to the Home rail, which keeps it inside the window.
@@ -336,7 +304,7 @@ index b55e3c5..e819f90 100644
      harness.key_press(Key::Escape);
      harness.run();
  
-@@ -876,7 +876,7 @@ fn preferences_change_the_palette_and_the_scale_and_the_about_box_opens() {
+@@ -882,7 +882,7 @@
      click(&mut harness, "OK");
      assert!(matches!(harness.state().dialog, Dialog::None));
      assert_eq!(harness.state().preferences().scale_percent, 125);
@@ -345,11 +313,9 @@ index b55e3c5..e819f90 100644
      harness.get_by_label("Close").click();
      harness.run();
      assert!(harness.query_by_label("Close").is_none());
-diff --git a/crates/app/src/tests/app_bar_utilities.rs b/crates/app/src/tests/app_bar_utilities.rs
-index 2e4619e..5abadb8 100644
 --- a/crates/app/src/tests/app_bar_utilities.rs
 +++ b/crates/app/src/tests/app_bar_utilities.rs
-@@ -72,7 +72,7 @@ fn library_workspace_utilities_open_the_assistant_preferences_and_help() {
+@@ -72,7 +72,7 @@
          h.state_mut().dialog = Dialog::None;
          h.run();
  
@@ -358,11 +324,9 @@ index 2e4619e..5abadb8 100644
          assert!(matches!(h.state().dialog, Dialog::About), "{workspace}");
          h.state_mut().dialog = Dialog::None;
          h.run();
-diff --git a/crates/app/src/tests/detached_editors.rs b/crates/app/src/tests/detached_editors.rs
-index d6aea91..f73fb06 100644
 --- a/crates/app/src/tests/detached_editors.rs
 +++ b/crates/app/src/tests/detached_editors.rs
-@@ -2112,9 +2112,9 @@ fn main_window_title_names_its_document_like_a_detached_window() {
+@@ -2113,9 +2113,9 @@
      focus_host(&mut h, &peers, HostId::ROOT);
      let document = h.state().view_title(h.state().views.hosts[&HostId::ROOT].focused);
      assert!(document.starts_with(&h.state().session.project().unwrap().name), "{document}");
@@ -374,11 +338,9 @@ index d6aea91..f73fb06 100644
      assert!(h.state().home);
      let back = format!("Back to {}", h.state().session.project().unwrap().name);
      h.get_by_label(&back).click();
-diff --git a/crates/app/src/unsaved.rs b/crates/app/src/unsaved.rs
-index cb76357..1618c1e 100644
 --- a/crates/app/src/unsaved.rs
 +++ b/crates/app/src/unsaved.rs
-@@ -83,7 +83,7 @@ impl PcbApp {
+@@ -103,7 +103,7 @@
          }
          if self.files.busy() {
              self.waiting = Some(Waiting::ToDecide(Then::Close));
@@ -387,11 +349,9 @@ index cb76357..1618c1e 100644
          } else if self.files.dirty(&self.session) {
              ctx.send_viewport_cmd_to(crate::editor_windows::viewport(self.views.main), ViewportCommand::Focus);
              self.dialog = Dialog::SaveChanges(Then::Close);
-diff --git a/crates/app/src/window_commands.rs b/crates/app/src/window_commands.rs
-index 42d58d0..3d00d36 100644
 --- a/crates/app/src/window_commands.rs
 +++ b/crates/app/src/window_commands.rs
-@@ -503,7 +503,7 @@ mod live {
+@@ -510,7 +510,7 @@
          WindowCommand {
              id: "app.open_fabrication_package",
              title: "Open Fabrication Package",
@@ -400,7 +360,7 @@ index 42d58d0..3d00d36 100644
              params: &[VIEW, Param { name: "path", summary: "Absolute path of the fabrication ZIP", required: true, kind: Kind::Path }],
          },
          WindowCommand {
-@@ -1296,7 +1296,7 @@ mod live {
+@@ -1344,7 +1344,7 @@
          WindowCommand {
              id: "file.abandon",
              title: "Stop waiting",
@@ -409,11 +369,9 @@ index 42d58d0..3d00d36 100644
              params: &[Param {
                  name: "operation",
                  summary: "The file.operation.id inspect_editor reported for the stalled open; a different running job is left alone",
-diff --git a/crates/chrome/src/shell.rs b/crates/chrome/src/shell.rs
-index fe00b65..cc8271b 100644
 --- a/crates/chrome/src/shell.rs
 +++ b/crates/chrome/src/shell.rs
-@@ -125,7 +125,7 @@ fn brand(ui: &mut Ui, t: Tokens, show_name: bool) -> egui::Rect {
+@@ -125,7 +125,7 @@
      }
      ui.add_space(t.space_3);
      let font = fonts::interface_heading(ui, t.font_button);
@@ -422,11 +380,9 @@ index fe00b65..cc8271b 100644
      ui.add_space(t.space_4);
      rect.union(name)
  }
-diff --git a/crates/engine/src/board/clipboard.rs b/crates/engine/src/board/clipboard.rs
-index 2c49720..33dede5 100644
 --- a/crates/engine/src/board/clipboard.rs
 +++ b/crates/engine/src/board/clipboard.rs
-@@ -451,7 +451,7 @@ impl BoardFragment {
+@@ -455,7 +455,7 @@
              return Err(invalid("clipboard exceeds the 8 MiB limit"));
          }
          let envelope: Envelope =
@@ -435,11 +391,9 @@ index 2c49720..33dede5 100644
          if envelope.footprints.iter().any(|footprint| footprint.locked) {
              return Err(invalid("footprint locks are not supported by the board clipboard format"));
          }
-diff --git a/crates/engine/src/board/fabrication/review.rs b/crates/engine/src/board/fabrication/review.rs
-index 2a388d9..041063b 100644
 --- a/crates/engine/src/board/fabrication/review.rs
 +++ b/crates/engine/src/board/fabrication/review.rs
-@@ -181,7 +181,7 @@ impl Package {
+@@ -181,7 +181,7 @@
                  members.push((name, content));
              }
          }
@@ -448,11 +402,9 @@ index 2a388d9..041063b 100644
          if manifest.files.len() != members.len() || members.is_empty() {
              return Err("Fabrication manifest and ZIP member lists differ.".into());
          }
-diff --git a/crates/engine/src/board/fabrication/review/gerber.rs b/crates/engine/src/board/fabrication/review/gerber.rs
-index 9943137..e4b3158 100644
 --- a/crates/engine/src/board/fabrication/review/gerber.rs
 +++ b/crates/engine/src/board/fabrication/review/gerber.rs
-@@ -71,7 +71,7 @@ pub(super) fn read(text: &str, budget: &mut usize) -> Result<(Layer, CoordinateF
+@@ -71,7 +71,7 @@
      let frame = plot.frame.ok_or("Gerber coordinate frame is missing")?;
      let is_mask = matches!(role, LayerRole::TopMask | LayerRole::BottomMask);
      if lines.next().is_some() || plot.region.is_some() || !plot.ready() || plot.polarity != Some(!is_mask) {
@@ -461,11 +413,9 @@ index 9943137..e4b3158 100644
      }
      Ok((Layer { name: String::new(), role, marks: plot.marks, tools: Vec::new() }, frame))
  }
-diff --git a/crates/engine/src/board/lock_storage_tests.rs b/crates/engine/src/board/lock_storage_tests.rs
-index 2176b85..b98a680 100644
 --- a/crates/engine/src/board/lock_storage_tests.rs
 +++ b/crates/engine/src/board/lock_storage_tests.rs
-@@ -768,7 +768,7 @@ fn clipboard_refuses_active_footprint_locks_without_changing_unlocked_fragments(
+@@ -768,7 +768,7 @@
          envelope["footprints"][1]["locked"] = malformed;
          let error = BoardFragment::from_text(&serde_json::to_string(&envelope).unwrap()).unwrap_err();
          assert!(matches!(&error, crate::CommandError::InvalidParams(_)), "{error}");
@@ -474,11 +424,9 @@ index 2176b85..b98a680 100644
      }
  }
  
-diff --git a/crates/engine/src/clipboard.rs b/crates/engine/src/clipboard.rs
-index d8d7b16..1915ae2 100644
 --- a/crates/engine/src/clipboard.rs
 +++ b/crates/engine/src/clipboard.rs
-@@ -244,7 +244,7 @@ impl Fragment {
+@@ -244,7 +244,7 @@
              return Err(invalid("clipboard exceeds the 8 MiB limit"));
          }
          let envelope: Envelope =
@@ -487,11 +435,9 @@ index d8d7b16..1915ae2 100644
          let lock_capable =
              matches!(envelope.format.as_str(), DESIGNATOR_LOCK_FORMAT | NPTH_FORMAT | SLOT_FORMAT | RATED_PART_FORMAT | RATED_SLOT_FORMAT);
          if !(lock_capable || matches!(envelope.format.as_str(), FORMAT | HIERARCHY_FORMAT))
-diff --git a/crates/engine/src/part_authoring.rs b/crates/engine/src/part_authoring.rs
-index 2fe828f..ced8ba8 100644
 --- a/crates/engine/src/part_authoring.rs
 +++ b/crates/engine/src/part_authoring.rs
-@@ -160,7 +160,7 @@ fn new_identity() -> Result<uuid::Uuid, String> {
+@@ -160,7 +160,7 @@
  }
  /// New authored records carry original provenance rather than an invented provider address.
  fn original_source() -> Source {

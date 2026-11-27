@@ -1,8 +1,6 @@
-diff --git a/crates/app/src/arrangements/edit.rs b/crates/app/src/arrangements/edit.rs
-index ed876ee..23745cf 100644
 --- a/crates/app/src/arrangements/edit.rs
 +++ b/crates/app/src/arrangements/edit.rs
-@@ -68,7 +68,7 @@ impl PcbApp {
+@@ -68,7 +68,7 @@
          }
          let name = match intent {
              Intent::New => self.arrangements.suggested_name("Arrangement"),
@@ -11,11 +9,9 @@ index ed876ee..23745cf 100644
              _ => current.clone(),
          };
          self.dialog = Dialog::Arrangement(Edit {
-diff --git a/crates/app/src/assistant.rs b/crates/app/src/assistant.rs
-index 6319c94..2a96981 100644
 --- a/crates/app/src/assistant.rs
 +++ b/crates/app/src/assistant.rs
-@@ -263,7 +263,7 @@ impl Assistant {
+@@ -263,7 +263,7 @@
  
      /// Move the conversation into a native viewport and remember where it was on this run.
      fn show_window(&mut self, ctx: &Context, session: &Session, can_edit: bool, has_document: bool) -> Option<chrome::Action> {
@@ -24,7 +20,7 @@ index 6319c94..2a96981 100644
          let mut builder = egui::ViewportBuilder::default().with_title(title).with_min_inner_size([320.0, 320.0]);
          if !self.window_placed {
              builder = match self.window_place {
-@@ -422,16 +422,16 @@ impl Assistant {
+@@ -422,16 +422,16 @@
          let id = entry.id.clone();
          let entry = entry.clone();
          let ctx = ctx.clone();
@@ -44,7 +40,7 @@ index 6319c94..2a96981 100644
          match started {
              Ok(_) => {
                  self.test_results.remove(&id);
-@@ -695,8 +695,8 @@ impl Assistant {
+@@ -695,8 +695,8 @@
                  }
              }
              for (name, install) in &missing {
@@ -55,7 +51,7 @@ index 6319c94..2a96981 100644
              }
              ui.separator();
              if pcbcraft_chrome::controls::button(ui, "Add agent…").clicked() {
-@@ -751,10 +751,10 @@ impl Assistant {
+@@ -751,10 +751,10 @@
                                  }
                              }
                              craft_agents::acp::AuthKind::Terminal { .. } => {
@@ -68,7 +64,7 @@ index 6319c94..2a96981 100644
                              }
                          }
                      }
-@@ -777,7 +777,7 @@ impl Assistant {
+@@ -777,7 +777,7 @@
                      if let Some((current, models)) = &self.chat.models {
                          let shown = models.iter().find(|m| &m.id == current).map_or(current.as_str(), |m| m.name.as_str());
                          pcbcraft_chrome::controls::Choice::from_id_salt("assistant_model")
@@ -77,7 +73,7 @@ index 6319c94..2a96981 100644
                              .show_ui(ui, |ui| {
                                  for m in models {
                                      if ui.selectable_label(&m.id == current, &m.name).on_hover_text(&m.description).clicked() {
-@@ -791,7 +791,7 @@ impl Assistant {
+@@ -791,7 +791,7 @@
                      if let Some((current, modes)) = &self.chat.modes {
                          let shown = modes.iter().find(|(id, _)| id == current).map_or(current.as_str(), |(_, name)| name.as_str());
                          pcbcraft_chrome::controls::Choice::from_id_salt("assistant_mode")
@@ -86,11 +82,9 @@ index 6319c94..2a96981 100644
                              .show_ui(ui, |ui| {
                                  for (id, name) in modes {
                                      if ui.selectable_label(id == current, name).clicked() {
-diff --git a/crates/app/src/assistant/chat.rs b/crates/app/src/assistant/chat.rs
-index a6c0a71..68aa75e 100644
 --- a/crates/app/src/assistant/chat.rs
 +++ b/crates/app/src/assistant/chat.rs
-@@ -224,7 +224,7 @@ impl Chat {
+@@ -224,7 +224,7 @@
          let workdir = match tempfile::Builder::new().prefix("pcbcraft-agent-").tempdir() {
              Ok(dir) => dir,
              Err(error) => {
@@ -99,7 +93,7 @@ index a6c0a71..68aa75e 100644
                  return;
              }
          };
-@@ -242,7 +242,7 @@ impl Chat {
+@@ -242,7 +242,7 @@
              }
              (Some((_, Err(error))), Some(_), _) => {
                  self.items
@@ -108,7 +102,7 @@ index a6c0a71..68aa75e 100644
                  (None, None)
              }
              (None, _, _) => {
-@@ -469,7 +469,7 @@ impl Chat {
+@@ -469,7 +469,7 @@
      pub(super) fn hold(&mut self, request: Request, command: String, detail: String) {
          let id = self.next_id();
          let since = Instant::now();
@@ -117,7 +111,7 @@ index a6c0a71..68aa75e 100644
      }
  
      /// Take the approval answered with `id`, for the editor to act on.
-@@ -503,9 +503,9 @@ impl Chat {
+@@ -503,9 +503,9 @@
                  let minutes = APPROVAL_WAIT.as_secs() / 60;
                  request.answer(Err(pcbcraft_mcp::Failure::new(
                      pcbcraft_engine::error_codes::ErrorCode::Cancelled,
@@ -129,7 +123,7 @@ index a6c0a71..68aa75e 100644
              }
          }
      }
-@@ -560,7 +560,7 @@ impl Chat {
+@@ -560,7 +560,7 @@
                      self.answer_agent(key, allow.as_deref());
                  } else {
                      let id = self.next_id();
@@ -138,7 +132,7 @@ index a6c0a71..68aa75e 100644
                      self.approvals.push(Approval { id, title, detail, source: Source::Agent { key, options }, since: Instant::now() });
                  }
              }
-@@ -579,7 +579,7 @@ impl Chat {
+@@ -579,7 +579,7 @@
                      self.push(Item::Notice(note));
                  }
              }
@@ -147,7 +141,7 @@ index a6c0a71..68aa75e 100644
              Event::ConfigOptions(options) => self.config = options,
              Event::ConfigOptionFinished { result, .. } => match result {
                  Ok(options) => self.config = options,
-@@ -587,7 +587,7 @@ impl Chat {
+@@ -587,7 +587,7 @@
              },
              Event::TurnEnded { reason } => {
                  if !reason.is_empty() && reason != "end_turn" {
@@ -156,7 +150,7 @@ index a6c0a71..68aa75e 100644
                  }
                  self.close_turn();
                  if self.state == State::Running {
-@@ -597,7 +597,7 @@ impl Chat {
+@@ -597,7 +597,7 @@
              Event::SetupFailed(reason) => {
                  // The agent may keep running; end it so the panel offers Retry, as on exit.
                  self.disconnect();
@@ -165,7 +159,7 @@ index a6c0a71..68aa75e 100644
              }
              Event::Error(error) => self.push(Item::Notice(error)),
              Event::Exited { tail } => {
-@@ -763,7 +763,7 @@ fn restrict_to_user(path: &std::path::Path) -> std::io::Result<()> {
+@@ -763,7 +763,7 @@
      loop {
          match child.try_wait()? {
              Some(status) if status.success() => return Ok(()),
@@ -174,11 +168,9 @@ index a6c0a71..68aa75e 100644
              None if start.elapsed() >= ICACLS_LIMIT => {
                  let _ = child.kill();
                  return Err(Error::new(std::io::ErrorKind::TimedOut, "icacls did not finish in time"));
-diff --git a/crates/app/src/assistant/host.rs b/crates/app/src/assistant/host.rs
-index 4d90fd5..195dc93 100644
 --- a/crates/app/src/assistant/host.rs
 +++ b/crates/app/src/assistant/host.rs
-@@ -29,13 +29,13 @@ fn key_for(secret: &str, base_url: &str) -> Result<String, String> {
+@@ -29,13 +29,13 @@
  /// The key stored for endpoint `id`, only when it was entered for `base_url`; `Ok(None)` when
  /// none is stored.
  pub(super) fn endpoint_key(id: &str, base_url: &str) -> Result<Option<String>, String> {
@@ -194,11 +186,9 @@ index 4d90fd5..195dc93 100644
  }
  
  /// HTTP for model endpoints: to the URL the person configured, which may be plain HTTP on this
-diff --git a/crates/app/src/assistant/settings.rs b/crates/app/src/assistant/settings.rs
-index 04c77e2..9269412 100644
 --- a/crates/app/src/assistant/settings.rs
 +++ b/crates/app/src/assistant/settings.rs
-@@ -269,7 +269,7 @@ impl Assistant {
+@@ -269,7 +269,7 @@
                  .response
                  .accessible_name(pcbcraft_chrome::i18n::tr_label("Agent permission mode"));
              let remembered = self.settings.agents.agent_always_allow.get(&entry.id).map_or(0, Vec::len);
@@ -207,7 +197,7 @@ index 04c77e2..9269412 100644
                  self.settings.agents.agent_always_allow.remove(&entry.id);
                  self.settings_changed = true;
              }
-@@ -323,7 +323,7 @@ impl Assistant {
+@@ -323,7 +323,7 @@
          if self.settings.agents.agents.iter().any(|agent| agent.id == id && agent.key)
              && let Err(error) = delete_key(id)
          {
@@ -216,7 +206,7 @@ index 04c77e2..9269412 100644
              return;
          }
          if self.chat.agent.as_ref().is_some_and(|connected| connected.id == id) {
-@@ -502,7 +502,7 @@ impl Assistant {
+@@ -502,7 +502,7 @@
          if form.kind != Kind::Acp && !key.is_empty() {
              super::host::store_endpoint_key(&agent.id, &agent.base_url, key)?;
          } else if form.forget_key {
@@ -225,11 +215,9 @@ index 04c77e2..9269412 100644
          }
          let connected = self.chat.agent.as_ref().is_some_and(|connected| connected.id == agent.id);
          let prefs = &mut self.settings.agents;
-diff --git a/crates/app/src/autosave.rs b/crates/app/src/autosave.rs
-index 33514ab..29bd079 100644
 --- a/crates/app/src/autosave.rs
 +++ b/crates/app/src/autosave.rs
-@@ -142,7 +142,7 @@ impl PcbApp {
+@@ -142,7 +142,7 @@
          }
          if let Some(recorder) = &autosave.recorder {
              let fault = recorder.writer.fault();
@@ -238,7 +226,7 @@ index 33514ab..29bd079 100644
              let removed = fault.as_ref().is_some_and(|fault| fault.removed);
              if removed {
                  autosave.retry_at = None;
-@@ -271,7 +271,7 @@ impl PcbApp {
+@@ -271,7 +271,7 @@
                  autosave.notice = None;
              }
              Err(error) => {
@@ -247,11 +235,9 @@ index 33514ab..29bd079 100644
                  autosave.retry_at = Some(now.saturating_add(RETRY));
              }
          }
-diff --git a/crates/app/src/board_clipboard.rs b/crates/app/src/board_clipboard.rs
-index 336079c..90f0cf7 100644
 --- a/crates/app/src/board_clipboard.rs
 +++ b/crates/app/src/board_clipboard.rs
-@@ -252,13 +252,7 @@ impl PcbApp {
+@@ -252,13 +252,7 @@
          let mut cancel = false;
          let dismissed = shell::scrolling_dialog_width(ctx, "board_paste_options", "PCB Paste Options", 520., |ui| {
              let (fp, drawings, tracks, vias) = draft.fragment.counts();
@@ -266,7 +252,7 @@ index 336079c..90f0cf7 100644
              if !draft.fragment.circuits().is_empty() {
                  let original = draft.fragment.source_project() == project.id();
                  ui.add_enabled(original, egui::Checkbox::new(&mut draft.options.reuse_components, "Reuse original unplaced components"));
-@@ -537,7 +531,7 @@ impl Options {
+@@ -538,7 +532,7 @@
          options.schematic_targets.clear();
          if !options.reuse_components {
              for target in &self.targets {
@@ -275,11 +261,9 @@ index 336079c..90f0cf7 100644
                  let at = Point {
                      x_nm: units::parse_length(&target.x, unit).map_err(|e| e.to_string())?,
                      y_nm: units::parse_length(&target.y, unit).map_err(|e| e.to_string())?,
-diff --git a/crates/app/src/board_drc.rs b/crates/app/src/board_drc.rs
-index f2803b4..c52e3d7 100644
 --- a/crates/app/src/board_drc.rs
 +++ b/crates/app/src/board_drc.rs
-@@ -146,21 +146,21 @@ impl Drc {
+@@ -150,21 +150,21 @@
      /// A status-bar summary: not run, clean, the finding count, or out of date after an edit.
      pub(super) fn status(&self, board: Option<BoardTarget>, revision: u64) -> String {
          if self.waiting {
@@ -307,8 +291,8 @@ index f2803b4..c52e3d7 100644
          }
      }
  
-@@ -215,21 +215,15 @@ impl Drc {
-             if ran.source.revision() != revision || ran.outdated {
+@@ -229,21 +229,15 @@
+             if !current {
                  ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("The board changed since this check. Run again to refresh.")));
              }
 -            ui.label(shell::dim(format!("Revision {}", ran.source.revision())));
@@ -333,7 +317,7 @@ index f2803b4..c52e3d7 100644
              egui::ScrollArea::vertical().id_salt("board_drc_list").max_height(320.).show(ui, |ui| {
                  for (index, violation) in report.violations.iter().enumerate() {
                      let text = format!("{} · {}", label(violation.kind), violation.message);
-@@ -239,7 +233,7 @@ impl Drc {
+@@ -253,7 +247,7 @@
                      }
                  }
                  if report.violations.len() < report.total {
@@ -342,11 +326,9 @@ index f2803b4..c52e3d7 100644
                  }
              });
          });
-diff --git a/crates/app/src/board_drc/jobs.rs b/crates/app/src/board_drc/jobs.rs
-index e4a31ad..b55d665 100644
 --- a/crates/app/src/board_drc/jobs.rs
 +++ b/crates/app/src/board_drc/jobs.rs
-@@ -544,7 +544,7 @@ mod native {
+@@ -544,7 +544,7 @@
              });
              let schedule_failure = spawned.is_err().then_some(ScheduleFailure::Spawn);
              if let Err(error) = spawned {
@@ -355,11 +337,9 @@ index e4a31ad..b55d665 100644
              }
              Self { id, source, cancel, progress, result, schedule_failure }
          }
-diff --git a/crates/app/src/board_fills.rs b/crates/app/src/board_fills.rs
-index 57aee81..2ec9f85 100644
 --- a/crates/app/src/board_fills.rs
 +++ b/crates/app/src/board_fills.rs
-@@ -195,7 +195,7 @@ impl crate::PcbApp {
+@@ -195,7 +195,7 @@
          let fraction = pour.completed as f32 / pour.total.max(1) as f32;
          let mut cancel = false;
          let dismissed = pcbcraft_chrome::shell::dialog(ctx, "copper_pour", "Pouring copper", |ui| {
@@ -368,11 +348,9 @@ index 57aee81..2ec9f85 100644
              pcbcraft_chrome::controls::progress(ui, "copper_pour", fraction);
              cancel = pcbcraft_chrome::controls::button(ui, "Cancel").clicked();
          });
-diff --git a/crates/app/src/board_net_choice.rs b/crates/app/src/board_net_choice.rs
-index ea0f60f..d33ab52 100644
 --- a/crates/app/src/board_net_choice.rs
 +++ b/crates/app/src/board_net_choice.rs
-@@ -17,7 +17,7 @@ pub(super) fn net_choices(rows: &Value) -> Vec<NetChoice> {
+@@ -17,7 +17,7 @@
          .enumerate()
          .filter_map(|(index, row)| {
              let anchor: pcbcraft_engine::nets::Anchor = serde_json::from_value(row["anchor"].clone()).ok()?;
@@ -381,7 +359,7 @@ index ea0f60f..d33ab52 100644
              let id = serde_json::from_value(row["id"].clone()).ok();
              let target = if let Some(net) = id {
                  ClassTarget::Persistent { project: anchor.project, scope: anchor.scope, net }
-@@ -106,7 +106,7 @@ impl Edit {
+@@ -106,7 +106,7 @@
          rows.extend(self.matches.iter().skip(start).take(PAGE_SIZE).map(|i| {
              let choice = &self.choices[*i];
              TableEntry {
@@ -390,7 +368,7 @@ index ea0f60f..d33ab52 100644
                  cells: vec![choice.label.clone()],
                  selected: self.selected == Some(i + 1),
                  branch: None,
-@@ -254,7 +254,7 @@ impl PcbApp {
+@@ -254,7 +254,7 @@
                      ui.label(if edit.matches.is_empty() {
                          "0 nets".into()
                      } else {
@@ -399,11 +377,9 @@ index ea0f60f..d33ab52 100644
                      });
                      if edit.matches.len() > PAGE_SIZE {
                          if controls::enabled_button(ui, edit.page > 0, "Previous page").clicked() {
-diff --git a/crates/app/src/board_outputs.rs b/crates/app/src/board_outputs.rs
-index 4e42ab3..e010108 100644
 --- a/crates/app/src/board_outputs.rs
 +++ b/crates/app/src/board_outputs.rs
-@@ -105,10 +105,10 @@ impl Exports {
+@@ -105,10 +105,10 @@
              #[cfg(not(target_arch = "wasm32"))]
              std::thread::Builder::new()
                  .name("fabrication-export".into())
@@ -416,7 +392,7 @@ index 4e42ab3..e010108 100644
                  .map_err(|e| e.to_string())?;
              #[cfg(target_arch = "wasm32")]
              {
-@@ -156,7 +156,7 @@ fn publish_archive_with_sync(path: &std::path::Path, bytes: &[u8], sync: impl Fn
+@@ -156,7 +156,7 @@
      };
      let parent = output_directory(path);
      stage_output(parent, bytes, permissions).map_err(|error| error.to_string())?.persist(path).map_err(|error| error.error.to_string())?;
@@ -425,7 +401,7 @@ index 4e42ab3..e010108 100644
  }
  
  /// Use the destination directory for staging, including the current directory for a bare name.
-@@ -248,7 +248,7 @@ fn request_zip_download<E: std::fmt::Debug>(
+@@ -248,7 +248,7 @@
      archive: &Archive,
      request: impl FnOnce(&[u8], &str, &str) -> Result<(), E>,
  ) -> Result<Outcome, String> {
@@ -434,11 +410,9 @@ index 4e42ab3..e010108 100644
      Ok(Outcome::DownloadRequested)
  }
  
-diff --git a/crates/app/src/board_panels.rs b/crates/app/src/board_panels.rs
-index 4f63f25..ef622aa 100644
 --- a/crates/app/src/board_panels.rs
 +++ b/crates/app/src/board_panels.rs
-@@ -241,7 +241,7 @@ impl PcbApp {
+@@ -243,7 +243,7 @@
                          if let [label] = inspection_labels.as_slice() {
                              ui.label(label);
                          } else {
@@ -447,7 +421,7 @@ index 4f63f25..ef622aa 100644
                          }
                          ui.end_row();
                      }
-@@ -479,7 +479,7 @@ fn layer_row(
+@@ -481,7 +481,7 @@
                          fold: None,
                          icon: Some(workspace::TreeIcon::Layer { color: layer_color(layer, board, appearance), active, editable: true }),
                          label,
@@ -456,11 +430,9 @@ index 4f63f25..ef622aa 100644
                          tip: if active { "Active layer" } else { "Set active layer" },
                          selected: active,
                      },
-diff --git a/crates/app/src/board_panels/properties.rs b/crates/app/src/board_panels/properties.rs
-index 86277d8..7f36ec8 100644
 --- a/crates/app/src/board_panels/properties.rs
 +++ b/crates/app/src/board_panels/properties.rs
-@@ -275,7 +275,7 @@ fn committed_length(
+@@ -275,7 +275,7 @@
                  match units::parse_length(&draft.text, unit) {
                      Err(error) => draft.error = Some(error.to_string()),
                      Ok(nm) if !range.contains(&nm) => {
@@ -469,11 +441,9 @@ index 86277d8..7f36ec8 100644
                      }
                      Ok(nm) => {
                          committed = (nm != model_nm || mixed).then_some(nm);
-diff --git a/crates/app/src/board_presets.rs b/crates/app/src/board_presets.rs
-index 728c599..4bfb099 100644
 --- a/crates/app/src/board_presets.rs
 +++ b/crates/app/src/board_presets.rs
-@@ -158,13 +158,9 @@ impl Edit {
+@@ -158,13 +158,9 @@
          } else {
              Err(match value {
                  Size::Width(_) => {
@@ -489,11 +459,9 @@ index 728c599..4bfb099 100644
              })
          }
      }
-diff --git a/crates/app/src/board_setup/materials.rs b/crates/app/src/board_setup/materials.rs
-index d33ff9d..fde35b0 100644
 --- a/crates/app/src/board_setup/materials.rs
 +++ b/crates/app/src/board_setup/materials.rs
-@@ -43,14 +43,8 @@ fn thermal_and_insulation_lines(material: &Material) -> Vec<String> {
+@@ -43,14 +43,8 @@
      let method = |value: &Option<String>| value.as_ref().map(|m| format!(" · {m}")).unwrap_or_default();
      let mut lines = Vec::new();
      for report in &material.thermal_conductivity {
@@ -510,7 +478,7 @@ index d33ff9d..fde35b0 100644
          lines.push(report.source.document.clone());
      }
      for report in &material.cte {
-@@ -60,7 +54,7 @@ fn thermal_and_insulation_lines(material: &Material) -> Vec<String> {
+@@ -60,7 +54,7 @@
              None => "",
          };
          let range = match (report.from_milli_c, report.to_milli_c) {
@@ -519,7 +487,7 @@ index d33ff9d..fde35b0 100644
              _ => String::new(),
          };
          lines.push(format!(
-@@ -73,19 +67,12 @@ fn thermal_and_insulation_lines(material: &Material) -> Vec<String> {
+@@ -73,19 +67,12 @@
          lines.push(report.source.document.clone());
      }
      for report in &material.dielectric_strength {
@@ -541,7 +509,7 @@ index d33ff9d..fde35b0 100644
          lines.push(format!("CTI {value}{group} · {:?}{}", report.basis, method(&report.method)));
          lines.push(report.source.document.clone());
      }
-@@ -106,7 +93,7 @@ pub(super) fn decimal(value: &str, scale: u32) -> Result<Option<i64>, String> {
+@@ -106,7 +93,7 @@
          || !fraction.chars().all(|c| c.is_ascii_digit())
          || fraction.len() > scale as usize
      {
@@ -550,11 +518,9 @@ index d33ff9d..fde35b0 100644
      }
      let multiplier = 10_i64.pow(scale);
      let whole = if whole.is_empty() { 0 } else { whole.parse::<i64>().map_err(|_| "Value is out of range")? };
-diff --git a/crates/app/src/board_setup/pages.rs b/crates/app/src/board_setup/pages.rs
-index e6062aa..9b1d197 100644
 --- a/crates/app/src/board_setup/pages.rs
 +++ b/crates/app/src/board_setup/pages.rs
-@@ -116,10 +116,10 @@ impl Edit {
+@@ -116,10 +116,10 @@
                      ui.add_enabled_ui(!required, |ui| {
                          pcbcraft_chrome::controls::checkbox(ui, &mut candidate.enabled[index], "")
                              .on_hover_text(if required { pcbcraft_chrome::i18n::tr_label("Required layer") } else { pcbcraft_chrome::i18n::tr_label("Remove this layer from the board catalog") })
@@ -567,7 +533,7 @@ index e6062aa..9b1d197 100644
                      form::table_label(ui, purpose_name(layer.purpose), widths[2]);
                      form::table_label(
                          ui,
-@@ -273,7 +273,7 @@ impl Edit {
+@@ -273,7 +273,7 @@
                      Stratum::Copper { layer, .. } => {
                          candidate.setup.layers().iter().position(|l| l.id == *layer).map(|n| candidate.names[n].clone()).unwrap_or_default()
                      }
@@ -576,7 +542,7 @@ index e6062aa..9b1d197 100644
                  };
                  (name, candidate.thickness[i].value(self.unit).ok().flatten(), matches!(s, Stratum::Copper { .. }))
              })
-@@ -361,7 +361,7 @@ impl Edit {
+@@ -361,7 +361,7 @@
                  form::cross_section_heading(ui, width);
              }
              for (label, width) in
@@ -585,7 +551,7 @@ index e6062aa..9b1d197 100644
              {
                  if label == "Lock" {
                      ui.add_sized(egui::vec2(width, t.control_height), egui::Label::new(label));
-@@ -382,7 +382,7 @@ impl Edit {
+@@ -382,7 +382,7 @@
                      egui::vec2(widths[1], t.control_height),
                      properties::input(&mut candidate.thickness[i].text).id_salt(("thickness", i)).hint_text("Unspecified"),
                  );
@@ -594,7 +560,7 @@ index e6062aa..9b1d197 100644
                  if thickness.gained_focus() {
                      *selected = i;
                  }
-@@ -406,7 +406,7 @@ impl Edit {
+@@ -406,7 +406,7 @@
                  );
                  if let Stratum::Dielectric { id, .. } = &candidate.setup.stackup().strata[i] {
                      let mut is_locked = locked.contains(&id.to_string());
@@ -603,7 +569,7 @@ index e6062aa..9b1d197 100644
                      if lock.changed() {
                          if is_locked {
                              locked.insert(id.to_string());
-@@ -436,7 +436,7 @@ impl Edit {
+@@ -436,7 +436,7 @@
                  Stratum::Copper { layer, .. } => {
                      candidate.setup.layers().iter().position(|l| l.id == *layer).map(|n| candidate.names[n].clone()).unwrap_or_default()
                  }
@@ -612,7 +578,7 @@ index e6062aa..9b1d197 100644
              };
              ui.push_id(i, |ui| {
                  form::card(ui, |ui| {
-@@ -509,7 +509,7 @@ impl Edit {
+@@ -509,7 +509,7 @@
                                  let mut remove = None;
                                  for (n, ply) in plies.iter_mut().enumerate() {
                                      ui.push_id(ply.id, |ui| {
@@ -621,11 +587,9 @@ index e6062aa..9b1d197 100644
                                          material_choice(ui, "ply_material", &mut ply.material, &candidate.materials);
                                          let mut glass = ply.glass_style.clone().unwrap_or_default();
                                          if form::text(ui, "Glass style", &mut glass).changed() {
-diff --git a/crates/app/src/board_setup/profile_io.rs b/crates/app/src/board_setup/profile_io.rs
-index 7328608..9894582 100644
 --- a/crates/app/src/board_setup/profile_io.rs
 +++ b/crates/app/src/board_setup/profile_io.rs
-@@ -43,20 +43,20 @@ impl Files {
+@@ -43,20 +43,20 @@
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("board-setup-profile".into())
@@ -650,7 +614,7 @@ index 7328608..9894582 100644
          }
          self.next = ticket;
          self.pending = Some((ticket, receive));
-@@ -95,9 +95,9 @@ fn publish(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+@@ -95,9 +95,9 @@
      let parent = path.parent().ok_or("Choose a destination directory.")?;
      let mut file = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
      file.write_all(bytes).and_then(|_| file.as_file().sync_all()).map_err(|e| e.to_string())?;
@@ -662,7 +626,7 @@ index 7328608..9894582 100644
      Ok(())
  }
  
-@@ -140,12 +140,12 @@ extern "C" {
+@@ -140,12 +140,12 @@
  #[cfg(target_arch = "wasm32")]
  async fn web(save: Option<(String, Vec<u8>)>, picker: Option<js_sys::Promise>) -> Result<Outcome, String> {
      if let Some((name, bytes)) = save {
@@ -677,11 +641,9 @@ index 7328608..9894582 100644
      if data.is_null() {
          return Ok(Outcome::Cancelled);
      }
-diff --git a/crates/app/src/board_setup/profiles.rs b/crates/app/src/board_setup/profiles.rs
-index bd242f3..d7d7d18 100644
 --- a/crates/app/src/board_setup/profiles.rs
 +++ b/crates/app/src/board_setup/profiles.rs
-@@ -16,7 +16,7 @@ impl Edit {
+@@ -16,7 +16,7 @@
              .into_iter()
              .zip(&self.silkscreen)
              .map(|(label, length)| {
@@ -690,7 +652,7 @@ index bd242f3..d7d7d18 100644
              })
              .collect::<Result<Vec<_>, _>>()?;
          serde_json::from_value(json!({"text_height_nm":values[0],"stroke_width_nm":values[1],"pad_clearance_nm":values[2]}))
-@@ -111,7 +111,7 @@ impl PcbApp {
+@@ -111,7 +111,7 @@
                          edit.locked.clear();
                          edit.material_edit = None;
                          edit.error = None;
@@ -699,11 +661,9 @@ index bd242f3..d7d7d18 100644
                      }
                      Err(error) => edit.error = Some(error),
                  }
-diff --git a/crates/app/src/board_tracks/preparation.rs b/crates/app/src/board_tracks/preparation.rs
-index 509385e..0018ee6 100644
 --- a/crates/app/src/board_tracks/preparation.rs
 +++ b/crates/app/src/board_tracks/preparation.rs
-@@ -120,7 +120,7 @@ impl Preparation {
+@@ -120,7 +120,7 @@
          self.wanted.as_ref().map(|_| {
              self.queue
                  .progress()
@@ -712,11 +672,9 @@ index 509385e..0018ee6 100644
          })
      }
      /// Poll captured work, canceling changed source/layer/size/view authority before publication.
-diff --git a/crates/app/src/board_update.rs b/crates/app/src/board_update.rs
-index 8c58e6c..9000809 100644
 --- a/crates/app/src/board_update.rs
 +++ b/crates/app/src/board_update.rs
-@@ -187,7 +187,7 @@ impl PcbApp {
+@@ -210,7 +210,7 @@
                  ui.label(pcbcraft_chrome::i18n::tr_label("The project or source pane changed. Close this review and open Update PCB again."));
              } else {
                  if let Some(board) = edit.board.and_then(|target| project.as_ref().and_then(|project| project.board_view(target))) {
@@ -725,7 +683,7 @@ index 8c58e6c..9000809 100644
                  } else {
                      ui.strong("All schematic sheets");
                  }
-@@ -204,7 +204,7 @@ impl PcbApp {
+@@ -227,7 +227,7 @@
                                      && project.component_is_board_eligible(id)
                                      && !choices.contains_key(&id)
                                  {
@@ -734,84 +692,93 @@ index 8c58e6c..9000809 100644
                                      if pcbcraft_chrome::controls::button(ui, label).clicked() {
                                          action = Action::Assign(id);
                                      }
-@@ -430,9 +430,9 @@ fn mapping_label(package: Option<&Package>) -> String {
-     package.map_or_else(
-         || "Unassigned".into(),
+@@ -465,11 +465,11 @@
          |package| {
--            let mut entries: Vec<_> = package.mapping.iter().map(|(terminal, pad)| format!("Pin {terminal} → pad {pad}")).collect();
-+            let mut entries: Vec<_> = package.mapping.iter().map(|(terminal, pad)| pcbcraft_chrome::i18n::format("dynamic.pin_pad_6286222", &[("terminal", &format!("{}", terminal)), ("pad", &format!("{}", pad))])).collect();
+             let mut pairs: Vec<_> = package.mapping.iter().map(|(terminal, pad)| (terminal.as_str(), pad)).collect();
+             pairs.sort_by(|(a, _), (b, _)| pcbcraft_engine::authoring::natural_cmp(a, b));
+-            let mut entries: Vec<_> = pairs.into_iter().map(|(terminal, pad)| format!("Pin {terminal} → pad {pad}")).collect();
++            let mut entries: Vec<_> = pairs.into_iter().map(|(terminal, pad)| pcbcraft_chrome::i18n::format("dynamic.pin_pad_6286222", &[("terminal", &format!("{}", terminal)), ("pad", &format!("{}", pad))])).collect();
              if !package.unconnected_pads.is_empty() {
--                entries.push(format!("unconnected pads {}", package.unconnected_pads.join(", ")));
-+                entries.push(pcbcraft_chrome::i18n::format("dynamic.unconnected_pads_25b7d0b", &[("arg1", &format!("{}", package.unconnected_pads.join(", ")))]));
+                 let mut unconnected: Vec<&str> = package.unconnected_pads.iter().map(String::as_str).collect();
+                 unconnected.sort_by(|a, b| pcbcraft_engine::authoring::natural_cmp(a, b));
+-                entries.push(format!("unconnected pads {}", unconnected.join(", ")));
++                entries.push(pcbcraft_chrome::i18n::format("dynamic.unconnected_pads_25b7d0b", &[("arg1", &format!("{}", unconnected.join(", ")))]));
              }
              entries.join(", ")
          },
-@@ -449,8 +449,8 @@ fn report_entries(preview: &BoardUpdatePreview<'_>) -> Vec<(Option<u64>, form::M
-             Some(*component),
-             form::Message {
-                 kind: form::Kind::Error,
--                text: format!("{label}: no footprint assigned."),
--                action: Some(format!("Assign footprint to {label}")),
-+                text: pcbcraft_chrome::i18n::format("dynamic.no_footprint_assigned_b7d4b4c", &[("label", &format!("{}", label))]),
-+                action: Some(pcbcraft_chrome::i18n::format("dynamic.assign_footprint_to_e7af3c9", &[("label", &format!("{}", label))])),
-             },
+@@ -484,9 +484,9 @@
+         let label = component_label(preview, *component);
+         rows.push(ReportRow::new(
+             form::Kind::Error,
+-            format!("{label}: no footprint assigned."),
++            pcbcraft_chrome::i18n::format("dynamic.no_footprint_assigned_b7d4b4c", &[("label", &format!("{}", label))]),
+             [*component],
+-            Some((*component, format!("Assign footprint to {label}"))),
++            Some((*component, pcbcraft_chrome::i18n::format("dynamic.assign_footprint_to_e7af3c9", &[("label", &format!("{}", label))]))),
          ));
      }
-@@ -466,15 +466,15 @@ fn report_entries(preview: &BoardUpdatePreview<'_>) -> Vec<(Option<u64>, form::M
+     for change in &preview.changes.components {
+@@ -501,22 +501,33 @@
          let old = preview.accepted_component(id);
          let new = preview.proposed_component(id);
          let package = new.or(old).and_then(|part| part.package.as_ref());
--        rows.push((None, form::Message { kind: form::Kind::Action, text: format!("{verb} {label}: {}.", package_label(package)), action: None }));
-+        rows.push((None, form::Message { kind: form::Kind::Action, text: pcbcraft_chrome::i18n::format("dynamic._e9eee01", &[("verb", pcbcraft_chrome::i18n::tr_label(&format!("{}", verb))), ("label", &format!("{}", label)), ("arg1", &format!("{}", package_label(package)))]), action: None }));
+-        rows.push(ReportRow::new(form::Kind::Action, format!("{verb} {label}: {}.", package_label(package)), [id], None));
++        rows.push(ReportRow::new(
++            form::Kind::Action,
++            pcbcraft_chrome::i18n::format("dynamic._e9eee01", &[("verb", pcbcraft_chrome::i18n::tr_label(verb)), ("label", &format!("{}", label)), ("arg1", &format!("{}", package_label(package)))]),
++            [id],
++            None,
++        ));
          if matches!(change, ComponentChange::Removed { .. }) {
--            rows.push((None, form::Message { kind: form::Kind::Warning, text: format!("{label} will be removed from the PCB."), action: None }));
-+            rows.push((None, form::Message { kind: form::Kind::Warning, text: pcbcraft_chrome::i18n::format("dynamic.will_be_removed_from_the_pcb_19cb015", &[("label", &format!("{}", label))]), action: None }));
+-            rows.push(ReportRow::new(form::Kind::Warning, format!("{label} will be removed from the PCB."), [id], None));
++            rows.push(ReportRow::new(
++                form::Kind::Warning,
++                pcbcraft_chrome::i18n::format("dynamic.will_be_removed_from_the_pcb_19cb015", &[("label", &format!("{}", label))]),
++                [id],
++                None,
++            ));
          } else {
              let mapping = new.and_then(|part| part.package.as_ref());
              if mapping.is_some() {
-                 rows.push((
-                     None,
--                    form::Message { kind: form::Kind::Info, text: format!("{label} pin mapping: {}.", mapping_label(mapping)), action: None },
-+                    form::Message { kind: form::Kind::Info, text: pcbcraft_chrome::i18n::format("dynamic.pin_mapping_917db37", &[("label", &format!("{}", label)), ("arg1", &format!("{}", mapping_label(mapping)))]), action: None },
-                 ));
+-                rows.push(ReportRow::new(form::Kind::Info, format!("{label} pin mapping: {}.", mapping_label(mapping)), [id], None));
++                rows.push(ReportRow::new(
++                    form::Kind::Info,
++                    pcbcraft_chrome::i18n::format("dynamic.pin_mapping_917db37", &[("label", &format!("{}", label)), ("arg1", &format!("{}", mapping_label(mapping)))]),
++                    [id],
++                    None,
++                ));
              }
              if let Some(old) = old {
-@@ -482,11 +482,7 @@ fn report_entries(preview: &BoardUpdatePreview<'_>) -> Vec<(Option<u64>, form::M
+                 rows.push(ReportRow::new(
+                     form::Kind::Info,
+-                    format!(
+-                        "Previous footprint for {label}: {}. Previous mapping: {}.",
+-                        package_label(old.package.as_ref()),
+-                        mapping_label(old.package.as_ref())
+-                    ),
++                    pcbcraft_chrome::i18n::format("dynamic.previous_footprint_for_previous_mapping_8b6b90d", &[("label", &format!("{}", label)), ("arg1", &format!("{}", package_label(old.package.as_ref()))), ("arg2", &format!("{}", mapping_label(old.package.as_ref())))]),
+                     [id],
                      None,
-                     form::Message {
-                         kind: form::Kind::Info,
--                        text: format!(
--                            "Previous footprint for {label}: {}. Previous mapping: {}.",
--                            package_label(old.package.as_ref()),
--                            mapping_label(old.package.as_ref())
--                        ),
-+                        text: pcbcraft_chrome::i18n::format("dynamic.previous_footprint_for_previous_mapping_8b6b90d", &[("label", &format!("{}", label)), ("arg1", &format!("{}", package_label(old.package.as_ref()))), ("arg2", &format!("{}", mapping_label(old.package.as_ref())))]),
-                         action: None,
-                     },
                  ));
-@@ -498,11 +494,7 @@ fn report_entries(preview: &BoardUpdatePreview<'_>) -> Vec<(Option<u64>, form::M
+@@ -526,7 +537,7 @@
+                     |part: &pcbcraft_engine::board::update::PartInstanceState| format!("{} / {} · r{}", part.library, part.definition, part.revision);
+                 rows.push(ReportRow::new(
+                     form::Kind::Info,
+-                    format!("{label} symbol: {} → {}.", old.map_or_else(|| "None".into(), symbol), new.map_or_else(|| "None".into(), symbol)),
++                    pcbcraft_chrome::i18n::format("dynamic.symbol_3fab8b1", &[("label", &format!("{}", label)), ("arg1", &format!("{}", old.map_or_else(|| "None".into(), symbol))), ("arg2", &format!("{}", new.map_or_else(|| "None".into(), symbol)))]),
+                     [id],
                      None,
-                     form::Message {
-                         kind: form::Kind::Info,
--                        text: format!(
--                            "{label} symbol: {} → {}.",
--                            old.map_or_else(|| "None".into(), symbol),
--                            new.map_or_else(|| "None".into(), symbol)
--                        ),
-+                        text: pcbcraft_chrome::i18n::format("dynamic.symbol_3fab8b1", &[("label", &format!("{}", label)), ("arg1", &format!("{}", old.map_or_else(|| "None".into(), symbol))), ("arg2", &format!("{}", new.map_or_else(|| "None".into(), symbol)))]),
-                         action: None,
-                     },
                  ));
-@@ -511,7 +503,7 @@ fn report_entries(preview: &BoardUpdatePreview<'_>) -> Vec<(Option<u64>, form::M
-     }
-     for (nets, verb) in [(&preview.changes.removed_nets, "Remove previous connections"), (&preview.changes.added_nets, "Update connections")] {
+@@ -537,7 +548,7 @@
          for net in nets {
--            rows.push((None, form::Message { kind: form::Kind::Info, text: format!("{verb} — {}.", net_label(preview, net)), action: None }));
-+            rows.push((None, form::Message { kind: form::Kind::Info, text: pcbcraft_chrome::i18n::format("dynamic._33607db", &[("verb", pcbcraft_chrome::i18n::tr_label(&format!("{}", verb))), ("arg1", &format!("{}", net_label(preview, net)))]), action: None }));
-         }
-     }
-     if rows.is_empty() {
-@@ -559,7 +551,7 @@ fn draw_unplaced(ui: &mut egui::Ui, project: &Project, action: &mut Action) {
+             rows.push(ReportRow::new(
+                 form::Kind::Info,
+-                format!("{verb} — {}.", net_label(preview, net)),
++                pcbcraft_chrome::i18n::format("dynamic._33607db", &[("verb", pcbcraft_chrome::i18n::tr_label(verb)), ("arg1", &format!("{}", net_label(preview, net)))]),
+                 net.terminals.iter().map(|terminal| terminal.component),
+                 None,
+             ));
+@@ -590,7 +601,7 @@
          ui.label(pcbcraft_chrome::i18n::tr_label("No unplaced footprints."));
          return;
      }
@@ -820,11 +787,9 @@ index 8c58e6c..9000809 100644
      if pcbcraft_chrome::controls::button(ui, "Place footprints").clicked() {
          *action = Action::PlaceAll;
      }
-diff --git a/crates/app/src/board_workspace.rs b/crates/app/src/board_workspace.rs
-index 1c30cde..bc442e3 100644
 --- a/crates/app/src/board_workspace.rs
 +++ b/crates/app/src/board_workspace.rs
-@@ -609,7 +609,7 @@ impl PcbApp {
+@@ -610,7 +610,7 @@
              .iter()
              .map(|layer| {
                  let label = crate::board_panels::layer_name(layer, &layers);
@@ -833,20 +798,20 @@ index 1c30cde..bc442e3 100644
              })
              .collect();
          let options: Vec<_> = labels
-@@ -727,7 +727,7 @@ impl PcbApp {
+@@ -728,8 +728,8 @@
+             self.empty_board_pane(ui, id, enabled);
              return;
          }
-         let highlighted = self.views.board_highlight_for(id, &self.session);
+-        let highlighted = self.views.board_paint_highlight(id, &self.session);
 -        let label = if self.views.is_split() { format!("PCB canvas {}", id.0 + 1) } else { "PCB canvas".to_owned() };
++        let highlighted = self.views.board_highlight_for(id, &self.session);
 +        let label = if self.views.is_split() { pcbcraft_chrome::i18n::format("dynamic.pcb_canvas_4a019c8", &[("arg1", &format!("{}", id.0 + 1))]) } else { pcbcraft_chrome::i18n::tr_label("PCB canvas").to_owned() };
          if self.board_move_ready(ui.ctx(), id, enabled)
              && let Some(widget) = self.views.view(id).map(|v| v.widget_id())
          {
-diff --git a/crates/app/src/clipboard.rs b/crates/app/src/clipboard.rs
-index 973f90c..29e0a26 100644
 --- a/crates/app/src/clipboard.rs
 +++ b/crates/app/src/clipboard.rs
-@@ -382,20 +382,10 @@ impl PcbApp {
+@@ -382,20 +382,10 @@
          let mut cancel = false;
          let dismissed = pcbcraft_chrome::shell::dialog(ctx, "paste_options", "Paste Options", |ui| {
              let (symbols, wires, labels) = draft.placement.fragment.counts();
@@ -869,11 +834,9 @@ index 973f90c..29e0a26 100644
              }
              if blocks > 0 {
                  let eligible = self.views.active.snapshot(&self.session).is_some_and(|p| draft.placement.fragment.offers_sheet_reuse(&p));
-diff --git a/crates/app/src/editor_view.rs b/crates/app/src/editor_view.rs
-index 531f7c5..ce82911 100644
 --- a/crates/app/src/editor_view.rs
 +++ b/crates/app/src/editor_view.rs
-@@ -705,7 +705,7 @@ impl EditorView {
+@@ -710,7 +710,7 @@
      /// Resolve the document breadcrumb; a runtime view number is never a sheet name.
      pub(super) fn sheet_path(&self, session: &Session) -> Option<String> {
          if let Some(state) = &self.unavailable {
@@ -882,20 +845,20 @@ index 531f7c5..ce82911 100644
          }
          self.input(session)?;
          let name = match self.workspace {
-diff --git a/crates/app/src/editor_workspace.rs b/crates/app/src/editor_workspace.rs
-index 7403a68..6c4da39 100644
 --- a/crates/app/src/editor_workspace.rs
 +++ b/crates/app/src/editor_workspace.rs
-@@ -1294,7 +1294,7 @@ impl PcbApp {
-                         ui.ctx().request_repaint();
-                     }
-                     let highlight = self.views.highlight_for(id, &self.session);
+@@ -1566,8 +1566,8 @@
+                         && matches!(self.dialog, Dialog::None)
+                         && !self.parts.is_modal()
+                         && !egui::Popup::is_any_open(ui.ctx());
+-                    let highlight = self.views.schematic_paint_highlight(id, &self.session);
 -                    let label = format!("Schematic canvas {}", id.0 + 1);
++                    let highlight = self.views.highlight_for(id, &self.session);
 +                    let label = pcbcraft_chrome::i18n::format("dynamic.schematic_canvas_3a73ff7", &[("arg1", &format!("{}", id.0 + 1))]);
                      let Some(view) = self.views.view_mut(id) else {
                          return;
                      };
-@@ -1342,13 +1342,10 @@ impl PcbApp {
+@@ -1615,13 +1615,10 @@
                      && let Some(path) = self.views.active.sheet_path(&self.session)
                  {
                      let count = if self.views.active.workspace == Workspace::Board {
@@ -911,11 +874,9 @@ index 7403a68..6c4da39 100644
                      } else {
                          self.session.project().map_or_else(String::new, |project| {
                              let index = project
-diff --git a/crates/app/src/external_clipboard.rs b/crates/app/src/external_clipboard.rs
-index 0d88a9f..d27a1bd 100644
 --- a/crates/app/src/external_clipboard.rs
 +++ b/crates/app/src/external_clipboard.rs
-@@ -152,7 +152,7 @@ fn outline_size(ui: &mut Ui, draft: &Options) {
+@@ -152,7 +152,7 @@
      let (min_x, max_x) = points.iter().map(|p| p.x_nm).fold((i64::MAX, i64::MIN), |(a, b), v| (a.min(v), b.max(v)));
      let (min_y, max_y) = points.iter().map(|p| p.y_nm).fold((i64::MAX, i64::MIN), |(a, b), v| (a.min(v), b.max(v)));
      let unit = if units == CoordinateUnits::Mil { units::Unit::Mil } else { units::Unit::Mm };
@@ -924,11 +885,9 @@ index 0d88a9f..d27a1bd 100644
  }
  
  #[cfg(test)]
-diff --git a/crates/app/src/footprint_assignment.rs b/crates/app/src/footprint_assignment.rs
-index 26d493d..6b9535d 100644
 --- a/crates/app/src/footprint_assignment.rs
 +++ b/crates/app/src/footprint_assignment.rs
-@@ -315,7 +315,7 @@ impl PcbApp {
+@@ -315,7 +315,7 @@
                              });
                              let pin_count = project.components().find(|c| c.id() == edit.component).map(|c| c.definition.pins().len());
                              let matches: Vec<_> = catalog.iter().filter(|d| edit.matches(d, pin_count)).cloned().collect();
@@ -937,7 +896,7 @@ index 26d493d..6b9535d 100644
                              let height = if wide { ui.available_height().max(120.) } else { 180. };
                              egui::ScrollArea::vertical().id_salt("package_results").max_height(height).show(ui, |ui| {
                                  if matches.is_empty() {
-@@ -329,13 +329,7 @@ impl PcbApp {
+@@ -329,13 +329,7 @@
                                  }
                                  for definition in matches {
                                      let label = format!("{} / {} · r{}", definition.library, definition.name, definition.revision);
@@ -952,7 +911,7 @@ index 26d493d..6b9535d 100644
                                      let selected = edit.definition.as_ref().is_some_and(|d| d == &definition);
                                      if pcbcraft_chrome::catalog::footprint_result(ui, &label, &definition.name, &detail, selected).clicked()
                                          && !selected
-@@ -371,7 +365,7 @@ impl PcbApp {
+@@ -371,7 +365,7 @@
                              form::identity(
                                  ui,
                                  &definition.name,
@@ -961,12 +920,13 @@ index 26d493d..6b9535d 100644
                              );
                              crate::library_preview::interactive_footprint(ui, definition, &mut edit.camera);
                              form::group(ui, "Pin mapping", |ui| {
-@@ -385,12 +379,12 @@ impl PcbApp {
+@@ -386,13 +380,13 @@
                                              || !edit.unconnected_pads.is_empty()
                                              || edit.mapping.values().any(|ids| ids.pads().len() > 1);
-                                         let options: Vec<_> =
+                                         let mut options: Vec<_> =
 -                                            definition.pads.iter().map(|pad| (pad.number.as_str(), format!("Pad {}", pad.number))).collect();
 +                                            definition.pads.iter().map(|pad| (pad.number.as_str(), pcbcraft_chrome::i18n::format("dynamic.pad_2946570", &[("arg1", &format!("{}", pad.number))]))).collect();
+                                         options.sort_by(|a, b| pcbcraft_engine::authoring::natural_cmp(a.0, b.0));
                                          for pin in pins {
                                              let mapped = edit.mapping.entry(pin.number.clone()).or_insert_with(|| PadIds::Many(Vec::new()));
                                              let label = pin.name.as_ref().filter(|name| *name != &pin.number).map_or_else(
@@ -977,11 +937,9 @@ index 26d493d..6b9535d 100644
                                              );
                                              let id = ui.scope_id().with((&edit.component, &pin.number));
                                              if multiple {
-diff --git a/crates/app/src/home.rs b/crates/app/src/home.rs
-index ec15c65..3c6e30d 100644
 --- a/crates/app/src/home.rs
 +++ b/crates/app/src/home.rs
-@@ -89,7 +89,7 @@ impl PcbApp {
+@@ -91,7 +91,7 @@
          let open_caption = if IN_BROWSER {
              "Choose a .pc project file".to_owned()
          } else {
@@ -990,11 +948,9 @@ index ec15c65..3c6e30d 100644
          };
          let tiles = [
              (
-diff --git a/crates/app/src/inline_text.rs b/crates/app/src/inline_text.rs
-index 624830b..3157a17 100644
 --- a/crates/app/src/inline_text.rs
 +++ b/crates/app/src/inline_text.rs
-@@ -119,7 +119,7 @@ impl PcbApp {
+@@ -119,7 +119,7 @@
          let response = pcbcraft_chrome::properties::inline_text(
              ui,
              id,
@@ -1003,11 +959,9 @@ index 624830b..3157a17 100644
              &mut edit.value,
              canvas,
              bounds,
-diff --git a/crates/app/src/inspection_selection.rs b/crates/app/src/inspection_selection.rs
-index 5771852..da467cc 100644
 --- a/crates/app/src/inspection_selection.rs
 +++ b/crates/app/src/inspection_selection.rs
-@@ -239,13 +239,13 @@ pub(super) fn labels(session: &Session, targets: &[Source]) -> Vec<String> {
+@@ -239,13 +239,13 @@
              Source::Terminal(target) => {
                  let project = session.project()?.for_sheet(target.sheet)?;
                  let symbol = project.terminal_symbol(target.terminal)?;
@@ -1023,11 +977,9 @@ index 5771852..da467cc 100644
              }
          })
          .collect()
-diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index 09ccb36..3ecc028 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
-@@ -1522,14 +1522,9 @@ impl PcbApp {
+@@ -1587,14 +1587,9 @@
              let missing = if ratsnest.missing.is_empty() {
                  String::new()
              } else {
@@ -1044,7 +996,7 @@ index 09ccb36..3ecc028 100644
          }
          shell::status_bar(
              ui,
-@@ -1552,7 +1547,7 @@ impl PcbApp {
+@@ -1617,7 +1612,7 @@
                      let empty = self.session.project().is_some_and(|project| project.board_target().is_none());
                      ui.label(dim(board_status.as_deref().unwrap_or(if empty { pcbcraft_chrome::i18n::tr_label("No board") } else { pcbcraft_chrome::i18n::tr_label("Board") })));
                      if let Some(net) = &self.views.active.board.highlight_net {
@@ -1053,7 +1005,7 @@ index 09ccb36..3ecc028 100644
                      }
                      if self.views.active.board.measure.tool {
                          ui.label(dim(pcbcraft_chrome::i18n::tr_label("Measure · Click a start point, then an end point · Esc clears")));
-@@ -1585,11 +1580,11 @@ impl PcbApp {
+@@ -1650,11 +1645,11 @@
                      && self.views.active.schematic.selection.len() == self.views.active.schematic.selection.no_connects.len()
                  {
                      let count = self.views.active.schematic.selection.len();
@@ -1068,7 +1020,7 @@ index 09ccb36..3ecc028 100644
                  } else if let Some(tool) = &self.views.active.schematic.tool {
                      ui.label(match tool {
                          Tool::NoConnect { .. } => dim(pcbcraft_chrome::i18n::tr_label("No connect · Esc cancel")),
-@@ -1601,7 +1596,7 @@ impl PcbApp {
+@@ -1666,7 +1661,7 @@
                          }),
                          Tool::NetLabel { .. } => dim(pcbcraft_chrome::i18n::tr_label("Place net label · R to rotate · Esc to cancel")),
                          Tool::Hierarchy { .. } => dim(pcbcraft_chrome::i18n::tr_label("Hierarchical sheet or label · Esc to cancel")),
@@ -1077,7 +1029,7 @@ index 09ccb36..3ecc028 100644
                          Tool::Move { disconnect: true, .. } => dim(pcbcraft_chrome::i18n::tr_label("Disconnect and move symbol · R rotate · Esc cancel")),
                          Tool::Move { pickup: true, .. } => dim(pcbcraft_chrome::i18n::tr_label("Grab symbol · R rotate · Click to place · Esc cancel")),
                          Tool::Move { .. } => dim(pcbcraft_chrome::i18n::tr_label("Move symbol · R rotate · Esc cancel")),
-@@ -1683,7 +1678,7 @@ impl PcbApp {
+@@ -1748,7 +1743,7 @@
      /// through the host without publishing an engineering edit.
      fn canvas(&mut self, ui: &mut Ui) {
          let snapshot = self.views.active.snapshot(&self.session);
@@ -1086,7 +1038,7 @@ index 09ccb36..3ecc028 100644
          let source = self.views.active.input(&self.session);
          // Web wheel events reach the canvas before it gains keyboard focus. Native windows
          // still require OS focus so an inactive host cannot act on canvas input.
-@@ -2686,7 +2681,7 @@ impl PcbApp {
+@@ -2787,7 +2782,7 @@
                              self.live_control = Some(control);
                              error = None;
                          }
@@ -1095,7 +1047,7 @@ index 09ccb36..3ecc028 100644
                      }
                  }
              }
-@@ -2736,7 +2731,7 @@ impl PcbApp {
+@@ -2837,7 +2832,7 @@
              self.views.sync(&self.session);
              let title = request.body()["params"]["command"].as_str().and_then(command).map_or("Edit", |command| command.title);
              self.message = None;
@@ -1104,7 +1056,7 @@ index 09ccb36..3ecc028 100644
          }
          request.answer(result);
          self.repaint_editors(ctx);
-@@ -2858,6 +2853,7 @@ impl PcbApp {
+@@ -2962,6 +2957,7 @@
      /// Native timers must run even when the window has no paint pass.
      #[cfg(not(target_arch = "wasm32"))]
      fn native_project_tick(&mut self, ctx: &egui::Context, now: std::time::Duration) {
@@ -1112,7 +1064,7 @@ index 09ccb36..3ecc028 100644
          self.project_file_tick(ctx);
          self.autosave_tick(ctx, now);
      }
-@@ -2866,6 +2862,7 @@ impl PcbApp {
+@@ -2970,6 +2966,7 @@
      /// path uses the same monotonic clock as logic-only passes; embedded hosts use input time.
      fn frame_inner(&mut self, ui: &mut Ui, _native_framework: bool) {
          let ctx = ui.ctx().clone();
@@ -1120,7 +1072,7 @@ index 09ccb36..3ecc028 100644
          // Requests the page queued across the wasm boundary run before this frame's file poll,
          // through the same open, save and catalog-command paths as the menus below.
          #[cfg(target_arch = "wasm32")]
-@@ -2875,7 +2872,6 @@ impl PcbApp {
+@@ -2979,7 +2976,6 @@
          self.poll_library_sources(&ctx);
          let before = (self.session.revision(), self.preferences, std::mem::discriminant(&self.dialog), self.home, self.library_editors.stamp());
          self.sync_style(&ctx);
@@ -1128,7 +1080,7 @@ index 09ccb36..3ecc028 100644
          self.checkpoint_arrangements();
          self.library_editors.poll();
          self.poll_library_publication(&ctx);
-@@ -3142,11 +3138,11 @@ fn shortcut_list(ctx: &egui::Context, navigation: Navigation) -> Vec<(&'static s
+@@ -3251,11 +3247,11 @@
      }
      let zoom_wheel = if wheel_pans {
          let command = if ctx.os() == egui::os::OperatingSystem::Mac { "⌘" } else { "Ctrl" };
@@ -1142,11 +1094,9 @@ index 09ccb36..3ecc028 100644
      list.push(("View", "Zoom", zoom_keys));
      if !pan_keys.is_empty() {
          list.push(("View", "Pan", pan_keys.join(" or ")));
-diff --git a/crates/app/src/library_editors.rs b/crates/app/src/library_editors.rs
-index 318ab75..26a0829 100644
 --- a/crates/app/src/library_editors.rs
 +++ b/crates/app/src/library_editors.rs
-@@ -486,7 +486,7 @@ impl Document {
+@@ -518,7 +518,7 @@
              }
          }
          if self.selection.len() > 1 {
@@ -1155,11 +1105,9 @@ index 318ab75..26a0829 100644
              return;
          }
          if let Some(id) = self.selected
-diff --git a/crates/app/src/library_editors/canvas.rs b/crates/app/src/library_editors/canvas.rs
-index 69f4b63..adf3571 100644
 --- a/crates/app/src/library_editors/canvas.rs
 +++ b/crates/app/src/library_editors/canvas.rs
-@@ -121,15 +121,15 @@ pub(super) fn name(primitive: &Primitive) -> String {
+@@ -121,15 +121,15 @@
      match primitive {
          Primitive::Graphic { graphic } => graphic_name(graphic).into(),
          Primitive::Artwork { artwork } => format!("{:?} {}", artwork.purpose, graphic_name(&artwork.graphic).to_lowercase()),
@@ -1178,7 +1126,7 @@ index 69f4b63..adf3571 100644
          Primitive::Silkscreen { .. } => "Silkscreen".into(),
      }
  }
-@@ -467,7 +467,7 @@ impl Document {
+@@ -467,7 +467,7 @@
          workspace::ribbon_separator(ui);
          workspace::ribbon_control(ui, "Grid", Tokens::get().space_24 * 5.0, |ui| {
              pcbcraft_chrome::controls::Choice::from_id_salt("library_grid")
@@ -1187,11 +1135,9 @@ index 69f4b63..adf3571 100644
                  .show_ui(ui, |ui| {
                      let spacings: &[i64] = if self.session.snapshot().kind == Kind::Symbol {
                          &[1_270_000]
-diff --git a/crates/app/src/library_editors/courtyard.rs b/crates/app/src/library_editors/courtyard.rs
-index 89ba833..f410cd3 100644
 --- a/crates/app/src/library_editors/courtyard.rs
 +++ b/crates/app/src/library_editors/courtyard.rs
-@@ -75,11 +75,11 @@ impl CourtyardDraft {
+@@ -75,11 +75,11 @@
              "pads_only" => CourtyardSource::PadsOnly,
              _ => return Err("Choose Pads and body or Pads only.".into()),
          };
@@ -1205,7 +1151,7 @@ index 89ba833..f410cd3 100644
          courtyard::validate_stroke(stroke_nm)?;
          Ok(Action::GenerateCourtyard { clearance_nm, source, stroke_nm, replace_existing: self.replace_existing })
      }
-@@ -93,7 +93,7 @@ impl CourtyardDraft {
+@@ -93,7 +93,7 @@
          let primitive = courtyard::generate(item, clearance_nm, source, stroke_nm)?;
          let (points, _) = courtyard::courtyard_polygon(&primitive).ok_or("Generated courtyard is unavailable.")?;
          let m = courtyard::metrics(points).ok_or("Generated courtyard has no extents.")?;
@@ -1214,7 +1160,7 @@ index 89ba833..f410cd3 100644
      }
  
      /// Return the cached live size summary when the document revision and form inputs are
-@@ -284,12 +284,12 @@ impl Document {
+@@ -284,12 +284,12 @@
                      // With several outlines the size and vertices are those of the first one,
                      // the outline "Select courtyard" selects, and the label says so.
                      Some(m) => {
@@ -1231,7 +1177,7 @@ index 89ba833..f410cd3 100644
              };
              ui.label(shell::dim(summary));
          } else {
-@@ -335,7 +335,7 @@ impl Document {
+@@ -335,7 +335,7 @@
              ui.label(shell::error(error));
          }
          if let Some(m) = courtyard::metrics(points) {
@@ -1240,7 +1186,7 @@ index 89ba833..f410cd3 100644
              if !m.is_simple {
                  ui.label(shell::error(pcbcraft_chrome::i18n::tr_label("Outline intersects itself; move a vertex to fix.")));
              }
-@@ -345,7 +345,7 @@ impl Document {
+@@ -345,7 +345,7 @@
          let mut chosen = active_vertex.map(|i| i.to_string()).unwrap_or_default();
          let mut options: Vec<(String, String)> = Vec::with_capacity(count + 1);
          options.push((String::new(), "No vertex selected".into()));
@@ -1249,11 +1195,9 @@ index 89ba833..f410cd3 100644
          let option_refs: Vec<(&str, String)> = options.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
          let _ = self.draft.get_or_insert_with(|| form::Draft::new(&snapshot, Some(object_id), self.session.revision()));
  
-diff --git a/crates/app/src/library_editors/form.rs b/crates/app/src/library_editors/form.rs
-index 41aa272..0e6521a 100644
 --- a/crates/app/src/library_editors/form.rs
 +++ b/crates/app/src/library_editors/form.rs
-@@ -181,8 +181,8 @@ impl Draft {
+@@ -181,8 +181,8 @@
      /// Render numbered vertex coordinate fields for the expanded properties dialog.
      /// Returns `true` when Enter was pressed while either field had focus.
      pub(super) fn show_courtyard_vertex_row(&mut self, ui: &mut Ui, index: usize) -> bool {
@@ -1264,7 +1208,7 @@ index 41aa272..0e6521a 100644
          self.show_courtyard_vertex_labeled(ui, index, &x_label, &y_label)
      }
  
-@@ -251,10 +251,10 @@ fn alternate_fields(ui: &mut Ui, value: &mut Value) {
+@@ -251,10 +251,10 @@
  /// Field groups describe the selected object rather than its ordinal in a native array.
  pub(super) fn title(draft: &Draft) -> String {
      match draft.value["type"].as_str() {
@@ -1278,7 +1222,7 @@ index 41aa272..0e6521a 100644
          Some(kind) => display(kind),
          None => "Definition".into(),
      }
-@@ -294,7 +294,7 @@ fn label(path: &str) -> String {
+@@ -294,7 +294,7 @@
              "copper" => "Layers".into(),
              "shape" => "Shape".into(),
              "rotation" => "Rotation (°)".into(),
@@ -1287,7 +1231,7 @@ index 41aa272..0e6521a 100644
          })
          .filter(|part| !part.is_empty())
          .collect::<Vec<String>>();
-@@ -403,7 +403,7 @@ fn resolve(value: &mut Value, numbers: &BTreeMap<String, (String, String)>, path
+@@ -403,7 +403,7 @@
          } else if path.ends_with("_mdeg") {
              parse_mdeg(text).map_err(|e| format!("{} {e}", label(path)))?
          } else {
@@ -1296,11 +1240,9 @@ index 41aa272..0e6521a 100644
          };
          *value = json!(number);
          return Ok(());
-diff --git a/crates/app/src/library_editors/io.rs b/crates/app/src/library_editors/io.rs
-index 74319bb..42e8d90 100644
 --- a/crates/app/src/library_editors/io.rs
 +++ b/crates/app/src/library_editors/io.rs
-@@ -51,20 +51,20 @@ impl Files {
+@@ -51,20 +51,20 @@
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("library-file".into())
@@ -1325,7 +1267,7 @@ index 74319bb..42e8d90 100644
          }
          self.pending = Some(receive);
          Ok(())
-@@ -84,19 +84,19 @@ impl Files {
+@@ -84,19 +84,19 @@
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("library-bundle".into())
@@ -1348,7 +1290,7 @@ index 74319bb..42e8d90 100644
          );
          self.pending = Some(receive);
          Ok(())
-@@ -127,11 +127,11 @@ fn publish(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+@@ -127,11 +127,11 @@
      let parent = path.parent().ok_or("Choose a destination directory.")?;
      let mut temp = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
      temp.write_all(bytes).and_then(|_| temp.as_file().sync_all()).map_err(|e| e.to_string())?;
@@ -1362,7 +1304,7 @@ index 74319bb..42e8d90 100644
      Ok(())
  }
  
-@@ -184,11 +184,11 @@ async fn web(save: Option<(u64, Arc<Item>, bool)>, picker: Option<js_sys::Promis
+@@ -184,11 +184,11 @@
      if let Some((_, item, export)) = save {
          let bytes = if export { serde_json::to_vec_pretty(&item.export_native()?).map_err(|e| e.to_string())? } else { item.encode()? };
          download(&bytes, &format!("{}-r{}{}.json", item.id, item.revision, if export { ".native" } else { ".pcitem" }))
@@ -1376,11 +1318,9 @@ index 74319bb..42e8d90 100644
      if data.is_null() {
          return Ok(Outcome::Cancelled);
      }
-diff --git a/crates/app/src/library_editors/publishing.rs b/crates/app/src/library_editors/publishing.rs
-index 3ab426b..b26890b 100644
 --- a/crates/app/src/library_editors/publishing.rs
 +++ b/crates/app/src/library_editors/publishing.rs
-@@ -194,11 +194,11 @@ impl Publisher {
+@@ -194,11 +194,11 @@
          let ctx = ctx.clone();
          std::thread::Builder::new()
              .name("pcbcraft-library-publish".into())
@@ -1394,7 +1334,7 @@ index 3ab426b..b26890b 100644
              .map_err(|e| e.to_string())?;
          self.pending = Some(receive);
          Ok(())
-@@ -310,7 +310,7 @@ impl PcbApp {
+@@ -310,7 +310,7 @@
          let needs_confirmation = !copy && latest > 0 && base.is_none_or(|base| latest > base);
          let changed = doc.is_some_and(|doc| doc.session.publication_dirty());
          let verifying = self.library_editors.publisher.unconfirmed() == Some(draft.document);
@@ -1403,7 +1343,7 @@ index 3ab426b..b26890b 100644
          let mut create = false;
          let action = pcbcraft_chrome::catalog::property_form_enabled(
              ctx,
-@@ -365,7 +365,7 @@ impl PcbApp {
+@@ -365,7 +365,7 @@
                  if needs_confirmation {
                      properties::section(ui, "Newer revision available");
                      let warning = base
@@ -1412,7 +1352,7 @@ index 3ab426b..b26890b 100644
                          .unwrap_or_else(|| "This draft does not record its starting revision and may omit newer changes.".into());
                      ui.label(warning);
                      if controls::checkbox(ui, &mut draft.allow_older, "Publish without merging").changed() {
-@@ -378,7 +378,7 @@ impl PcbApp {
+@@ -378,7 +378,7 @@
                          for (label, value) in [
                              ("Type", if item.kind == Kind::Symbol { "Symbol".into() } else { "Footprint".into() }),
                              (if copy { "Source ID" } else { "Item ID" }, item.id.clone()),
@@ -1421,7 +1361,7 @@ index 3ab426b..b26890b 100644
                              ("Library ID", library.unwrap_or("Not selected").into()),
                              ("License", item.license.clone()),
                          ] {
-@@ -666,7 +666,7 @@ impl PcbApp {
+@@ -666,7 +666,7 @@
                  Err(error) => error,
                  Ok(Completion::Unconfirmed(request, error)) => {
                      self.library_editors.publisher.recovery = Some(request);
@@ -1430,7 +1370,7 @@ index 3ab426b..b26890b 100644
                  }
                  Ok(Completion::Published(request, refresh)) => {
                      if let Some(doc) = self.library_editors.documents.get_mut(&request.document)
-@@ -677,13 +677,8 @@ impl PcbApp {
+@@ -677,13 +677,8 @@
                      self.confirm_part_publication(request.document, &request.prepared);
                      self.library_editors.publisher.recovery = None;
                      let saved = match &request.prepared {
@@ -1446,7 +1386,7 @@ index 3ab426b..b26890b 100644
                      };
                      match self.adopt_published_source(&request.source, &request.path, request.generation, refresh) {
                          Ok(()) => {
-@@ -692,7 +687,7 @@ impl PcbApp {
+@@ -692,7 +687,7 @@
                              }
                              saved
                          }
@@ -1455,7 +1395,7 @@ index 3ab426b..b26890b 100644
                      }
                  }
                  Ok(Completion::Created { source, path, parsed, generation, return_to }) => {
-@@ -712,7 +707,7 @@ impl PcbApp {
+@@ -712,7 +707,7 @@
                              }
                              "Created and registered library".into()
                          }
@@ -1464,7 +1404,7 @@ index 3ab426b..b26890b 100644
                      }
                  }
              });
-@@ -848,11 +843,11 @@ impl PcbApp {
+@@ -848,11 +843,11 @@
                  .find(|source| source["library"] == address.library)
                  .and_then(|source| source["name"].as_str())
                  .unwrap_or(&address.library);
@@ -1479,11 +1419,9 @@ index 3ab426b..b26890b 100644
          } else {
              "Library not selected".into()
          };
-diff --git a/crates/app/src/library_editors/remap.rs b/crates/app/src/library_editors/remap.rs
-index 728df36..53f3462 100644
 --- a/crates/app/src/library_editors/remap.rs
 +++ b/crates/app/src/library_editors/remap.rs
-@@ -104,7 +104,7 @@ pub(super) fn report_rows(report: &Value, page: usize) -> Vec<pcbcraft_chrome::l
+@@ -104,7 +104,7 @@
                      }
                      .into()
                  },
@@ -1492,7 +1430,7 @@ index 728df36..53f3462 100644
              );
              let pinned_name = if matches!(pin["status"].as_str(), Some("current" | "unplaced_terminal")) {
                  pin["current_name"].as_str().unwrap_or("(unnamed)")
-@@ -314,7 +314,7 @@ impl PcbApp {
+@@ -314,7 +314,7 @@
          #[cfg(not(target_arch = "wasm32"))]
          {
              let inspection = crate::window_commands::inspect_editor_with_remap(self, Some(review.inspect()), true);
@@ -1501,7 +1439,7 @@ index 728df36..53f3462 100644
          }
          self.library_editors.pin_remap = Some(review);
          self.library_editors.next_remap = token;
-@@ -374,7 +374,7 @@ impl PcbApp {
+@@ -374,7 +374,7 @@
              for row in &mut draft.rows {
                  ui.push_id((&row.pin.unit, row.pin.object), |ui| {
                      ui.label(format!("{} · {} · {}", row.pin.unit, row.before, row.name));
@@ -1510,7 +1448,7 @@ index 728df36..53f3462 100644
                  });
              }
              if !changed && let Some(review) = self.library_editors.pin_remap.as_ref().filter(|review| review.owns(&draft)) {
-@@ -395,7 +395,7 @@ impl PcbApp {
+@@ -395,7 +395,7 @@
                      if pcbcraft_chrome::controls::enabled_button(ui, draft.page > 0, "Previous instances").clicked() {
                          draft.page -= 1;
                      }
@@ -1519,11 +1457,9 @@ index 728df36..53f3462 100644
                      if pcbcraft_chrome::controls::enabled_button(ui, draft.page + 1 < pages, "Next instances").clicked() {
                          draft.page += 1;
                      }
-diff --git a/crates/app/src/library_preview.rs b/crates/app/src/library_preview.rs
-index f0dba1d..a4f195b 100644
 --- a/crates/app/src/library_preview.rs
 +++ b/crates/app/src/library_preview.rs
-@@ -260,8 +260,8 @@ fn workspace_geometry(
+@@ -260,8 +260,8 @@
              }
              for (text, factor, action) in [("−", 0.8, "Zoom out"), ("+", 1.25, "Zoom in"), ("Fit", 0., "Fit")] {
                  let response = pcbcraft_chrome::controls::button(ui, text);
@@ -1534,11 +1470,9 @@ index f0dba1d..a4f195b 100644
                      if factor == 0. {
                          *camera = Camera::default();
                      } else {
-diff --git a/crates/app/src/library_workspace.rs b/crates/app/src/library_workspace.rs
-index dd01c98..3aa01e9 100644
 --- a/crates/app/src/library_workspace.rs
 +++ b/crates/app/src/library_workspace.rs
-@@ -168,7 +168,7 @@ impl PcbApp {
+@@ -190,7 +190,7 @@
              shell::status_bar(
                  ui,
                  |ui| {
@@ -1547,7 +1481,7 @@ index dd01c98..3aa01e9 100644
                  },
                  |_| {},
              );
-@@ -762,7 +762,7 @@ impl PcbApp {
+@@ -809,7 +809,7 @@
                                          3 => ToolIcon::Bom,
                                          _ => ToolIcon::Shared("library"),
                                      },
@@ -1556,7 +1490,7 @@ index dd01c98..3aa01e9 100644
                                  },
                              )
                              .0
-@@ -820,7 +820,7 @@ impl PcbApp {
+@@ -867,7 +867,7 @@
          let access = if registration.is_some_and(|r| r.writable) { "Writable" } else { "Read-only" };
          let license = data.and_then(|s| s["license"].as_str()).unwrap_or("");
          ui.label(
@@ -1565,7 +1499,7 @@ index dd01c98..3aa01e9 100644
                  .small()
                  .color(pcbcraft_chrome::Tokens::get().text_dim),
          );
-@@ -946,7 +946,7 @@ impl PcbApp {
+@@ -993,7 +993,7 @@
                  }
              })
              .collect();
@@ -1574,7 +1508,7 @@ index dd01c98..3aa01e9 100644
          let headers: &[&str] = if orderable {
              &["Manufacturer", "Part number", "Generic part", "Package", "Value", "Datasheet", "Rev"]
          } else {
-@@ -1110,7 +1110,7 @@ impl PcbApp {
+@@ -1157,7 +1157,7 @@
                          crate::library_preview::workspace_symbol(ui, symbol, &mut state.symbol_camera);
                      }
                      if let Some(package) = package {
@@ -1583,20 +1517,18 @@ index dd01c98..3aa01e9 100644
                      }
                  }
              }
-@@ -1124,7 +1124,7 @@ impl PcbApp {
+@@ -1171,7 +1171,7 @@
          }
          for package in part.packages.values() {
              references.push(package.footprint.clone());
 -            chrome::detail(ui, &package.name, &format!("{} terminals mapped", package.mapping.len()));
 +            chrome::detail(ui, &package.name, &pcbcraft_chrome::i18n::format("dynamic.terminals_mapped_586fb04", &[("arg1", &format!("{}", package.mapping.len()))]));
              controls::collapsing(ui, ("package_mapping", &package.name), "Pin map", false, None, |ui| {
-                 for (terminal, pads) in &package.mapping {
-                     chrome::detail(ui, terminal, &pads.join(", "));
-diff --git a/crates/app/src/library_workspace/project.rs b/crates/app/src/library_workspace/project.rs
-index 8ba1102..d3e5c84 100644
+                 let mut rows: Vec<(&str, Vec<&str>)> = package
+                     .mapping
 --- a/crates/app/src/library_workspace/project.rs
 +++ b/crates/app/src/library_workspace/project.rs
-@@ -57,15 +57,15 @@ impl PcbApp {
+@@ -57,15 +57,15 @@
          if count == 0 {
              ui.label(pcbcraft_chrome::i18n::tr_label("No instances use this revision"));
          } else {
@@ -1615,7 +1547,7 @@ index 8ba1102..d3e5c84 100644
                          None if row.assignment_excluded => "Assigned, excluded from board".into(),
                          None if row.assigned => "Assigned, no board".into(),
                          None => "Schematic only".into(),
-@@ -276,7 +276,7 @@ impl PcbApp {
+@@ -276,7 +276,7 @@
                      readonly: false,
                      problem: None,
                      icon: ToolIcon::Shared("folder"),
@@ -1624,7 +1556,7 @@ index 8ba1102..d3e5c84 100644
                  },
              );
              if fold {
-@@ -309,7 +309,7 @@ impl PcbApp {
+@@ -309,7 +309,7 @@
                              readonly: false,
                              problem: None,
                              icon,
@@ -1633,7 +1565,7 @@ index 8ba1102..d3e5c84 100644
                          },
                      )
                      .0
-@@ -365,7 +365,7 @@ impl PcbApp {
+@@ -365,7 +365,7 @@
              .map(|entry| {
                  let item = &entry.item;
                  chrome::TableEntry {
@@ -1642,7 +1574,7 @@ index 8ba1102..d3e5c84 100644
                      cells: vec![
                          item.name.clone(),
                          kind_name(item.key.kind).into(),
-@@ -380,7 +380,7 @@ impl PcbApp {
+@@ -380,7 +380,7 @@
                  }
              })
              .collect();
@@ -1651,11 +1583,9 @@ index 8ba1102..d3e5c84 100644
          chrome::table(ui, &["Name", "Type", "Library", "Rev", "Used by", "Source status"], &rows, |action| {
              if let chrome::ItemAction::Select(index) = action {
                  state.selected = Some(entries[index].item.key.clone());
-diff --git a/crates/app/src/live_control.rs b/crates/app/src/live_control.rs
-index 348e865..1d432f0 100644
 --- a/crates/app/src/live_control.rs
 +++ b/crates/app/src/live_control.rs
-@@ -232,7 +232,7 @@ fn operations_reply(agent: &AgentCancel, params: &Value) -> Value {
+@@ -240,7 +240,7 @@
          }
          Some(other) => json!({
              "ok": false,
@@ -1664,7 +1594,7 @@ index 348e865..1d432f0 100644
              "code": ErrorCode::InvalidRequest.as_str(),
              "details": {},
          }),
-@@ -248,7 +248,7 @@ fn operations_reply(agent: &AgentCancel, params: &Value) -> Value {
+@@ -256,7 +256,7 @@
  /// The answer a stopped control-channel job gives its caller. The `stopped:` prefix is the
  /// product's stop marker: the caller must report this as a stop, not as a failure of the design.
  fn stopped_failure(operation: &str) -> Failure {
@@ -1673,7 +1603,7 @@ index 348e865..1d432f0 100644
  }
  
  impl std::fmt::Debug for LiveControl {
-@@ -644,9 +644,9 @@ impl PcbApp {
+@@ -726,9 +726,9 @@
                  self.views.sync(&self.session);
                  let title = pcbcraft_engine::command(command).map_or("Edit", |c| c.title);
                  self.message = None;
@@ -1685,7 +1615,7 @@ index 348e865..1d432f0 100644
                  }
                  self.repaint_editors(ctx);
              }
-@@ -700,7 +700,7 @@ impl PcbApp {
+@@ -782,7 +782,7 @@
                          ctx.request_repaint();
                      }
                      Err(error) => {
@@ -1694,7 +1624,7 @@ index 348e865..1d432f0 100644
                      }
                  }
              }
-@@ -773,9 +773,9 @@ impl PcbApp {
+@@ -855,9 +855,9 @@
              self.views.sync(&self.session);
              let title = pcbcraft_engine::command(pcbcraft_engine::COMPLETE_PACKAGES).map_or("Edit", |c| c.title);
              self.message = None;
@@ -1706,7 +1636,7 @@ index 348e865..1d432f0 100644
              }
              self.repaint_editors(ctx);
          }
-@@ -793,11 +793,11 @@ impl PcbApp {
+@@ -875,11 +875,11 @@
          let open = self.assistant.turn_open();
          let current = self.assistant.generation();
          let belongs = |request: &Request| open && Some(request.generation()) == current;
@@ -1720,7 +1650,7 @@ index 348e865..1d432f0 100644
              } else if !belongs(&request) {
                  request.answer(Err(Failure::new(ErrorCode::Cancelled, stopped(&format!("`{command}`")))));
              } else {
-@@ -854,8 +854,8 @@ impl PcbApp {
+@@ -936,8 +936,8 @@
              self.views.sync(&self.session);
              let title = request.body()["params"]["command"].as_str().and_then(pcbcraft_engine::command).map_or("Edit", |command| command.title);
              self.message = None;
@@ -1731,7 +1661,7 @@ index 348e865..1d432f0 100644
          }
          request.answer(result);
          self.repaint_editors(ctx);
-@@ -918,7 +918,7 @@ impl Editor for LiveEditor<'_> {
+@@ -1002,7 +1002,7 @@
              return Some("Finish the current publication before changing library sources".into());
          }
          if app.views.editing_text() {
@@ -1740,7 +1670,7 @@ index 348e865..1d432f0 100644
          }
          #[cfg(not(target_arch = "wasm32"))]
          let item_delete_review = command == "app.library_delete_part" && matches!(app.dialog, Dialog::DeleteLibraryItem(_));
-@@ -929,10 +929,10 @@ impl Editor for LiveEditor<'_> {
+@@ -1013,10 +1013,10 @@
          if command != "file.abandon"
              && ((!matches!(app.dialog, Dialog::None) && !item_delete_review && !pin_remap_review) || app.files.busy() || app.project_action_pending())
          {
@@ -1753,11 +1683,9 @@ index 348e865..1d432f0 100644
          }
          // An embedded host keeps the project file itself, so nothing in the editor is "unsaved".
          if command == "project.new" && !app.embedded && app.files.dirty(&app.session) {
-diff --git a/crates/app/src/manufacturing/files.rs b/crates/app/src/manufacturing/files.rs
-index 0b76ba5..b5a1418 100644
 --- a/crates/app/src/manufacturing/files.rs
 +++ b/crates/app/src/manufacturing/files.rs
-@@ -47,19 +47,19 @@ impl Files {
+@@ -47,19 +47,19 @@
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("fabrication-review".into())
@@ -1782,7 +1710,7 @@ index 0b76ba5..b5a1418 100644
          }
          self.0 = Some(Job { owner, binding: Arc::downgrade(binding), result });
          Ok(())
-@@ -156,7 +156,7 @@ extern "C" {
+@@ -156,7 +156,7 @@
  /// Start the chooser during the browser gesture and bound the selected bytes before parsing.
  #[cfg(target_arch = "wasm32")]
  async fn browser(file: js_sys::Promise) -> Completion {
@@ -1791,11 +1719,9 @@ index 0b76ba5..b5a1418 100644
      if result.is_null() {
          return Ok(None);
      }
-diff --git a/crates/app/src/manufacturing/pane.rs b/crates/app/src/manufacturing/pane.rs
-index 4643698..91218d8 100644
 --- a/crates/app/src/manufacturing/pane.rs
 +++ b/crates/app/src/manufacturing/pane.rs
-@@ -40,7 +40,7 @@ impl PcbApp {
+@@ -40,7 +40,7 @@
                  egui::Frame::new().inner_margin(tokens.space_8).show(ui, |ui| {
                      egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                          ui.add(egui::Label::new(RichText::new(&opened.name).strong()).truncate()).on_hover_text(&opened.name);
@@ -1804,7 +1730,7 @@ index 4643698..91218d8 100644
                          ui.label(pcbcraft_chrome::i18n::tr_label("Source revision unavailable"));
                          if reading {
                              ui.label(pcbcraft_chrome::i18n::tr_label("Opening fabrication ZIP…"));
-@@ -55,7 +55,7 @@ impl PcbApp {
+@@ -55,7 +55,7 @@
                          }
                          for finding in &opened.package.findings {
                              if let Finding::OpenOutline { endpoints, first } = finding {
@@ -1813,7 +1739,7 @@ index 4643698..91218d8 100644
                                      focus = Some(*first);
                                  }
                              } else {
-@@ -77,7 +77,7 @@ impl PcbApp {
+@@ -77,7 +77,7 @@
                                          ui.label(pcbcraft_chrome::i18n::tr_label("No drill hits"));
                                      }
                                      for tool in &layer.tools {
@@ -1822,11 +1748,9 @@ index 4643698..91218d8 100644
                                      }
                                  }
                              });
-diff --git a/crates/app/src/native_part_properties.rs b/crates/app/src/native_part_properties.rs
-index 3129ce1..c5c3333 100644
 --- a/crates/app/src/native_part_properties.rs
 +++ b/crates/app/src/native_part_properties.rs
-@@ -136,7 +136,7 @@ impl PcbApp {
+@@ -136,7 +136,7 @@
                          ui.push_id(id, |ui| {
                              let fixed = edit.selection.resolved.definition.fixed_parameters.contains_key(id);
                              ui.add_enabled_ui(!fixed, |ui| {
@@ -1835,11 +1759,9 @@ index 3129ce1..c5c3333 100644
                              });
                          });
                      }
-diff --git a/crates/app/src/native_sources.rs b/crates/app/src/native_sources.rs
-index 91936f9..94a85c2 100644
 --- a/crates/app/src/native_sources.rs
 +++ b/crates/app/src/native_sources.rs
-@@ -65,7 +65,7 @@ impl Sources {
+@@ -65,7 +65,7 @@
              return Ok(());
          }
          self.last_browser_text = Some(text.clone());
@@ -1848,7 +1770,7 @@ index 91936f9..94a85c2 100644
      }
  
      /// Restore only a bounded, valid personal source list; disk reads start later on workers.
-@@ -132,13 +132,13 @@ impl Sources {
+@@ -132,13 +132,13 @@
          let ctx = ctx.clone();
          std::thread::Builder::new()
              .name("pcbcraft-native-library".into())
@@ -1864,7 +1786,7 @@ index 91936f9..94a85c2 100644
              .map_err(|e| e.to_string())?;
          let previous_status = self.statuses.insert(source.clone(), "Loading…".into());
          self.job = Some(Job { source, previous_status, receive, generation, installing: false });
-@@ -155,7 +155,7 @@ impl Sources {
+@@ -155,7 +155,7 @@
          let ctx = ctx.clone();
          std::thread::Builder::new()
              .name("pcbcraft-library-picker".into())
@@ -1873,7 +1795,7 @@ index 91936f9..94a85c2 100644
                  let result = rfd::FileDialog::new()
                      .set_title("Native PCBZ library folder")
                      .pick_folder()
-@@ -167,7 +167,7 @@ impl Sources {
+@@ -167,7 +167,7 @@
                      .transpose();
                  let _ = send.send(result);
                  ctx.request_repaint();
@@ -1882,7 +1804,7 @@ index 91936f9..94a85c2 100644
              .map_err(|e| e.to_string())?;
          let previous_status = self.statuses.insert(source.clone(), "Loading…".into());
          self.job = Some(Job { source, previous_status, receive, generation, installing: false });
-@@ -192,7 +192,7 @@ impl Sources {
+@@ -192,7 +192,7 @@
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("pcbcraft-library-upload".into())
@@ -1891,7 +1813,7 @@ index 91936f9..94a85c2 100644
                  use std::io::Read;
                  let result = rfd::FileDialog::new()
                      .add_filter("PCBZ library bundle", &["json"])
-@@ -216,16 +216,16 @@ impl Sources {
+@@ -216,16 +216,16 @@
                      .transpose();
                  let _ = send.send(result.map(Option::flatten));
                  ctx.request_repaint();
@@ -1911,7 +1833,7 @@ index 91936f9..94a85c2 100644
          }
          let previous_status = self.statuses.insert(source.clone(), "Loading…".into());
          self.job = Some(Job { source, previous_status, receive, generation, installing: cfg!(not(target_arch = "wasm32")) });
-@@ -241,10 +241,10 @@ impl Sources {
+@@ -241,10 +241,10 @@
          let (send, receive) = mpsc::channel();
          let promise = web::pick_folder();
          let context = ctx.clone();
@@ -1924,7 +1846,7 @@ index 91936f9..94a85c2 100644
          let previous_status = self.statuses.insert(source.clone(), "Loading…".into());
          self.job = Some(Job { source, previous_status, receive, generation, installing: false });
          Ok(())
-@@ -461,12 +461,12 @@ mod web {
+@@ -487,12 +487,12 @@
      }
      /// Validate transported folder text with exactly the engine's native document limits.
      pub(super) async fn read_folder(promise: js_sys::Promise) -> LoadResult {
@@ -1939,7 +1861,7 @@ index 91936f9..94a85c2 100644
          #[derive(Deserialize)]
          struct Folder {
              documents: sources::Documents,
-@@ -479,7 +479,7 @@ mod web {
+@@ -505,7 +505,7 @@
      }
      /// Bound picked bytes before copying into Wasm memory and use the native snapshot validator.
      pub(super) async fn read(promise: js_sys::Promise) -> LoadResult {
@@ -1948,11 +1870,9 @@ index 91936f9..94a85c2 100644
          if value.is_null() {
              return Ok(None);
          }
-diff --git a/crates/app/src/native_sources/items.rs b/crates/app/src/native_sources/items.rs
-index 31f4377..4fa18a7 100644
 --- a/crates/app/src/native_sources/items.rs
 +++ b/crates/app/src/native_sources/items.rs
-@@ -64,7 +64,7 @@ impl PcbApp {
+@@ -64,7 +64,7 @@
              let (send, receive) = mpsc::channel();
              std::thread::Builder::new()
                  .name("pcbcraft-part-delete-check".into())
@@ -1961,7 +1881,7 @@ index 31f4377..4fa18a7 100644
                      let result = pcbcraft_storage::library::deletion::prepare(std::path::Path::new(&registration.path), &key).and_then(|plan| {
                          if plan.removal() != &removal {
                              return Err("Part revisions changed on disk; refresh before deleting.".into());
-@@ -79,7 +79,7 @@ impl PcbApp {
+@@ -79,7 +79,7 @@
                      });
                      let _ = send.send(result);
                      ctx.request_repaint();
@@ -1970,7 +1890,7 @@ index 31f4377..4fa18a7 100644
                  .map_err(|e| e.to_string())?;
              self.library_sources.item_delete_pending = true;
              self.library_sources.item_delete_canceled = false;
-@@ -105,7 +105,7 @@ impl PcbApp {
+@@ -105,7 +105,7 @@
          let (send, receive) = mpsc::channel();
          std::thread::Builder::new()
              .name("pcbcraft-part-trash".into())
@@ -1979,7 +1899,7 @@ index 31f4377..4fa18a7 100644
                  let path = std::path::Path::new(&draft.path);
                  let (result, error) = match pcbcraft_storage::library::deletion::execute(path, &draft.plan) {
                      Ok(source) => (Ok(Arc::new(source)), None),
-@@ -113,7 +113,7 @@ impl PcbApp {
+@@ -113,7 +113,7 @@
                  };
                  let _ = send.send(Ok(Outcome::ItemFinished { source: draft.source, path: draft.path, result, error }));
                  ctx.request_repaint();
@@ -1988,7 +1908,7 @@ index 31f4377..4fa18a7 100644
              .map_err(|e| e.to_string())?;
          self.library_sources.item_delete_pending = true;
          self.library_sources.mutation = Some(Job { receive });
-@@ -132,10 +132,7 @@ impl PcbApp {
+@@ -132,10 +132,7 @@
              |ui| {
                  let count = draft.plan.removal().revisions.len();
                  let revisions = if count == 1 { "revision" } else { "revisions" };
@@ -2000,11 +1920,9 @@ index 31f4377..4fa18a7 100644
                  ui.label(pcbcraft_chrome::i18n::tr_label("Existing projects keep their pinned copies. Symbols, footprints and categories are kept."));
                  pcbcraft_chrome::controls::collapsing(ui, "delete_part_details", "Details", false, None, |ui| {
                      ui.label(&draft.path);
-diff --git a/crates/app/src/native_sources/lifecycle.rs b/crates/app/src/native_sources/lifecycle.rs
-index 2b83fa7..38dba31 100644
 --- a/crates/app/src/native_sources/lifecycle.rs
 +++ b/crates/app/src/native_sources/lifecycle.rs
-@@ -110,7 +110,7 @@ impl PcbApp {
+@@ -110,7 +110,7 @@
              let ctx = ctx.clone();
              std::thread::Builder::new()
                  .name("pcbcraft-library-delete-check".into())
@@ -2013,7 +1931,7 @@ index 2b83fa7..38dba31 100644
                      let result = pcbcraft_storage::library::deletion_snapshot(std::path::Path::new(&registration.path)).and_then(|snapshot| {
                          if snapshot.library() != library {
                              return Err("Library folder identity changed; refresh it before deleting".into());
-@@ -125,7 +125,7 @@ impl PcbApp {
+@@ -125,7 +125,7 @@
                      });
                      let _ = send.send(result);
                      ctx.request_repaint();
@@ -2022,7 +1940,7 @@ index 2b83fa7..38dba31 100644
                  .map_err(|e| e.to_string())?;
              self.library_sources.mutation = Some(Job { receive });
              Ok(())
-@@ -137,11 +137,7 @@ impl PcbApp {
+@@ -137,11 +137,7 @@
          let mut submit = false;
          let mut cancel = false;
          let closing = shell::dialog(ctx, "delete_library", "Delete library", |ui| {
@@ -2035,7 +1953,7 @@ index 2b83fa7..38dba31 100644
              ui.horizontal(|ui| {
                  submit = controls::button(ui, "Delete library").clicked();
                  cancel = controls::button(ui, "Cancel").clicked();
-@@ -174,7 +170,7 @@ impl PcbApp {
+@@ -174,7 +170,7 @@
              let ctx = ctx.clone();
              std::thread::Builder::new()
                  .name("pcbcraft-library-trash".into())
@@ -2044,7 +1962,7 @@ index 2b83fa7..38dba31 100644
                      let result = (|| {
                          let path = std::path::Path::new(&draft.path);
                          let current = pcbcraft_storage::library::deletion_snapshot(path)?;
-@@ -186,7 +182,7 @@ impl PcbApp {
+@@ -186,7 +182,7 @@
                      })();
                      let _ = send.send(result);
                      ctx.request_repaint();
@@ -2053,11 +1971,9 @@ index 2b83fa7..38dba31 100644
                  .map_err(|e| e.to_string())?;
              self.library_sources.mutation = Some(Job { receive });
              Ok(())
-diff --git a/crates/app/src/net_appearance.rs b/crates/app/src/net_appearance.rs
-index ab95fae..57d8e8a 100644
 --- a/crates/app/src/net_appearance.rs
 +++ b/crates/app/src/net_appearance.rs
-@@ -180,7 +180,7 @@ impl PcbApp {
+@@ -180,7 +180,7 @@
                      None => unsupported = true,
                  }
                  if targets.len() > MAX_PROPERTY_TARGETS {
@@ -2066,11 +1982,9 @@ index ab95fae..57d8e8a 100644
                  }
              }
              if targets.is_empty() {
-diff --git a/crates/app/src/net_appearance/bulk.rs b/crates/app/src/net_appearance/bulk.rs
-index f9c6eac..d2722bc 100644
 --- a/crates/app/src/net_appearance/bulk.rs
 +++ b/crates/app/src/net_appearance/bulk.rs
-@@ -104,7 +104,7 @@ impl Edit {
+@@ -104,7 +104,7 @@
          ui.label(shell::dim(match self.pending_classes.get(&class) {
              Some(true) => "Assign to all on Apply".to_owned(),
              Some(false) => "Remove from all on Apply".to_owned(),
@@ -2079,7 +1993,7 @@ index f9c6eac..d2722bc 100644
          }));
          ui.horizontal(|ui| {
              if controls::button(ui, "Assign class").clicked() {
-@@ -159,7 +159,7 @@ impl Edit {
+@@ -159,7 +159,7 @@
      /// Show the bulk draft and submit all changes through one shared command.
      pub(super) fn show(&mut self, ui: &mut egui::Ui) -> Option<Value> {
          ui.separator();
@@ -2088,11 +2002,9 @@ index f9c6eac..d2722bc 100644
          properties::field(ui, "Wire color", |ui| {
              self.color.choose(ui, "bulk_wire_color");
              if self.color.mode == Mode::Set {
-diff --git a/crates/app/src/net_class_editor.rs b/crates/app/src/net_class_editor.rs
-index 1d2f182..41bd07b 100644
 --- a/crates/app/src/net_class_editor.rs
 +++ b/crates/app/src/net_class_editor.rs
-@@ -270,7 +270,7 @@ fn class_fields(ui: &mut egui::Ui, draft: &mut ClassDraft) {
+@@ -401,7 +401,7 @@
                      form::Cell::Value => {
                          let mut inherited = "Not specified".to_owned();
                          let text = if field.enabled { &mut field.text } else { &mut inherited };
@@ -2101,7 +2013,7 @@ index 1d2f182..41bd07b 100644
                      }
                      form::Cell::Source => {
                          ui.label(shell::dim(if !field.enabled {
-@@ -330,8 +330,8 @@ fn effective_sources(project: &Project, result: &Resolution, property: Property)
+@@ -461,8 +461,8 @@
              Source::Class { .. } => None,
          });
          match baseline {
@@ -2112,7 +2024,7 @@ index 1d2f182..41bd07b 100644
          }
      };
      (summary, names)
-@@ -386,7 +386,7 @@ fn resolution(ui: &mut egui::Ui, project: &Project, result: &Resolution, unit: u
+@@ -517,7 +517,7 @@
                      form::Cell::Source => {
                          let (text, sources) = effective_sources(project, result, *property);
                          ui.add(egui::Label::new(&text).truncate())
@@ -2121,7 +2033,7 @@ index 1d2f182..41bd07b 100644
                              .on_hover_text(sources);
                      }
                  },
-@@ -425,7 +425,7 @@ fn resolution(ui: &mut egui::Ui, project: &Project, result: &Resolution, unit: u
+@@ -556,7 +556,7 @@
          });
          controls::collapsing(ui, "class_origins", "Saved assignment origins", false, None, |ui| {
              for binding in bindings {
@@ -2130,11 +2042,9 @@ index 1d2f182..41bd07b 100644
              }
          });
      });
-diff --git a/crates/app/src/net_inspector.rs b/crates/app/src/net_inspector.rs
-index 501fa25..dc19013 100644
 --- a/crates/app/src/net_inspector.rs
 +++ b/crates/app/src/net_inspector.rs
-@@ -59,7 +59,7 @@ impl Snapshot {
+@@ -59,7 +59,7 @@
  }
  /// Tree rows use the Browser's actual metrics, disclosure control and typography.
  fn row(ui: &mut Ui, key: impl std::hash::Hash + std::fmt::Debug, label: &str, depth: usize, open: Option<bool>, tip: &str) -> bool {
@@ -2143,7 +2053,7 @@ index 501fa25..dc19013 100644
      let response = workspace::tree_row(
          ui,
          ui.scope_id().with(key),
-@@ -110,9 +110,9 @@ impl NetInspector {
+@@ -110,9 +110,9 @@
                  }) {
                      let expanded = !self.folded.contains(&index) || !query.is_empty();
                      let tip = if net.aliases.len() > 1 {
@@ -2155,11 +2065,9 @@ index 501fa25..dc19013 100644
                      };
                      if row(ui, ("net", index), &net.name, 0, (!net.pins.is_empty()).then_some(expanded), &tip) && !self.folded.remove(&index) {
                          self.folded.insert(index);
-diff --git a/crates/app/src/no_connect.rs b/crates/app/src/no_connect.rs
-index feaeeeb..ad7f0cf 100644
 --- a/crates/app/src/no_connect.rs
 +++ b/crates/app/src/no_connect.rs
-@@ -181,7 +181,7 @@ pub(super) fn paint(ui: &mut Ui, painter: &Painter, project: &Project, camera: &
+@@ -181,7 +181,7 @@
                  egui::Sense::hover(),
              )
              .widget_info(|| {
@@ -2168,7 +2076,7 @@ index feaeeeb..ad7f0cf 100644
              });
          }
      }
-@@ -234,7 +234,7 @@ impl PcbApp {
+@@ -234,7 +234,7 @@
                  .map_or(target.part.as_str(), |part| part.reference());
              Row {
                  target: Attachment::Pin(target.clone()),
@@ -2177,7 +2085,7 @@ index feaeeeb..ad7f0cf 100644
                  positions: appearances.iter().map(Navigation::from).collect(),
                  issue,
              }
-@@ -300,16 +300,12 @@ impl PcbApp {
+@@ -300,16 +300,12 @@
          let rows = self.no_connect_rows(report);
          let (mut navigate, mut remove, mut close) = (None::<Navigation>, None::<Attachment>, false);
          let closing = shell::dialog_width(ctx, "no_connect_check", "No-connect check", 540., |ui| {
@@ -2196,7 +2104,7 @@ index feaeeeb..ad7f0cf 100644
              }
              let count = rows.len();
              let row_height = Tokens::get().control_height * 2. + Tokens::get().space_8;
-@@ -318,7 +314,7 @@ impl PcbApp {
+@@ -318,7 +314,7 @@
                      let Row { target, label, positions, issue } = &rows[index];
                      ui.add(egui::Label::new(format!("{label} · {}", issue.map_or("Intentionally unconnected", rule_label))).truncate());
                      ui.horizontal(|ui| {
@@ -2205,11 +2113,9 @@ index feaeeeb..ad7f0cf 100644
                              navigate = positions.first().cloned();
                          }
                          if !matches!(issue, Some("unconnected_pin" | "dangling_wire"))
-diff --git a/crates/app/src/part_documents.rs b/crates/app/src/part_documents.rs
-index 5a0c684..637df4c 100644
 --- a/crates/app/src/part_documents.rs
 +++ b/crates/app/src/part_documents.rs
-@@ -216,7 +216,7 @@ fn reference_name(catalog: &Catalog, reference: Option<&Reference>, kind: Kind)
+@@ -216,7 +216,7 @@
      let Some(reference) = reference else { return "None".into() };
      let key = Key { library: reference.library.clone(), id: reference.id.clone(), revision: reference.revision, kind };
      catalog.item(&key).map(|item| format!("{} · {} · r{}", item.name, key.library, key.revision)).unwrap_or_else(|_| {
@@ -2218,7 +2124,7 @@ index 5a0c684..637df4c 100644
      })
  }
  
-@@ -314,12 +314,12 @@ impl PcbApp {
+@@ -314,12 +314,12 @@
          controls::collapsing(
              ui,
              "part_updates",
@@ -2233,7 +2139,7 @@ index 5a0c684..637df4c 100644
                          selected = Some(index);
                      }
                  }
-@@ -352,7 +352,7 @@ impl PcbApp {
+@@ -352,7 +352,7 @@
              .map(|part| part.name.clone())
              .collect();
          ui.horizontal_wrapped(|ui| {
@@ -2242,11 +2148,9 @@ index 5a0c684..637df4c 100644
              if kind == Kind::Symbol && controls::button(ui, "Create part from this symbol").clicked() {
                  self.message = self.new_part_document(ui.ctx(), Some(address.clone())).map(|_| ()).err();
              }
-diff --git a/crates/app/src/part_documents/form.rs b/crates/app/src/part_documents/form.rs
-index 712744f..2b5b07d 100644
 --- a/crates/app/src/part_documents/form.rs
 +++ b/crates/app/src/part_documents/form.rs
-@@ -54,9 +54,9 @@ impl PcbApp {
+@@ -54,9 +54,9 @@
                  } else if valid.is_err() {
                      "Cannot publish".into()
                  } else if changed {
@@ -2258,7 +2162,7 @@ index 712744f..2b5b07d 100644
                  };
                  publish = pcbcraft_chrome::part_form::publication(ui, &status, !crate::IN_BROWSER && !busy && valid.is_ok() && !doc.has_unapplied());
                  return;
-@@ -333,7 +333,7 @@ fn remove_link(part: &mut PartDefinition, pending: &mut BTreeMap<String, String>
+@@ -333,7 +333,7 @@
  fn metadata_text(field: &str, text: &str, limit: usize) -> Result<String, String> {
      let trimmed = text.trim();
      if trimmed.is_empty() || trimmed.chars().count() > limit || trimmed.chars().any(char::is_control) {
@@ -2267,7 +2171,7 @@ index 712744f..2b5b07d 100644
      } else {
          Ok(trimmed.to_owned())
      }
-@@ -342,14 +342,14 @@ fn metadata_text(field: &str, text: &str, limit: usize) -> Result<String, String
+@@ -342,14 +342,14 @@
  /// Validate the one-keyword-per-line draft before it replaces the authored list.
  fn metadata_keywords(lines: &[&str]) -> Result<Vec<String>, String> {
      if lines.len() > MAX_KEYWORDS {
@@ -2284,7 +2188,7 @@ index 712744f..2b5b07d 100644
          }
          keywords.push(keyword);
      }
-@@ -377,7 +377,7 @@ fn metadata_link(
+@@ -377,7 +377,7 @@
          other.trim().to_lowercase() == label.to_lowercase()
      });
      if duplicate {
@@ -2293,7 +2197,7 @@ index 712744f..2b5b07d 100644
      }
      Ok(PartLink { label, url: url.to_owned() })
  }
-@@ -517,10 +517,10 @@ fn metadata_fields(
+@@ -517,10 +517,10 @@
              let mut label =
                  pending.get(&label_key).cloned().unwrap_or_else(|| part.links.get(index).map_or_else(String::new, |link| link.label.clone()));
              let mut url = pending.get(&url_key).cloned().unwrap_or_else(|| part.links.get(index).map_or_else(String::new, |link| link.url.clone()));
@@ -2307,7 +2211,7 @@ index 712744f..2b5b07d 100644
              if remove || (label_changed || url_changed) && label.trim().is_empty() && url.trim().is_empty() {
                  remove_link(part, pending, index);
                  *error = None;
-@@ -603,7 +603,7 @@ fn supply_ranges(
+@@ -603,7 +603,7 @@
                  properties::section(ui, "Unapplied supply ranges");
              }
              let label = if bound == "min" { "minimum" } else { "maximum" };
@@ -2316,7 +2220,7 @@ index 712744f..2b5b07d 100644
              unavailable.push(key.clone());
          }
      }
-@@ -653,7 +653,7 @@ fn supply_ranges(
+@@ -653,7 +653,7 @@
          let unavailable: Vec<_> = part.terminal_ratings.keys().filter(|id| !power_input(id)).cloned().collect();
          for id in unavailable {
              ui.push_id(&id, |ui| {
@@ -2325,7 +2229,7 @@ index 712744f..2b5b07d 100644
                  if controls::button(ui, "Remove authored range").clicked() {
                      *error = part.set_supply_range(&id, "", "").err();
                  }
-@@ -808,7 +808,7 @@ fn package_form(ui: &mut egui::Ui, part: &mut PartDefinition, doc: &mut Document
+@@ -809,7 +809,7 @@
              ui.horizontal(|ui| {
                  ui.label(pcbcraft_chrome::i18n::tr_label("Removed pad"));
                  let response = controls::button(ui, "Remove assignment");
@@ -2334,7 +2238,7 @@ index 712744f..2b5b07d 100644
                  if response.clicked() {
                      for pads in package.mapping.values_mut() {
                          pads.retain(|p| p != pad);
-@@ -844,7 +844,7 @@ fn package_form(ui: &mut egui::Ui, part: &mut PartDefinition, doc: &mut Document
+@@ -846,7 +846,7 @@
                  }
              })
              .response;
@@ -2343,11 +2247,9 @@ index 712744f..2b5b07d 100644
          if terminal != before {
              for pads in package.mapping.values_mut() {
                  pads.retain(|p| p != pad);
-diff --git a/crates/app/src/part_documents/picker.rs b/crates/app/src/part_documents/picker.rs
-index 2d2ae21..d5f46b3 100644
 --- a/crates/app/src/part_documents/picker.rs
 +++ b/crates/app/src/part_documents/picker.rs
-@@ -259,7 +259,7 @@ impl PcbApp {
+@@ -259,7 +259,7 @@
              ui.horizontal(|ui| {
                  let start = (state.page * PAGE_SIZE).min(state.rows.len());
                  let end = (start + PAGE_SIZE).min(state.rows.len());
@@ -2356,7 +2258,7 @@ index 2d2ae21..d5f46b3 100644
                  if controls::enabled_button(ui, state.page > 0, "Previous page").clicked() {
                      state.page = state.page.saturating_sub(1);
                  }
-@@ -307,7 +307,7 @@ fn result_items(ui: &mut egui::Ui, state: &mut State) {
+@@ -307,7 +307,7 @@
          .page()
          .iter()
          .map(|row| TableEntry {
@@ -2365,7 +2267,7 @@ index 2d2ae21..d5f46b3 100644
              cells: vec![row.name.clone(), row.key.library.clone(), format!("r{}", row.key.revision)],
              selected: state.selected.as_ref() == Some(&row.key),
              branch: None,
-@@ -376,7 +376,7 @@ fn preview_item(ui: &mut egui::Ui, state: &mut State, catalog: &Catalog) {
+@@ -376,7 +376,7 @@
                  if let Some(footprint) = resolved.footprints.values().next() {
                      crate::library_preview::workspace_footprint(ui, footprint, &mut state.footprint_camera);
                  }
@@ -2374,11 +2276,9 @@ index 2d2ae21..d5f46b3 100644
              }
              Err(error) => {
                  ui.colored_label(pcbcraft_chrome::Tokens::get().error, error);
-diff --git a/crates/app/src/part_documents/publishing.rs b/crates/app/src/part_documents/publishing.rs
-index 4d64730..d53628a 100644
 --- a/crates/app/src/part_documents/publishing.rs
 +++ b/crates/app/src/part_documents/publishing.rs
-@@ -72,7 +72,7 @@ impl PcbApp {
+@@ -72,7 +72,7 @@
          let action = pcbcraft_chrome::catalog::property_form_enabled(
              ctx,
              "part_publish",
@@ -2387,7 +2287,7 @@ index 4d64730..d53628a 100644
              452.,
              if verifying {
                  "Verify publication"
-@@ -117,7 +117,7 @@ impl PcbApp {
+@@ -117,7 +117,7 @@
                  }
                  if older {
                      properties::section(ui, "Newer revision available");
@@ -2396,11 +2296,9 @@ index 4d64730..d53628a 100644
                      controls::checkbox(ui, &mut draft.allow_older, "Publish without merging");
                  }
                  controls::collapsing(ui, "part_publish_details", "Details", false, None, |ui| {
-diff --git a/crates/app/src/parts_browser.rs b/crates/app/src/parts_browser.rs
-index 3fa0657..fcdd525 100644
 --- a/crates/app/src/parts_browser.rs
 +++ b/crates/app/src/parts_browser.rs
-@@ -503,7 +503,7 @@ impl PartsBrowser {
+@@ -503,7 +503,7 @@
          if let Collection::Library(id) = &self.collection
              && !choices.iter().any(|(collection, _)| collection == &self.collection)
          {
@@ -2409,11 +2307,9 @@ index 3fa0657..fcdd525 100644
          }
          let keys: Vec<_> = choices
              .iter()
-diff --git a/crates/app/src/performance/rendered.rs b/crates/app/src/performance/rendered.rs
-index f2657f3..87ef850 100644
 --- a/crates/app/src/performance/rendered.rs
 +++ b/crates/app/src/performance/rendered.rs
-@@ -571,7 +571,7 @@ impl eframe::App for RenderedApp {
+@@ -571,7 +571,7 @@
              let wake = ctx.clone();
              #[cfg(target_arch = "wasm32")]
              if let Some(canvas) = self.canvas.clone() {
@@ -2422,7 +2318,7 @@ index f2657f3..87ef850 100644
                      match super::browser_capture::capture(canvas).await {
                          Ok(capture) => {
                              let _ = send.try_send(capture);
-@@ -579,7 +579,7 @@ impl eframe::App for RenderedApp {
+@@ -579,7 +579,7 @@
                          Err(error) => log::error!("{error}"),
                      }
                      wake.request_repaint();
@@ -2431,11 +2327,9 @@ index f2657f3..87ef850 100644
              } else {
                  self.complete(&ctx, Err("browser replay has no capture canvas".into()));
              }
-diff --git a/crates/app/src/project_browser.rs b/crates/app/src/project_browser.rs
-index 18923bf..41609b2 100644
 --- a/crates/app/src/project_browser.rs
 +++ b/crates/app/src/project_browser.rs
-@@ -237,7 +237,7 @@ impl SheetItems {
+@@ -238,7 +238,7 @@
                  tip: if pins.is_empty() {
                      if connectivity.net_names(index).is_empty() { "Free wire".into() } else { "No component pins".into() }
                  } else {
@@ -2444,7 +2338,7 @@ index 18923bf..41609b2 100644
                  },
                  target,
              })
-@@ -436,7 +436,7 @@ impl ProjectBrowser {
+@@ -440,7 +440,7 @@
                                          let source = pcbcraft_engine::board::correspondence::Source::Terminal(
                                              pcbcraft_engine::board::correspondence::TerminalTarget { sheet, terminal },
                                          );
@@ -2453,7 +2347,7 @@ index 18923bf..41609b2 100644
                                          let row = TreeRow {
                                              depth: 6 + depth,
                                              fold: None,
-@@ -479,7 +479,7 @@ impl ProjectBrowser {
+@@ -483,7 +483,7 @@
                          let Some((id, at)) = &item.target else {
                              continue;
                          };
@@ -2462,7 +2356,7 @@ index 18923bf..41609b2 100644
                          let row = TreeRow {
                              depth: 4,
                              fold: None,
-@@ -506,7 +506,7 @@ impl ProjectBrowser {
+@@ -510,7 +510,7 @@
                                      board: board.target,
                                      pad: pad.on_board(board.target.board),
                                  });
@@ -2471,7 +2365,7 @@ index 18923bf..41609b2 100644
                                  let row = TreeRow {
                                      depth: 6,
                                      fold: None,
-@@ -626,7 +626,7 @@ impl Tree<'_> {
+@@ -631,7 +631,7 @@
      #[allow(clippy::too_many_arguments)]
      fn branch(&mut self, ui: &mut Ui, node: Node, depth: usize, icon: TreeIcon, label: &str, selected: bool, pick: Option<Action>) -> bool {
          let open = self.open(node);
@@ -2479,12 +2373,10 @@ index 18923bf..41609b2 100644
 +        let access = matches!(node, Node::Board(_)).then(|| pcbcraft_chrome::i18n::format("dynamic.board_902d247", &[("label", &format!("{}", label))]));
          let row = TreeRow { depth, fold: Some(open), icon: Some(icon), label, accessibility_label: access.as_deref(), tip: "", selected };
          let response = workspace::tree_row(ui, ui.make_persistent_id(("project_browser", node)), &row);
-         if pick.is_some() || matches!(node, Node::Sheets | Node::Sheet(_)) {
-diff --git a/crates/app/src/project_files.rs b/crates/app/src/project_files.rs
-index a5909ee..8dc64d9 100644
+         if pick.is_some() || matches!(node, Node::Project | Node::Sheets | Node::Sheet(_)) {
 --- a/crates/app/src/project_files.rs
 +++ b/crates/app/src/project_files.rs
-@@ -303,13 +303,13 @@ impl ProjectFiles {
+@@ -316,13 +316,13 @@
          let ctx = ctx.clone();
          std::thread::Builder::new()
              .name("pcbcraft-open-recent".to_owned())
@@ -2502,7 +2394,7 @@ index a5909ee..8dc64d9 100644
          self.job = Some(Job { receiver, revision, operation: "open", destination });
          Ok(())
      }
-@@ -355,19 +355,19 @@ impl ProjectFiles {
+@@ -373,19 +373,19 @@
          #[cfg(not(target_arch = "wasm32"))]
          std::thread::Builder::new()
              .name("pcbcraft-open".to_owned())
@@ -2527,7 +2419,7 @@ index a5909ee..8dc64d9 100644
          }
          self.job = Some(Job {
              receiver: receive,
-@@ -389,10 +389,10 @@ impl ProjectFiles {
+@@ -407,10 +407,10 @@
          }
          let (send, receive) = mpsc::channel();
          let ctx = ctx.clone();
@@ -2540,7 +2432,7 @@ index a5909ee..8dc64d9 100644
          self.job = Some(Job { receiver: receive, revision, operation: "open", destination: None, download: None });
          Ok(())
      }
-@@ -424,11 +424,11 @@ impl ProjectFiles {
+@@ -446,11 +446,11 @@
                  let ctx = ctx.clone();
                  std::thread::Builder::new()
                      .name("pcbcraft-save".to_owned())
@@ -2555,7 +2447,7 @@ index a5909ee..8dc64d9 100644
              }
          }
          #[cfg(target_arch = "wasm32")]
-@@ -480,11 +480,11 @@ impl ProjectFiles {
+@@ -502,11 +502,11 @@
          let ctx = ctx.clone();
          std::thread::Builder::new()
              .name("pcbcraft-save-as".to_owned())
@@ -2570,11 +2462,9 @@ index a5909ee..8dc64d9 100644
          self.job = Some(Job { receiver, revision: session.revision(), operation: "save", destination });
          Ok(())
      }
-diff --git a/crates/app/src/project_files/abandon.rs b/crates/app/src/project_files/abandon.rs
-index 6042013..159563c 100644
 --- a/crates/app/src/project_files/abandon.rs
 +++ b/crates/app/src/project_files/abandon.rs
-@@ -31,7 +31,7 @@ impl ProjectFiles {
+@@ -31,7 +31,7 @@
          match &self.job {
              None => return Err("No file operation is running.".into()),
              Some(_) if expected.is_some_and(|id| id != self.completed + 1) => {
@@ -2583,11 +2473,9 @@ index 6042013..159563c 100644
              }
              Some(job) if job.operation != "open" => {
                  return Err(
-diff --git a/crates/app/src/project_files/native.rs b/crates/app/src/project_files/native.rs
-index f442cef..04d3836 100644
 --- a/crates/app/src/project_files/native.rs
 +++ b/crates/app/src/project_files/native.rs
-@@ -108,7 +108,7 @@ pub(super) fn load(path: &Path) -> Result<Saved, String> {
+@@ -118,7 +118,7 @@
          return load_folder(&path);
      }
      // A folder entry point has one fixed name; other files must be complete ZIP packages.
@@ -2596,7 +2484,7 @@ index f442cef..04d3836 100644
      let encoding = Encoding::detect(&bytes);
      if encoding == Encoding::Json {
          if path.file_name().is_some_and(|name| name == ENTRY_POINT || name == "project.pc") {
-@@ -323,7 +323,7 @@ fn existing(path: &Path) -> Result<Option<Vec<u8>>, String> {
+@@ -390,14 +390,14 @@
      match read(path) {
          Ok(bytes) => Ok(Some(bytes)),
          Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
@@ -2605,14 +2493,17 @@ index f442cef..04d3836 100644
      }
  }
  
-@@ -345,15 +345,15 @@ fn publish(path: &Path, expected: Option<&[u8]>, bytes: &[u8], after_staging: im
-         return verify();
-     }
-     let parent = path.parent().ok_or("Project file has no parent directory")?;
+ /// Lock the archive's sibling lock file across publication or verified folder cleanup.
+ fn lock_archive(path: &Path) -> Result<File, String> {
 -    let lock = pcbcraft_storage::open_archive_save_lock(path).map_err(|error| format!("Could not open save lock: {error}"))?;
 -    lock.try_lock().map_err(|error| format!("Could not lock project for saving: {error}"))?;
 +    let lock = pcbcraft_storage::open_archive_save_lock(path).map_err(|error| pcbcraft_chrome::i18n::format("dynamic.could_not_open_save_lock_3e55c8d", &[("error", &format!("{}", error))]))?;
 +    lock.try_lock().map_err(|error| pcbcraft_chrome::i18n::format("dynamic.could_not_lock_project_for_saving_62a9a47", &[("error", &format!("{}", error))]))?;
+     Ok(lock)
+ }
+ 
+@@ -422,11 +422,11 @@
+     let _lock = lock_archive(path)?;
  
      let mut staged = tempfile::NamedTempFile::new_in(parent).map_err(|error| error.to_string())?;
 -    staged.write_all(bytes).and_then(|()| staged.as_file().sync_all()).map_err(|error| format!("Could not stage project: {error}"))?;
@@ -2625,7 +2516,7 @@ index f442cef..04d3836 100644
          if !metadata.is_file() {
              return Err("Project destination is no longer a regular file.".to_owned());
          }
-@@ -361,13 +361,13 @@ fn publish(path: &Path, expected: Option<&[u8]>, bytes: &[u8], after_staging: im
+@@ -434,13 +434,13 @@
              .as_file()
              .set_permissions(metadata.permissions())
              .and_then(|()| staged.as_file().sync_all())
@@ -2642,11 +2533,9 @@ index f442cef..04d3836 100644
      }
      Ok(())
  }
-diff --git a/crates/app/src/project_files/web.rs b/crates/app/src/project_files/web.rs
-index 7267c46..f157306 100644
 --- a/crates/app/src/project_files/web.rs
 +++ b/crates/app/src/project_files/web.rs
-@@ -83,7 +83,7 @@ pub(super) fn pick_file() -> Promise {
+@@ -83,7 +83,7 @@
  
  /// Validate the bounded picked payload before returning it to the editor.
  pub(super) async fn open(file: Promise) -> Result<Outcome, String> {
@@ -2655,7 +2544,7 @@ index 7267c46..f157306 100644
      if data.is_null() {
          return Ok(Outcome::Cancelled);
      }
-@@ -197,7 +197,7 @@ impl Download {
+@@ -197,7 +197,7 @@
  
  /// Hand the completed payload to the browser's download UI under `name`.
  fn send_download(bytes: &[u8], name: &str) -> Result<Outcome, String> {
@@ -2664,11 +2553,9 @@ index 7267c46..f157306 100644
  }
  
  /// Show the browser's error message or string rejection in the status bar.
-diff --git a/crates/app/src/properties.rs b/crates/app/src/properties.rs
-index 118f01c..e795984 100644
 --- a/crates/app/src/properties.rs
 +++ b/crates/app/src/properties.rs
-@@ -233,10 +233,10 @@ impl PcbApp {
+@@ -233,10 +233,10 @@
                      if let [label] = inspection_labels.as_slice() {
                          ui.label(label);
                      } else if !inspection_labels.is_empty() {
@@ -2681,7 +2568,7 @@ index 118f01c..e795984 100644
                      }
                      if nets_selected {
                          let rules_label = if bulk { "Manage net classes…" } else { "Net rules…" };
-@@ -349,9 +349,9 @@ impl PcbApp {
+@@ -349,9 +349,9 @@
                      }
                  }
                  ui.separator();
@@ -2693,7 +2580,7 @@ index 118f01c..e795984 100644
                          place_unit = Some(unit.clone());
                      }
                  }
-@@ -438,7 +438,7 @@ impl PcbApp {
+@@ -438,7 +438,7 @@
          let mut library_action = None;
          let mut pin_function = None;
          let can_choose = !edit.changed();
@@ -2702,7 +2589,7 @@ index 118f01c..e795984 100644
          let footprint = self.package_label(&edit.component);
          let project = self.views.active.snapshot(&self.session);
          let action = pcbcraft_chrome::catalog::property_form(ctx, "edit_fields", &title, 760.0, "OK", |ui| {
-@@ -614,14 +614,14 @@ fn terminal_functions(
+@@ -614,14 +614,14 @@
                      ui.label(name.unwrap_or("—"));
                  } else {
                      let mut current = project.pin_function(part, &pin.number).unwrap_or_default().to_owned();
@@ -2719,11 +2606,9 @@ index 118f01c..e795984 100644
                              info.current_text_value = options.iter().find(|(value, _)| *value == current.as_str()).map(|(_, label)| label.clone());
                              info
                          });
-diff --git a/crates/app/src/properties/fields.rs b/crates/app/src/properties/fields.rs
-index 17870c7..28e12b4 100644
 --- a/crates/app/src/properties/fields.rs
 +++ b/crates/app/src/properties/fields.rs
-@@ -38,11 +38,11 @@ impl Appearance {
+@@ -38,11 +38,11 @@
              None
          } else {
              Some(Point {
@@ -2738,11 +2623,9 @@ index 17870c7..28e12b4 100644
          Ok(layout)
      }
  
-diff --git a/crates/app/src/requirement_input.rs b/crates/app/src/requirement_input.rs
-index 4cfd167..7eba7fa 100644
 --- a/crates/app/src/requirement_input.rs
 +++ b/crates/app/src/requirement_input.rs
-@@ -99,7 +99,7 @@ impl Draft {
+@@ -99,7 +99,7 @@
                          "maximum".into()
                      }
                  }
@@ -2751,11 +2634,9 @@ index 4cfd167..7eba7fa 100644
                  _ => "value".into(),
              };
              let label = format!("{name} {suffix}");
-diff --git a/crates/app/src/rule_diagram.rs b/crates/app/src/rule_diagram.rs
-index 287b497..3bb300b 100644
 --- a/crates/app/src/rule_diagram.rs
 +++ b/crates/app/src/rule_diagram.rs
-@@ -38,9 +38,9 @@ fn description(property: Property) -> &'static str {
+@@ -38,9 +38,9 @@
  /// the same boundary description as the hover; the drawing is not a live geometry preview.
  pub(super) fn show(ui: &mut Ui, property: Property) {
      let (rect, response) = ui.allocate_exact_size(vec2(104., 48.), egui::Sense::hover());
@@ -2767,11 +2648,9 @@ index 287b497..3bb300b 100644
      if !ui.is_rect_visible(rect) {
          return;
      }
-diff --git a/crates/app/src/schematic_canvas.rs b/crates/app/src/schematic_canvas.rs
-index a1d021d..9d5ea67 100644
 --- a/crates/app/src/schematic_canvas.rs
 +++ b/crates/app/src/schematic_canvas.rs
-@@ -792,7 +792,7 @@ pub(crate) fn show(
+@@ -793,7 +793,7 @@
              let hits = if filters.symbols {
                  symbols_at(project, camera, rect, pointer)
                      .into_iter()
@@ -2780,11 +2659,9 @@ index a1d021d..9d5ea67 100644
                      .collect()
              } else {
                  Vec::new()
-diff --git a/crates/app/src/schematic_canvas/overlaps.rs b/crates/app/src/schematic_canvas/overlaps.rs
-index f016178..96ffe72 100644
 --- a/crates/app/src/schematic_canvas/overlaps.rs
 +++ b/crates/app/src/schematic_canvas/overlaps.rs
-@@ -178,9 +178,9 @@ impl Index {
+@@ -178,9 +178,9 @@
                      })
                      .collect();
                  if group.len() > names.len() {
@@ -2796,11 +2673,9 @@ index f016178..96ffe72 100644
                  ui.label(pcbcraft_chrome::i18n::tr_label("Finish placement, then right-click → Select symbol."));
              });
          }
-diff --git a/crates/app/src/selection_filters.rs b/crates/app/src/selection_filters.rs
-index 6c95735..c5553ac 100644
 --- a/crates/app/src/selection_filters.rs
 +++ b/crates/app/src/selection_filters.rs
-@@ -172,9 +172,9 @@ impl PcbApp {
+@@ -172,9 +172,9 @@
                  (Workspace::Board, "graphics") => &mut next.graphics,
                  (Workspace::Board, "include_locked") => &mut next.include_locked,
                  (_, "view" | "collapsed" | "open") => continue,
@@ -2812,11 +2687,9 @@ index 6c95735..c5553ac 100644
          }
          let collapsed = params.get("collapsed").map(|v| v.as_bool().ok_or("`collapsed` must be true or false")).transpose()?;
          let open = params.get("open").map(|v| v.as_bool().ok_or("`open` must be true or false")).transpose()?;
-diff --git a/crates/app/src/sheet_editing.rs b/crates/app/src/sheet_editing.rs
-index f878987..153bf86 100644
 --- a/crates/app/src/sheet_editing.rs
 +++ b/crates/app/src/sheet_editing.rs
-@@ -55,7 +55,7 @@ impl PcbApp {
+@@ -55,7 +55,7 @@
          let (mut submit, mut cancel) = (false, false);
          let closing = shell::dialog(ctx, "sheet_dialog", title, |ui| {
              if deletion {
@@ -2825,11 +2698,9 @@ index f878987..153bf86 100644
                  ui.label(pcbcraft_chrome::i18n::tr_label("Its symbols, wires, associated board footprints and connections to parent pins will be removed. Child sheets become top-level sheets. Undo restores them."));
              } else {
                  let label = ui.label("Name");
-diff --git a/crates/app/src/sheet_parameters.rs b/crates/app/src/sheet_parameters.rs
-index d75efda..d049a48 100644
 --- a/crates/app/src/sheet_parameters.rs
 +++ b/crates/app/src/sheet_parameters.rs
-@@ -139,7 +139,7 @@ fn conflict_note(external: &str) -> String {
+@@ -139,7 +139,7 @@
      if external.is_empty() {
          "Removed elsewhere. Leaving this field saves your text instead.".into()
      } else {
@@ -2838,7 +2709,7 @@ index d75efda..d049a48 100644
      }
  }
  
-@@ -161,7 +161,7 @@ fn commit(scope: Scope, row: &Row, draft: &str) -> Option<Change> {
+@@ -161,7 +161,7 @@
  /// setting it would overwrite the existing value.
  fn add(scope: Scope, rows: &[Row], name: &str) -> Result<Change, String> {
      match rows.iter().find(|row| row.name.eq_ignore_ascii_case(name)) {
@@ -2847,11 +2718,9 @@ index d75efda..d049a48 100644
          None => Ok(Change { scope, name: name.to_owned(), value: Some(String::new()) }),
      }
  }
-diff --git a/crates/app/src/ui_automation.rs b/crates/app/src/ui_automation.rs
-index e485075..2008ee6 100644
 --- a/crates/app/src/ui_automation.rs
 +++ b/crates/app/src/ui_automation.rs
-@@ -246,12 +246,12 @@ impl Snapshot {
+@@ -250,12 +250,12 @@
              Point::Position(p) => egui::pos2(p.x, p.y),
              Point::Named(name) => {
                  let mut matches = self.targets.iter().filter(|target| target.name == name.handle);
@@ -2867,7 +2736,7 @@ index e485075..2008ee6 100644
                  }
                  target.rect.center()
              }
-@@ -379,7 +379,7 @@ impl PcbApp {
+@@ -383,7 +383,7 @@
          // Pins and pads can sit up to the pin offset beyond the largest placement center.
          let max = pcbcraft_engine::schematic::MAX_CENTER_NM + pcbcraft_engine::schematic::MAX_PIN_OFFSET_NM;
          if !(-max..=max).contains(&query.at.x_nm) || !(-max..=max).contains(&query.at.y_nm) {
@@ -2876,7 +2745,7 @@ index e485075..2008ee6 100644
          }
          let view = ViewId(query.view);
          let pane = self.views.view(view).ok_or("Unknown view; it may have been closed")?;
-@@ -428,7 +428,7 @@ impl PcbApp {
+@@ -432,7 +432,7 @@
              && self.automation.job.as_ref().is_some_and(|job| job.host == host)
          {
              let owned = self.automation.owns_pointer_gesture();
@@ -2885,7 +2754,7 @@ index e485075..2008ee6 100644
              if owned {
                  self.views.cancel_gestures();
              }
-@@ -505,7 +505,7 @@ impl PcbApp {
+@@ -514,7 +514,7 @@
          self.automation.observing = true;
          if matches!(id, "ui.inspect" | "ui.cancel") {
              if !params.is_null() && params != &json!({}) {
@@ -2894,7 +2763,7 @@ index e485075..2008ee6 100644
              }
              if id == "ui.cancel" {
                  self.automation_cancel("Cancelled by client");
-@@ -524,7 +524,7 @@ impl PcbApp {
+@@ -533,7 +533,7 @@
          if matches!(id, "ui.handles" | "ui.at") {
              let allowed: &[&str] = if id == "ui.at" { &["window", "handle"] } else { &["window", "prefix"] };
              if params.as_object().is_none_or(|object| object.keys().any(|key| !allowed.contains(&key.as_str()))) {
@@ -2903,7 +2772,7 @@ index e485075..2008ee6 100644
              }
              let query: Query = serde_json::from_value(params.clone()).map_err(|e| e.to_string())?;
              let host = HostId(query.window);
-@@ -839,19 +839,19 @@ pub(super) fn check_command(id: &str, params: &Value) -> Result<(), pcbcraft_mcp
+@@ -904,19 +904,19 @@
      let command = catalog
          .iter()
          .find(|command| command["id"] == id)
@@ -2927,7 +2796,7 @@ index e485075..2008ee6 100644
      }
      Ok(())
  }
-@@ -880,7 +880,7 @@ pub(super) fn catalog() -> Vec<Value> {
+@@ -945,7 +945,7 @@
          ("scroll","Scroll at a named target or logical point",json!({"target":point,"delta_x":{"type":"number"},"delta_y":{"type":"number"},"modifiers":keys}),vec!["target","delta_x","delta_y"]),
      ].into_iter().map(|(name,title,mut properties,mut required)| {
          if matches!(name,"move"|"click"|"drag"|"key"|"text"|"scroll") { properties["window"]=json!({"type":"integer"});properties["layout"]=json!({"type":"integer"});required.push("window"); }
@@ -2936,11 +2805,9 @@ index e485075..2008ee6 100644
              "scope":"window","params":{"type":"object","properties":properties,"required":required,"additionalProperties":false}})
      }).collect()
  }
-diff --git a/crates/app/src/ui_automation/window.rs b/crates/app/src/ui_automation/window.rs
-index 43ec9b8..1b067b3 100644
 --- a/crates/app/src/ui_automation/window.rs
 +++ b/crates/app/src/ui_automation/window.rs
-@@ -128,12 +128,12 @@ impl PcbApp {
+@@ -128,12 +128,12 @@
          let size = egui::vec2(request.width, request.height);
          let min = if host == HostId::ROOT { crate::MAIN_WINDOW_MIN_SIZE } else { crate::editor_windows::DETACHED_WINDOW_MIN_SIZE };
          if !(size.x >= min[0] && size.y >= min[1]) {
@@ -2955,11 +2822,9 @@ index 43ec9b8..1b067b3 100644
          }
          self.automation_cancel("Window resize requested");
          self.automation.next_layout = self.automation.next_layout.saturating_add(1);
-diff --git a/crates/app/src/unsaved.rs b/crates/app/src/unsaved.rs
-index 702e1ff..a29c469 100644
 --- a/crates/app/src/unsaved.rs
 +++ b/crates/app/src/unsaved.rs
-@@ -185,8 +185,8 @@ impl PcbApp {
+@@ -219,8 +219,8 @@
          let name = self.session.project().map_or_else(|| "The project".to_owned(), |project| shown_name(&project.name));
          let decision = shell::save_changes(
              ctx,
@@ -2970,11 +2835,9 @@ index 702e1ff..a29c469 100644
              !IN_BROWSER,
              !self.files.busy(),
          );
-diff --git a/crates/app/src/window_commands.rs b/crates/app/src/window_commands.rs
-index 3d00d36..4e8400c 100644
 --- a/crates/app/src/window_commands.rs
 +++ b/crates/app/src/window_commands.rs
-@@ -361,9 +361,9 @@ mod live {
+@@ -368,9 +368,9 @@
                  Self::Name => "must be a name".to_owned(),
                  Self::Bool => "must be true or false".to_owned(),
                  Self::Color => "must be #RRGGBB or null to restore the default".to_owned(),
@@ -2987,7 +2850,7 @@ index 3d00d36..4e8400c 100644
                  Self::Minutes => "must be 0 (Off), 1, 5 or 10 minutes".to_owned(),
                  Self::Point => "must be a point with whole-nanometre x_nm and y_nm within the schematic bounds".to_owned(),
                  Self::Inspection => "must be a bounded list of distinct qualified terminal or pad addresses".into(),
-@@ -451,15 +451,15 @@ mod live {
+@@ -458,15 +458,15 @@
              let given = match params {
                  Value::Null => &empty,
                  Value::Object(object) => object,
@@ -3006,7 +2869,7 @@ index 3d00d36..4e8400c 100644
                      None => {}
                  }
              }
-@@ -1318,7 +1318,7 @@ mod live {
+@@ -1366,7 +1366,7 @@
          let command = CATALOG
              .iter()
              .find(|command| command.id == id)
@@ -3015,7 +2878,7 @@ index 3d00d36..4e8400c 100644
          command.check(params).map_err(|message| pcbcraft_mcp::Failure::new(ErrorCode::InvalidParams, message))
      }
  
-@@ -1601,7 +1601,7 @@ mod live {
+@@ -1650,7 +1650,7 @@
      impl PcbApp {
          /// The window that shows `id`, or a reason naming the stale ID.
          fn view_window(&self, id: ViewId) -> Result<HostId, String> {
@@ -3024,7 +2887,7 @@ index 3d00d36..4e8400c 100644
          }
  
          /// Check an arrangement command as the tabs and their forms do, so a refusal names its
-@@ -1620,7 +1620,7 @@ mod live {
+@@ -1669,7 +1669,7 @@
              let known = |key: &str| -> Result<Option<u64>, String> {
                  match params.get(key).and_then(Value::as_u64) {
                      Some(arrangement) if !tabs.iter().any(|(tab, _)| *tab == arrangement) => {
@@ -3033,7 +2896,7 @@ index 3d00d36..4e8400c 100644
                      }
                      found => Ok(found),
                  }
-@@ -1650,7 +1650,7 @@ mod live {
+@@ -1699,7 +1699,7 @@
                      };
                      Ok(Action::Create { name: name.trim().to_owned(), start })
                  }
@@ -3042,7 +2905,7 @@ index 3d00d36..4e8400c 100644
              }
          }
  
-@@ -1667,7 +1667,7 @@ mod live {
+@@ -1716,7 +1716,7 @@
          /// dialog/file operation; addressed remap and item-deletion phases are modal exceptions.
          /// A refused command changes nothing.
          pub(crate) fn run_window_command(&mut self, ctx: &Context, id: &str, params: &Value) -> Result<(), String> {
@@ -3051,7 +2914,7 @@ index 3d00d36..4e8400c 100644
              command.check(params)?;
              if id == "app.open_fabrication_package" || id == "app.set_fabrication_layer" {
                  let id_view = ViewId(params["view"].as_u64().ok_or("Choose a Manufacturing pane.")?);
-@@ -1733,7 +1733,7 @@ mod live {
+@@ -1794,7 +1794,7 @@
              let window = params.get("window").and_then(Value::as_u64).map(HostId);
              let window = match window {
                  Some(window) if !self.views.hosts.contains_key(&window) => {
@@ -3060,7 +2923,7 @@ index 3d00d36..4e8400c 100644
                  }
                  window => window,
              };
-@@ -1786,7 +1786,7 @@ mod live {
+@@ -1847,7 +1847,7 @@
                      self.apply_view_action(ctx, view, ViewAction::Reorder(target));
                  }
                  ("view.close", Some((view, host)), _) if host == self.views.main && !self.views.hosts.get(&host).is_some_and(|host| host.split()) => {
@@ -3069,7 +2932,7 @@ index 3d00d36..4e8400c 100644
                  }
                  ("view.open_beside", Some((view, _)), _) if params.get("beside").is_some() => {
                      let target = ViewId(params["beside"].as_u64().unwrap_or_default());
-@@ -1825,7 +1825,7 @@ mod live {
+@@ -1886,7 +1886,7 @@
                      self.apply_view_action(ctx, view, action);
                  }
                  ("view.dock", Some((view, host)), _) if host == self.views.main => {
@@ -3078,7 +2941,7 @@ index 3d00d36..4e8400c 100644
                  }
                  ("view.open_beside" | "view.close" | "view.open_window" | "view.detach" | "view.dock", Some((view, _)), _) => {
                      let action = match id {
-@@ -1953,9 +1953,9 @@ mod live {
+@@ -2014,9 +2014,9 @@
                          != Some(if id == "view.select" { Workspace::Schematic } else { Workspace::Board }) =>
                  {
                      return Err(if id == "view.select" {
@@ -3090,7 +2953,7 @@ index 3d00d36..4e8400c 100644
                      });
                  }
                  ("view.select_footprints", Some((view, _)), _) => {
-@@ -2072,7 +2072,7 @@ mod live {
+@@ -2133,7 +2133,7 @@
                          .is_some_and(|view| view.workspace == Workspace::Board);
                      let allowed: &[usize] = if board { &crate::ribbon::BOARD_TAB_ORDER } else { &crate::ribbon::TAB_ORDER };
                      if !allowed.contains(&tab) || (board && name == "capture") || (!board && matches!(name, "layout" | "route")) {
@@ -3099,7 +2962,7 @@ index 3d00d36..4e8400c 100644
                      }
                      self.in_window(host, |app| app.ribbon_tab = tab);
                  }
-@@ -2134,7 +2134,7 @@ mod live {
+@@ -2205,7 +2205,7 @@
                      self.message = None;
                      self.file_notice = None;
                  }
@@ -3108,8 +2971,6 @@ index 3d00d36..4e8400c 100644
              }
              debug_assert!(self.views.host == self.views.main);
              self.sync_library_focus();
-diff --git a/crates/chrome/assets/shared-ui/zh.json b/crates/chrome/assets/shared-ui/zh.json
-index 920ae27..23613f8 100644
 --- a/crates/chrome/assets/shared-ui/zh.json
 +++ b/crates/chrome/assets/shared-ui/zh.json
 @@ -964,7 +964,7 @@
@@ -3518,11 +3379,9 @@ index 920ae27..23613f8 100644
 + "fragment.not_recorded": "未记录",
 + "fragment.invalid_library_documents": "库文档无效"
  }
-diff --git a/crates/chrome/src/arrangements.rs b/crates/chrome/src/arrangements.rs
-index 02056ec..c4574ba 100644
 --- a/crates/chrome/src/arrangements.rs
 +++ b/crates/chrome/src/arrangements.rs
-@@ -96,7 +96,7 @@ impl Form {
+@@ -96,7 +96,7 @@
          let (mut submit, mut cancel) = (false, false);
          let dismissed = crate::shell::dialog(ctx, "arrangement_dialog", title, |ui| {
              if matches!(self.intent, Intent::Remove(_)) {
@@ -3531,11 +3390,9 @@ index 02056ec..c4574ba 100644
              } else {
                  let label = ui.label(crate::i18n::tr_label("Arrangement name"));
                  let mut field = egui::TextEdit::singleline(&mut self.name).desired_width(f32::INFINITY).show(ui);
-diff --git a/crates/chrome/src/assistant.rs b/crates/chrome/src/assistant.rs
-index 39fc188..6ec6cfc 100644
 --- a/crates/chrome/src/assistant.rs
 +++ b/crates/chrome/src/assistant.rs
-@@ -33,7 +33,7 @@ pub struct Dock {
+@@ -33,7 +33,7 @@
  /// Paint the title bar launcher next to Preferences, including its active state and shortcut.
  pub fn toolbar(ui: &mut Ui, active: bool, ready: bool, shortcut: &str) -> bool {
      let t = Tokens::get();
@@ -3544,11 +3401,9 @@ index 39fc188..6ec6cfc 100644
      paint_glyph(ui.painter(), rect.center(), t.text, icon_fill(&response, t, active));
      if ready {
          ui.painter().circle_filled(rect.right_top() + vec2(-t.space_4, t.space_4), t.space_3, t.accent);
-diff --git a/crates/chrome/src/board.rs b/crates/chrome/src/board.rs
-index 3ce6d3d..f2a7d6d 100644
 --- a/crates/chrome/src/board.rs
 +++ b/crates/chrome/src/board.rs
-@@ -622,7 +622,7 @@ pub fn color_dialog(
+@@ -622,7 +622,7 @@
  /// Its toggle semantics remain available to keyboard and assistive-technology users.
  /// Returns a click intent; the caller changes visibility through its shared state handler.
  pub fn layer_visibility(ui: &mut egui::Ui, name: &str, visible: bool) -> egui::Response {
@@ -3557,7 +3412,7 @@ index 3ce6d3d..f2a7d6d 100644
  }
  
  /// Shared eye toggle for authored field visibility and canvas layers, with explicit accessibility.
-@@ -630,7 +630,7 @@ pub fn layer_visibility(ui: &mut egui::Ui, name: &str, visible: bool) -> egui::R
+@@ -630,7 +630,7 @@
  pub fn visibility(ui: &mut egui::Ui, name: &str, visible: bool) -> egui::Response {
      let t = Tokens::get();
      let (rect, response) = ui.allocate_exact_size(vec2(t.space_24, t.space_24), egui::Sense::click());
@@ -3566,7 +3421,7 @@ index 3ce6d3d..f2a7d6d 100644
      if ui.is_rect_visible(rect) {
          let p = ui.painter();
          if response.hovered() || response.has_focus() {
-@@ -646,7 +646,7 @@ pub fn visibility(ui: &mut egui::Ui, name: &str, visible: bool) -> egui::Respons
+@@ -646,7 +646,7 @@
              p.line_segment([at(4., 17.), at(18., 5.)], Stroke::new(1.0, ink));
          }
      }
@@ -3575,11 +3430,9 @@ index 3ce6d3d..f2a7d6d 100644
  }
  
  /// Technical layer keys use existing theme roles, with board-edge ink distinct from details.
-diff --git a/crates/chrome/src/board_setup.rs b/crates/chrome/src/board_setup.rs
-index 785924e..ef0ce96 100644
 --- a/crates/chrome/src/board_setup.rs
 +++ b/crates/chrome/src/board_setup.rs
-@@ -222,7 +222,7 @@ pub fn material_choice(ui: &mut Ui, name: &str, assign: bool) -> bool {
+@@ -222,7 +222,7 @@
      let t = Tokens::get();
      ui.add_sized(
          vec2(ui.available_width(), t.control_height + t.space_8),
@@ -3588,11 +3441,9 @@ index 785924e..ef0ce96 100644
      )
      .clicked()
  }
-diff --git a/crates/chrome/src/catalog.rs b/crates/chrome/src/catalog.rs
-index 80a6347..7ab4336 100644
 --- a/crates/chrome/src/catalog.rs
 +++ b/crates/chrome/src/catalog.rs
-@@ -199,7 +199,7 @@ pub(crate) fn form_header(ui: &mut Ui, title: &str) -> (Rect, bool) {
+@@ -199,7 +199,7 @@
      let t = Tokens::get();
      let (header, _) = ui.allocate_exact_size(vec2(ui.available_width(), kit::header_height()), Sense::hover());
      let close = Rect::from_center_size(header.right_center() - vec2(t.space_24, 0.0), vec2(t.control_height, t.control_height));
@@ -3601,7 +3452,7 @@ index 80a6347..7ab4336 100644
      crate::automation::publish(ui, &close_response, format!("button:Close {title}"));
      let closed = close_response.clicked();
      let label = Rect::from_min_max(header.min + vec2(t.space_24, 0.0), pos2(close.left() - t.space_8, header.bottom()));
-@@ -343,7 +343,7 @@ pub fn preview(ui: &mut Ui, paint: impl FnOnce(&egui::Painter, Rect)) {
+@@ -343,7 +343,7 @@
  /// A selected catalog item's heading uses the same heading family as the source manager.
  pub fn title(ui: &mut Ui, text: &str) {
      let response = ui.label(RichText::new(crate::i18n::tr_label(text)).font(fonts::interface_heading(ui, Tokens::get().font_intro)));
@@ -3610,11 +3461,9 @@ index 80a6347..7ab4336 100644
  }
  
  /// Inset search/filter controls above the catalog panes using the source manager's spacing.
-diff --git a/crates/chrome/src/controls.rs b/crates/chrome/src/controls.rs
-index b00878b..5042562 100644
 --- a/crates/chrome/src/controls.rs
 +++ b/crates/chrome/src/controls.rs
-@@ -86,8 +86,8 @@ pub fn collapsing<R>(
+@@ -86,8 +86,8 @@
      let verb_key = if expanded { "ui.collapse" } else { "ui.expand" };
      let verb = solidcraft_ui_text::tr(verb_key);
      let logical_verb = crate::i18n::logical_tr(verb_key);
@@ -3625,11 +3474,9 @@ index b00878b..5042562 100644
      let mut arrow_ui = ui.new_child(egui::UiBuilder::new().id_salt(id.with("disclosure")).max_rect(arrow));
      let disclosure = panel_disclosure_button(&mut arrow_ui, arrow, expanded, &accessible_action, &action);
      if response.clicked() || disclosure.clicked() {
-diff --git a/crates/chrome/src/editor.rs b/crates/chrome/src/editor.rs
-index 77f7165..3b143b0 100644
 --- a/crates/chrome/src/editor.rs
 +++ b/crates/chrome/src/editor.rs
-@@ -189,7 +189,7 @@ pub fn pane_header(ui: &mut Ui, path: &str, focused: bool, native: bool, detache
+@@ -189,7 +189,7 @@
      solidcraft_ui_kit::app_bar::tab_shape(&painter, &palette, tab, focused, response.hovered());
      painter.galley(pos2(dock_rect.right() + t.space_12, tab.center().y - galley.size().y / 2.0), galley, t.text);
      painter.line_segment([tab.left_bottom(), tab.right_bottom()], Stroke::new(2.0, if focused { t.accent } else { t.border }));
@@ -3638,7 +3485,7 @@ index 77f7165..3b143b0 100644
      let mut action = close.on_hover_text(crate::i18n::tr_label("Close view")).clicked().then_some(PaneAction::Close);
      if dock_width > 0.0 && dock_rect.width() > t.space_8 {
          let dock = ui.interact(dock_rect, ui.scope_id().with("dock_pane"), Sense::click());
-@@ -374,7 +374,7 @@ pub fn window_drop_targets(
+@@ -374,7 +374,7 @@
                  choices.extend(targets.iter().map(|(id, label)| {
                      (
                          WindowDrop::Host(*id),
@@ -3647,7 +3494,7 @@ index 77f7165..3b143b0 100644
                      )
                  }));
                  for (destination, label) in choices {
-@@ -408,7 +408,7 @@ pub fn window_drop_targets(
+@@ -408,7 +408,7 @@
                                  vec2(button_width, rect.height()),
                              );
                              let selected = state.pointer.is_some_and(|pointer| bounds.contains(pointer));
@@ -3656,11 +3503,9 @@ index 77f7165..3b143b0 100644
                              let button = solidcraft_ui_kit::button_at(
                                  ui,
                                  &format!("window_drop_{host}_{index}"),
-diff --git a/crates/chrome/src/grid.rs b/crates/chrome/src/grid.rs
-index f344a1e..d3f6365 100644
 --- a/crates/chrome/src/grid.rs
 +++ b/crates/chrome/src/grid.rs
-@@ -202,7 +202,7 @@ pub fn opacity_control(ui: &mut Ui, opacity_percent: &mut u8) -> bool {
+@@ -202,7 +202,7 @@
      let slider = egui::Slider::new(opacity_percent, OPACITY_RANGE).step_by(f64::from(OPACITY_STEP)).suffix("%");
      ui.add(slider).accessible_name(crate::i18n::tr_label("Grid opacity"));
      if crate::controls::enabled_button(ui, *opacity_percent != OPACITY_DEFAULT, "Reset")
@@ -3669,7 +3514,7 @@ index f344a1e..d3f6365 100644
          .clicked()
      {
          *opacity_percent = OPACITY_DEFAULT;
-@@ -245,13 +245,13 @@ pub fn spacing_menu(ui: &mut Ui, spacing_nm: &mut i64, presets: &[i64], default_
+@@ -245,13 +245,13 @@
              ui.spacing_mut().item_spacing.y = 0.0;
              for &preset in presets {
                  let label = spacing_label(preset, unit);
@@ -3685,7 +3530,7 @@ index f344a1e..d3f6365 100644
              }
              menu::separator(ui);
              let (mut draft, mut error) = ui.data(|d| d.get_temp::<(String, Option<String>)>(field_id)).unwrap_or_default();
-@@ -283,7 +283,7 @@ pub fn spacing_menu(ui: &mut Ui, spacing_nm: &mut i64, presets: &[i64], default_
+@@ -283,7 +283,7 @@
                  }
                  // Some pins fall between the snap points; they still take wires when clicked.
                  if *spacing_nm > 0 && default_nm % *spacing_nm != 0 {
@@ -3694,11 +3539,9 @@ index f344a1e..d3f6365 100644
                      ui.add(egui::Label::new(crate::shell::dim(hint)).wrap());
                  }
              });
-diff --git a/crates/chrome/src/home.rs b/crates/chrome/src/home.rs
-index a6dbd45..cd20d0e 100644
 --- a/crates/chrome/src/home.rs
 +++ b/crates/chrome/src/home.rs
-@@ -239,7 +239,7 @@ pub fn recent_card(ui: &mut Ui, id: &str, width: f32, card: RecentCard<'_>, pain
+@@ -239,7 +239,7 @@
      let image_width = (width - t.file_card_inset * 2.0).max(0.0);
      let image_height = (image_width / t.file_preview_aspect_ratio).clamp(t.file_preview_min_height, t.file_preview_max_height);
      let height = image_height + t.file_card_inset * 2.0 + t.space_8 * 2.0 + t.font_button + t.font_small;
@@ -3707,7 +3550,7 @@ index a6dbd45..cd20d0e 100644
      let (rect, response) = recent_target(ui, id, width, height, &label, card.enabled);
      let hot = card.enabled && (response.hovered() || response.has_focus());
      ui.painter().rect(
-@@ -252,7 +252,7 @@ pub fn recent_card(ui: &mut Ui, id: &str, width: f32, card: RecentCard<'_>, pain
+@@ -252,7 +252,7 @@
      let inner = rect.shrink(t.file_card_inset);
      let image = Rect::from_min_size(inner.min, vec2(inner.width(), image_height));
      ui.painter().rect(image, t.radius_md, t.canvas, Stroke::new(1.0, t.file_border), StrokeKind::Inside);
@@ -3716,7 +3559,7 @@ index a6dbd45..cd20d0e 100644
      let image_response = ui.interact(image, ui.make_persistent_id(("recent:preview", id)), Sense::hover());
      image_response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Image, true, &image_label));
      if card.preview == PreviewState::Ready && ui.clip_rect().intersects(image) {
-@@ -284,7 +284,7 @@ pub fn recent_card(ui: &mut Ui, id: &str, width: f32, card: RecentCard<'_>, pain
+@@ -284,7 +284,7 @@
      text(ui, path_rect, &path, path_font, t.file_dim);
      let remove = ui.interact(remove_rect, ui.make_persistent_id(("recent:remove", id)), Sense::click());
      remove.widget_info(|| {
@@ -3725,11 +3568,9 @@ index a6dbd45..cd20d0e 100644
      });
      if remove.hovered() || remove.has_focus() {
          ui.painter().rect_filled(remove_rect, t.radius_md, t.hover);
-diff --git a/crates/chrome/src/i18n.rs b/crates/chrome/src/i18n.rs
-index 1f7e9e0..d41276a 100644
 --- a/crates/chrome/src/i18n.rs
 +++ b/crates/chrome/src/i18n.rs
-@@ -211,9 +211,36 @@ pub fn tr_label(label: &str) -> &str {
+@@ -211,9 +211,36 @@
  /// sentences with numbers or names can be translated as one string. Unknown arguments and untranslated
  /// templates pass through unchanged.
  pub fn format(template: &str, args: &[(&str, &str)]) -> String {
@@ -3766,7 +3607,7 @@ index 1f7e9e0..d41276a 100644
  /// Look up `id` in logical (reading) order for accessibility names, falling back to
  /// [`solidcraft_ui_text::tr`] when `id` is absent from the active catalog.
  pub fn logical_tr(id: &str) -> &str {
-@@ -294,14 +321,19 @@ mod tests {
+@@ -294,14 +321,19 @@
          static EN_CAT: solidcraft_ui_text::Catalog = solidcraft_ui_text::Catalog::new("en", "English", include_str!("../assets/shared-ui/en.json"));
          static HE_CAT: solidcraft_ui_text::Catalog = solidcraft_ui_text::Catalog::new("he", "עברית", include_str!("../assets/shared-ui/he.json"));
  
@@ -3787,11 +3628,10 @@ index 1f7e9e0..d41276a 100644
              let he_val = he.get(key).expect("checked above");
              assert!(!he_val.trim().is_empty(), "{key} has empty Hebrew translation");
              assert_eq!(placeholder_names(en_val), placeholder_names(he_val), "placeholder mismatch for {key}");
-@@ -363,6 +395,17 @@ mod tests {
-         }
+@@ -364,6 +396,17 @@
      }
  
-+    #[test]
+     #[test]
 +    fn dynamic_messages_inherit_the_request_locale_and_preserve_argument_text() {
 +        let job = {
 +            let _scope = scope(LanguageChoice::Chinese);
@@ -3802,14 +3642,13 @@ index 1f7e9e0..d41276a 100644
 +        assert_eq!(format("dynamic.drc_issues_9142734", &[("total", "12"), ("stale", "")]), "DRC 12 issues");
 +    }
 +
-     #[test]
++    #[test]
      fn chinese_tags_parse_and_traditional_stays_system() {
          let de = |s: &str| LanguageChoice::deserialize(IntoDeserializer::<DeError>::into_deserializer(s));
-diff --git a/crates/chrome/src/net_label.rs b/crates/chrome/src/net_label.rs
-index c62ae80..49b9747 100644
+         assert_eq!(de("zh"), Ok(LanguageChoice::Chinese));
 --- a/crates/chrome/src/net_label.rs
 +++ b/crates/chrome/src/net_label.rs
-@@ -135,7 +135,7 @@ fn draw(
+@@ -135,7 +135,7 @@
              |t| Align2([t.align, egui::Align::Center]),
          );
          let size = text.map_or(step, |t| t.height);
@@ -3818,11 +3657,9 @@ index c62ae80..49b9747 100644
          let galley = crate::canvas_text::layout_no_wrap(painter, name, FontId::proportional(size.max(1.)), color);
          let text_bounds = align.anchor_size(label_at, galley.size());
          let mut shape = egui::epaint::TextShape::new(text_bounds.min, galley, color);
-diff --git a/crates/chrome/src/part_form.rs b/crates/chrome/src/part_form.rs
-index 6c1c752..7c06be9 100644
 --- a/crates/chrome/src/part_form.rs
 +++ b/crates/chrome/src/part_form.rs
-@@ -56,13 +56,13 @@ pub fn reference(ui: &mut Ui, label: &str, value: &str, clear: bool) -> Referenc
+@@ -56,13 +56,13 @@
              ui.add(egui::Label::new(value).truncate()).on_hover_text(value);
          });
          let response = crate::controls::bounded_button(ui, ("browse", label), "Browse…", 86., true);
@@ -3838,11 +3675,9 @@ index 6c1c752..7c06be9 100644
              if response.clicked() {
                  action = ReferenceAction::Clear;
              }
-diff --git a/crates/chrome/src/pcb_update.rs b/crates/chrome/src/pcb_update.rs
-index aff366e..4afc5f2 100644
 --- a/crates/chrome/src/pcb_update.rs
 +++ b/crates/chrome/src/pcb_update.rs
-@@ -151,7 +151,7 @@ pub fn report(ui: &mut Ui, messages: &[&Message], filters: &mut Filters, trailin
+@@ -162,7 +162,7 @@
              ui.label(crate::i18n::tr_label("No messages match the selected filters."));
          }
      });
@@ -3851,7 +3686,7 @@ index aff366e..4afc5f2 100644
      ui.horizontal_wrapped(|ui| {
          ui.label(crate::i18n::tr_label("Show:"));
          let mut all = filters.errors && filters.warnings && filters.actions && filters.infos;
-@@ -159,8 +159,8 @@ pub fn report(ui: &mut Ui, messages: &[&Message], filters: &mut Filters, trailin
+@@ -170,8 +170,8 @@
          if kit::checkbox_indeterminate(ui, "All", &mut all, mixed).changed() {
              *filters = Filters { errors: all, warnings: all, actions: all, infos: all };
          }
@@ -3862,11 +3697,9 @@ index aff366e..4afc5f2 100644
          kit::checkbox(ui, "Actions", &mut filters.actions);
          kit::checkbox(ui, "Infos", &mut filters.infos);
          action.copy = kit::button(ui, "Copy report", kit::Button::Normal).clicked();
-diff --git a/crates/chrome/src/properties.rs b/crates/chrome/src/properties.rs
-index 7a05d52..22d07cf 100644
 --- a/crates/chrome/src/properties.rs
 +++ b/crates/chrome/src/properties.rs
-@@ -69,7 +69,7 @@ pub fn text_action(ui: &mut Ui, label: &str, value: &mut String, action: &str) -
+@@ -69,7 +69,7 @@
              crate::controls::text(ui, value).labelled_by(label_response.id);
          });
          let response = crate::controls::bounded_button(ui, label, action, action_width - ui.spacing().item_spacing.x, true);
@@ -3875,7 +3708,7 @@ index 7a05d52..22d07cf 100644
          response.clicked()
      })
      .inner
-@@ -398,7 +398,7 @@ pub fn field_row(ui: &mut Ui, name: &str, value: &mut String, visible: Option<&m
+@@ -398,7 +398,7 @@
          let response = ui.add(input(value).desired_width((width - label_width - 3. * t.space_8 - 2. * t.space_24).max(40.))).labelled_by(label.id);
          let url = web_link(value);
          if url.is_some() || link.is_some() {
@@ -3884,11 +3717,9 @@ index 7a05d52..22d07cf 100644
              if crate::menu::quick_action(ui, crate::menu::MenuIcon::ExternalLink, &label, "", url.is_some()).clicked()
                  && let Some(url) = url
              {
-diff --git a/crates/chrome/src/selection.rs b/crates/chrome/src/selection.rs
-index a198d06..a2d4b0d 100644
 --- a/crates/chrome/src/selection.rs
 +++ b/crates/chrome/src/selection.rs
-@@ -39,7 +39,7 @@ fn paint(painter: &Painter, rect: Rect, crossing: bool, count: usize, ink: Color
+@@ -39,7 +39,7 @@
      painter.text(
          rect.left_top() - vec2(0.0, 5.0),
          Align2::LEFT_BOTTOM,
@@ -3897,11 +3728,9 @@ index a198d06..a2d4b0d 100644
          FontId::proportional(t.font_small),
          ink,
      );
-diff --git a/crates/chrome/src/selection_filters.rs b/crates/chrome/src/selection_filters.rs
-index 6f45e81..5544c00 100644
 --- a/crates/chrome/src/selection_filters.rs
 +++ b/crates/chrome/src/selection_filters.rs
-@@ -59,7 +59,7 @@ pub fn controls(ui: &mut Ui, filters: &mut [Filter<'_>]) -> bool {
+@@ -59,7 +59,7 @@
                      let response = ui
                          .push_id(filter.key, |ui| {
                              ui.add_enabled_ui(filter.enabled, |ui| {
@@ -3910,11 +3739,9 @@ index 6f45e81..5544c00 100644
                              })
                              .inner
                          })
-diff --git a/crates/chrome/src/settings.rs b/crates/chrome/src/settings.rs
-index 0a368da..0fc52be 100644
 --- a/crates/chrome/src/settings.rs
 +++ b/crates/chrome/src/settings.rs
-@@ -274,7 +274,7 @@ fn body<S>(ui: &mut Ui, id: Id, state: &mut WindowState, pages: &[Page<S>], data
+@@ -274,7 +274,7 @@
                  (page.draw)(ui, data);
              }
              if !any {
@@ -3923,11 +3750,9 @@ index 0a368da..0fc52be 100644
              }
          });
      });
-diff --git a/crates/chrome/src/units.rs b/crates/chrome/src/units.rs
-index 7dd9f9f..781743c 100644
 --- a/crates/chrome/src/units.rs
 +++ b/crates/chrome/src/units.rs
-@@ -33,10 +33,10 @@ pub fn readout(nm: i64, unit: Unit) -> String {
+@@ -33,10 +33,10 @@
  /// The status bar's unit button. It shows the display unit, and a click switches to the other one.
  /// `shortcut` is shown in its tooltip. Returns true when the unit changed.
  pub fn toggle(ui: &mut Ui, unit: &mut Unit, shortcut: &str) -> bool {
@@ -3940,11 +3765,9 @@ index 7dd9f9f..781743c 100644
      if response.clicked() {
          *unit = unit.toggled();
          return true;
-diff --git a/crates/chrome/src/workspace.rs b/crates/chrome/src/workspace.rs
-index f69758c..1974226 100644
 --- a/crates/chrome/src/workspace.rs
 +++ b/crates/chrome/src/workspace.rs
-@@ -811,8 +811,8 @@ fn workspace_row(ui: &mut Ui, entry: &Workspace<'_>, width: f32, native: bool) -
+@@ -811,8 +811,8 @@
      let mut actions = Vec::new();
      if available {
          for (index, (placement, icon, label)) in [
@@ -3955,7 +3778,7 @@ index f69758c..1974226 100644
          ]
          .into_iter()
          .take(action_count)
-@@ -879,7 +879,7 @@ pub fn tree_row(ui: &mut Ui, id: egui::Id, row: &TreeRow<'_>) -> TreeResponse {
+@@ -879,7 +879,7 @@
      let response = ui.interact(activation, id, Sense::click());
      let icon_response = editable.then(|| {
          let response = ui.interact(icon_rect, id.with("layer_color"), Sense::click());
@@ -3964,7 +3787,7 @@ index f69758c..1974226 100644
          response
      });
      response.widget_info(|| WidgetInfo::selected(Role::Button, true, row.selected, row.accessibility_label.unwrap_or(row.label)));
-@@ -887,7 +887,7 @@ pub fn tree_row(ui: &mut Ui, id: egui::Id, row: &TreeRow<'_>) -> TreeResponse {
+@@ -887,7 +887,7 @@
          let action = if open { "Collapse" } else { "Expand" };
          let mut arrow = ui.new_child(egui::UiBuilder::new().id_salt(id.with("fold")).max_rect(fold_rect));
          arrow.set_clip_rect(arrow.clip_rect().intersect(fold_rect));
@@ -3973,7 +3796,7 @@ index f69758c..1974226 100644
      });
      if ui.is_rect_visible(rect) {
          let p = ui.painter();
-@@ -912,7 +912,7 @@ pub fn tree_row(ui: &mut Ui, id: egui::Id, row: &TreeRow<'_>) -> TreeResponse {
+@@ -912,7 +912,7 @@
      let response = if row.tip.is_empty() { response } else { response.on_hover_text(row.tip) };
      let icon_clicked = icon_response.as_ref().is_some_and(|response| response.clicked());
      if let Some(icon) = icon_response {
@@ -3982,7 +3805,7 @@ index f69758c..1974226 100644
      }
      TreeResponse { clicked: response.clicked() && !fold_clicked && !icon_clicked, icon_clicked, fold: fold_clicked, response }
  }
-@@ -1117,7 +1117,7 @@ pub fn ribbon_group_with_popups(
+@@ -1117,7 +1117,7 @@
      }
      if let Some(group) = output.groups.first() {
          let response = &group.label_response;
@@ -3991,7 +3814,7 @@ index f69758c..1974226 100644
          egui::Popup::menu(response).frame(crate::menu::frame()).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
              ui.set_min_width(t.control_height * 7.0);
              ui.spacing_mut().item_spacing.y = 0.0;
-@@ -1425,7 +1425,7 @@ fn card_header(ui: &mut Ui, title: &str, collapsed: bool) -> Response {
+@@ -1425,7 +1425,7 @@
      let (id, rect) = ui.allocate_space(vec2(ui.available_width(), FLOATING_HEADER));
      let response = panel_header_control(ui, id, rect, title, false);
      let action = if collapsed { "Expand" } else { "Collapse" };
@@ -4000,7 +3823,7 @@ index f69758c..1974226 100644
      ui.ctx().accesskit_node_builder(response.id, |node| node.set_expanded(!collapsed));
      let icon = Rect::from_center_size(rect.right_center() - vec2(10.0, 0.0), vec2(12.0, 12.0));
      if collapsed {
-@@ -1433,7 +1433,7 @@ fn card_header(ui: &mut Ui, title: &str, collapsed: bool) -> Response {
+@@ -1433,7 +1433,7 @@
      } else {
          solidcraft_ui_kit::icons::paint_ink_flipped(ui.painter(), icon, "chevron", t.text_dim);
      }
@@ -4009,7 +3832,7 @@ index f69758c..1974226 100644
  }
  
  /// Plain panel titles have no hover fill or tooltip of their own. The caller supplies one
-@@ -1482,7 +1482,7 @@ fn card_contents(ui: &mut Ui, title: &str, max_body_height: f32, closable: bool,
+@@ -1482,7 +1482,7 @@
              // Named after the card, so a screen reader can tell several cards apart.
              let close = closable && {
                  let close = crate::controls::small_button(ui, "Close");
@@ -4018,11 +3841,9 @@ index f69758c..1974226 100644
                  close.clicked()
              };
              ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-diff --git a/crates/chrome/src/workspace/catalog.rs b/crates/chrome/src/workspace/catalog.rs
-index df6af13..9bb3995 100644
 --- a/crates/chrome/src/workspace/catalog.rs
 +++ b/crates/chrome/src/workspace/catalog.rs
-@@ -345,7 +345,7 @@ pub fn source(ui: &mut Ui, label: &str, count: usize) {
+@@ -345,7 +345,7 @@
          paint_tree_icon(ui.painter(), TreeIcon::Folder, rect.center(), 14.0, t);
          ui.label(crate::shell::dim(label).size(t.font_small));
          ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -4031,7 +3852,7 @@ index df6af13..9bb3995 100644
          });
      });
  }
-@@ -458,7 +458,7 @@ pub fn tile(ui: &mut Ui, view: View, width: f32, item: Item<'_>, paint: impl FnO
+@@ -458,7 +458,7 @@
      {
          painter.galley(at + vec2(0.0, offset), super::elided(&painter, label, font, ink, max_width.max(0.0)), ink);
      }
@@ -4040,11 +3861,9 @@ index df6af13..9bb3995 100644
  }
  
  /// Find the largest rectangular space clear of every visible card, including cards floating
-diff --git a/crates/chrome/src/workspace/panels.rs b/crates/chrome/src/workspace/panels.rs
-index ae0996e..78c7312 100644
 --- a/crates/chrome/src/workspace/panels.rs
 +++ b/crates/chrome/src/workspace/panels.rs
-@@ -142,16 +142,13 @@ impl Panel {
+@@ -142,16 +142,13 @@
                      rect.right_bottom() - vec2(0.0, t.space_6),
                  )
              };
@@ -4063,7 +3882,7 @@ index ae0996e..78c7312 100644
              let response = solidcraft_ui_kit::panel_host_sash(
                  ui,
                  id.with(("resize", horizontal, leading)),
-@@ -384,7 +381,7 @@ impl Panel {
+@@ -384,7 +381,7 @@
                          let remaining = (header_width - 44.0 - 2.0 * ui.spacing().item_spacing.x).max(1.0);
                          let (id, header) = ui.allocate_space(vec2(remaining, FLOATING_HEADER));
                          let response = super::panel_header_control(ui, id, header, title, true);
@@ -4072,7 +3891,7 @@ index ae0996e..78c7312 100644
                          self.drag_header(&response, Rect::from_min_size(at, vec2(width, height)), canvas);
                          response.on_hover_cursor(egui::CursorIcon::Grab);
                          let (more_rect, more) = ui.allocate_exact_size(vec2(22.0, FLOATING_HEADER), Sense::click());
-@@ -392,7 +389,7 @@ impl Panel {
+@@ -392,7 +389,7 @@
                              ui.painter().rect_filled(more_rect, t.radius_sm, t.hover);
                          }
                          ui.painter().text(more_rect.center(), Align2::CENTER_CENTER, "…", egui::FontId::proportional(t.font_button), t.text_dim);
@@ -4081,7 +3900,7 @@ index ae0996e..78c7312 100644
                          egui::Popup::menu(&more).frame(menu::frame()).show(|ui| {
                              for (position, label) in [(Position::Floating, "Float"), (Position::Left, "Dock left"), (Position::Right, "Dock right")] {
                                  if MenuItem::new(label).choice(self.state.position == position).show(ui) {
-@@ -404,19 +401,19 @@ impl Panel {
+@@ -404,19 +401,19 @@
                              }
                              if slot && floating {
                                  menu::separator(ui);

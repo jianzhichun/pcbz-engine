@@ -1,0 +1,586 @@
+# PCBZ patch 0029: localize user-visible text introduced by the upstream follow-up.
+# Keep report navigation, save-lock lifetime, deferred-edit authority and all upstream behavior; add named English fallbacks and Chinese translations.
+--- a/crates/app/src/board_update.rs
++++ b/crates/app/src/board_update.rs
+@@ -555,7 +555,7 @@
+         }
+     }
+     if rows.is_empty() {
+-        rows.push(ReportRow::new(form::Kind::Info, "PCB is up to date.".into(), [], None));
++        rows.push(ReportRow::new(form::Kind::Info, pcbcraft_chrome::i18n::tr_label("PCB is up to date.").into_owned(), [], None));
+     }
+     rows
+ }
+--- a/crates/app/src/library_workspace/adoption.rs
++++ b/crates/app/src/library_workspace/adoption.rs
+@@ -86,20 +86,20 @@
+     /// Accumulate the chosen instance IDs, then require explicit review before Apply.
+     fn show(&mut self, ui: &mut egui::Ui, app: &mut PcbApp) {
+         if let Some(result) = &self.result {
+-            ui.heading("Library revisions adopted");
++            ui.heading(pcbcraft_chrome::i18n::tr_label("Library revisions adopted"));
+             show_changes(ui, result);
+             // The pane closes when the revision changes, but a later local edit such as a color
+             // change keeps it. Offer Undo only while the adoption is the next entry Undo restores.
+             if !app.session.next_undo_is_authored() {
+-                ui.label("Undo the later edits first to undo this adoption.");
++                ui.label(pcbcraft_chrome::i18n::tr_label("Undo the later edits first to undo this adoption."));
+             } else if controls::enabled_button(ui, app.session.available("edit.undo"), "Undo adoption").clicked() {
+                 app.run("edit.undo", &Value::Null);
+                 app.repaint_editors(ui.ctx());
+             }
+             return;
+         }
+-        ui.heading("Available library revisions");
+-        ui.label("Choose instances to review their non-geometric updates.");
++        ui.heading(pcbcraft_chrome::i18n::tr_label("Available library revisions"));
++        ui.label(pcbcraft_chrome::i18n::tr_label("Choose instances to review their non-geometric updates."));
+         let mut count = 0;
+         for entry in self.list["instances"].as_array().into_iter().flatten() {
+             let supported = entry["items"]
+@@ -114,7 +114,7 @@
+             count += 1;
+             let mut checked = self.selected.contains(id);
+             let reference = entry["reference"].as_str().unwrap_or(id);
+-            if controls::checkbox(ui, &mut checked, format!("{reference} ({id})")).changed() {
++            if controls::checkbox(ui, &mut checked, pcbcraft_chrome::i18n::format("dynamic.library_instance_8369914", &[("reference", reference), ("id", id)])).changed() {
+                 if checked {
+                     self.selected.insert(id.to_owned());
+                 } else {
+@@ -124,7 +124,7 @@
+             }
+         }
+         if count == 0 {
+-            ui.label("No supported updates from loaded sources.");
++            ui.label(pcbcraft_chrome::i18n::tr_label("No supported updates from loaded sources."));
+         }
+         if controls::enabled_button(ui, !self.selected.is_empty(), "Preview selected updates").clicked() {
+             let params = json!({"instances":self.selected,"expected_revision":self.list["revision"]});
+@@ -141,7 +141,7 @@
+         }
+         let Some(preview) = &self.preview else { return };
+         ui.separator();
+-        ui.heading("Review selected updates");
++        ui.heading(pcbcraft_chrome::i18n::tr_label("Review selected updates"));
+         show_changes(ui, preview);
+         if controls::button(ui, "Apply reviewed updates").clicked() {
+             let params = json!({"instances":self.selected,"expected_revision":preview["revision"],"preview":preview["preview"]});
+@@ -170,14 +170,13 @@
+     for row in report["changes"].as_array().into_iter().flatten() {
+         let text = |key: &str| row[key].as_str().unwrap_or_default();
+         let pin = &row["to"];
+-        ui.label(format!(
+-            "{}: {}/{} r{} → r{}",
+-            text("reference"),
+-            pin["library"].as_str().unwrap_or_default(),
+-            pin["id"].as_str().unwrap_or_default(),
+-            row["from"]["revision"],
+-            pin["revision"]
+-        ));
++        ui.label(pcbcraft_chrome::i18n::format("dynamic.library_revision_change_5886b32", &[
++            ("reference", text("reference")),
++            ("library", pin["library"].as_str().unwrap_or_default()),
++            ("id", pin["id"].as_str().unwrap_or_default()),
++            ("from", &row["from"]["revision"].to_string()),
++            ("to", &pin["revision"].to_string()),
++        ]));
+         for field in row["fields"].as_array().into_iter().flatten() {
+             let text = |key: &str| field[key].as_str().unwrap_or_default();
+             ui.label(format!("{}: {} → {}", text("field"), text("before"), text("after")));
+--- a/crates/app/src/lib.rs
++++ b/crates/app/src/lib.rs
+@@ -220,7 +220,7 @@
+ /// Include the abbreviated checkout revision in the version shown by nightly packages.
+ fn display_version() -> String {
+     match option_env!("PCBCRAFT_NIGHTLY_REVISION") {
+-        Some(revision) if !revision.is_empty() => format!("{VERSION} nightly ({revision})"),
++        Some(revision) if !revision.is_empty() => pcbcraft_chrome::i18n::format("dynamic.version_nightly_bd3a51a", &[("version", VERSION), ("revision", revision)]),
+         _ => VERSION.to_owned(),
+     }
+ }
+@@ -2654,7 +2654,7 @@
+                     let mut archive = false;
+                     let mut cancel = false;
+                     let closing = shell::dialog(ctx, "archive_folder", "Archive Project Folder", |ui| {
+-                        ui.label("Save the current edits to a compressed .pc and switch to that archive.");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("Save the current edits to a compressed .pc and switch to that archive."));
+                         ui.label(source.display().to_string());
+                         pcbcraft_chrome::controls::checkbox(ui, &mut trash_source, "Move original folder to Trash");
+                         ui.horizontal(|ui| {
+@@ -2707,7 +2707,7 @@
+             Dialog::About => {
+                 let mut close = false;
+                 let closing = shell::dialog(ctx, "about_dialog", "About PCBZ", |ui| {
+-                    ui.label(format!("PCBZ {}", display_version()));
++                    ui.label(pcbcraft_chrome::i18n::format("dynamic.product_version_6b32629", &[("version", &display_version())]));
+                     ui.label(pcbcraft_chrome::i18n::tr_label("Electronics design for people and AI agents working together on the same board."));
+                     ui.label(dim(pcbcraft_chrome::i18n::tr_label("MIT OR Apache-2.0. Third-party notices are in ATTRIBUTION.md.")));
+                     workspace::ribbon_licenses(ui);
+--- a/crates/app/src/live_control.rs
++++ b/crates/app/src/live_control.rs
+@@ -633,12 +633,12 @@
+         let command = request.body()["params"]["command"].as_str().unwrap_or_default().to_owned();
+         if request.expired() {
+             let subject = if command == APPLY_FOOTPRINT_REVISION { "Footprint revision" } else { "Copper edit" };
+-            request.answer(Err(Failure::new(ErrorCode::Cancelled, format!("{subject} request expired or disconnected"))));
++            request.answer(Err(Failure::new(ErrorCode::Cancelled, pcbcraft_chrome::i18n::format("dynamic.edit_request_expired_7379b35", &[("subject", pcbcraft_chrome::i18n::tr_label(subject).as_ref())]))));
+             return;
+         }
+         if self.remote_copper.queue.busy() {
+             let subject = if command == APPLY_FOOTPRINT_REVISION { "An edit" } else { "A copper edit" };
+-            request.answer(Err(Failure::new(ErrorCode::Busy, format!("{subject} is already preparing; retry after it completes"))));
++            request.answer(Err(Failure::new(ErrorCode::Busy, pcbcraft_chrome::i18n::format("dynamic.edit_already_preparing_d4ba81f", &[("subject", pcbcraft_chrome::i18n::tr_label(subject).as_ref())]))));
+             return;
+         }
+         if let Some(reason) = (LiveEditor { app: self, ctx }).refusal(&command) {
+@@ -687,7 +687,7 @@
+             self.remote_copper.queue.cancel();
+             if let Some((request, _, _)) = self.remote_copper.request.take() {
+                 let subject = edit_subject(request.body()["params"]["command"].as_str().unwrap_or_default());
+-                request.answer(Err(obsolete(valid, &format!("{subject} canceled, disconnected or stale"), self.session.revision())));
++                request.answer(Err(obsolete(valid, &pcbcraft_chrome::i18n::format("dynamic.edit_canceled_stale_2171a68", &[("subject", pcbcraft_chrome::i18n::tr_label(subject).as_ref())]), self.session.revision())));
+             }
+         }
+         if let Some(completion) = self.remote_copper.queue.poll()
+@@ -697,7 +697,7 @@
+             let command = request.body()["params"]["command"].as_str().unwrap_or_default();
+             let refusal = (LiveEditor { app: self, ctx }).refusal(command);
+             let subject = edit_subject(command);
+-            let obsolete_message = || format!("{subject} canceled or project changed");
++            let obsolete_message = || pcbcraft_chrome::i18n::format("dynamic.edit_canceled_changed_eea7ded", &[("subject", pcbcraft_chrome::i18n::tr_label(subject).as_ref())]);
+             let result = if request.expired() {
+                 Err(Failure::new(ErrorCode::Cancelled, obsolete_message()))
+             } else if !completion.source.is_current(&self.session) {
+@@ -707,10 +707,10 @@
+                 Err(Failure::new(ErrorCode::Unavailable, reason))
+             } else {
+                 completion.report.map_err(|message| snapshot_worker_failure(completion.schedule_failure, message)).and_then(|edit| {
+-                    let edit = edit.ok_or_else(|| Failure::new(ErrorCode::Cancelled, format!("{subject} canceled")))??;
++                    let edit = edit.ok_or_else(|| Failure::new(ErrorCode::Cancelled, pcbcraft_chrome::i18n::format("dynamic.edit_canceled_77816e2", &[("subject", pcbcraft_chrome::i18n::tr_label(subject).as_ref())])))??;
+                     if edit.is_effectful() && !request.authority.grant_commit(request.deadline) {
+                         let subject = if command == APPLY_FOOTPRINT_REVISION { "Footprint revision" } else { "Copper edit" };
+-                        return Err(Failure::new(ErrorCode::Cancelled, format!("{subject} request expired or disconnected before publication")));
++                        return Err(Failure::new(ErrorCode::Cancelled, pcbcraft_chrome::i18n::format("dynamic.edit_expired_before_publication_e3d26df", &[("subject", pcbcraft_chrome::i18n::tr_label(subject).as_ref())])));
+                     }
+                     let (revision, report) = edit.commit(&mut self.session)?;
+                     Ok(if let Some(report) = report {
+--- a/crates/app/src/net_class_editor.rs
++++ b/crates/app/src/net_class_editor.rs
+@@ -220,7 +220,7 @@
+             if let Some(id) = row["id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) {
+                 let address = json!({"project":project.id(),"scope":scope,"net":id});
+                 owners.push(Owner {
+-                    label: format!("Net · {label}"),
++                    label: pcbcraft_chrome::i18n::format("dynamic.net_owner_85ba683", &[("label", &label)]),
+                     target: json!({"kind":"net","address":address}),
+                     net: Some(id),
+                     anchor: Some(row["anchor"].clone()),
+@@ -240,7 +240,7 @@
+             let Some(id) = record["id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) else { continue };
+             let address = json!({"project":project.id(),"scope":scope,"net":id});
+             owners.push(Owner {
+-                label: format!("Former net · {}", &id.to_string()[..8]),
++                label: pcbcraft_chrome::i18n::format("dynamic.former_net_d49a877", &[("id", &id.to_string()[..8])]),
+                 target: json!({"kind":"net","address":address}),
+                 net: Some(id),
+                 anchor: None,
+@@ -249,7 +249,7 @@
+         }
+         for class in &project.net_classes().definitions {
+             let target = json!({"kind":"net_class","project":project.id(),"class":class.id});
+-            owners.push(Owner { label: format!("Class · {}", class_label(&project, class)), target, net: None, anchor: None, historical: false });
++            owners.push(Owner { label: pcbcraft_chrome::i18n::format("dynamic.class_owner_486aadc", &[("label", &class_label(&project, class))]), target, net: None, anchor: None, historical: false });
+         }
+         let selected_target = selected.as_ref().ok().and_then(|selected| selected.as_ref());
+         let net_index = match selected.as_ref().ok().and_then(Option::as_ref) {
+@@ -608,7 +608,7 @@
+     });
+     let discard = ui.add_enabled_ui(dirty, |ui| controls::button(ui, "Revert working voltage changes")).inner.clicked();
+     let Some(draft) = &mut edit.voltage else {
+-        ui.label(shell::dim(if edit.owners.is_empty() { "No saved nets or classes" } else { "No net or class selected" }));
++        ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label(if edit.owners.is_empty() { "No saved nets or classes" } else { "No net or class selected" })));
+         return discard;
+     };
+     let own_net = edit.owners.get(draft.owner).and_then(|owner| owner.net);
+@@ -650,7 +650,7 @@
+                     .references
+                     .iter()
+                     .find(|(id, _)| *id == net)
+-                    .map_or_else(|| format!("Retained net · {}", &net.to_string()[..8]), |(_, name)| name.clone()),
++                    .map_or_else(|| pcbcraft_chrome::i18n::format("dynamic.retained_net_c5a33ac", &[("id", &net.to_string()[..8])]), |(_, name)| name.clone()),
+             };
+             properties::field(ui, "Reference", |ui| {
+                 controls::Choice::from_id_salt("voltage_reference")
+@@ -677,10 +677,10 @@
+             Some("authored_on_net_class") => "Entered on this class",
+             _ => "Not declared",
+         };
+-        properties::field(ui, "Source", |ui| ui.label(source).accessible_name(format!("Requirement source: {source}")));
++        properties::field(ui, "Source", |ui| ui.label(pcbcraft_chrome::i18n::tr_label(source)).accessible_name(pcbcraft_chrome::i18n::format("dynamic.requirement_source_d989165", &[("source", pcbcraft_chrome::i18n::tr_label(source).as_ref())])));
+         if !requirement.is_null() {
+             let verification = "Unverified: no ERC, DRC or solver checks this value yet";
+-            properties::field(ui, "Checked", |ui| ui.label(shell::dim(verification)).accessible_name(format!("Verification: {verification}")));
++            properties::field(ui, "Checked", |ui| ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label(verification))).accessible_name(pcbcraft_chrome::i18n::format("dynamic.verification_status_2809103", &[("verification", pcbcraft_chrome::i18n::tr_label(verification).as_ref())])));
+             let reasons: Vec<_> = requirement["reasons"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+             if reasons.is_empty() {
+                 properties::field(ui, "Review", |ui| ui.label("Current").accessible_name("Review: Current"));
+@@ -690,15 +690,15 @@
+                     for reason in reasons {
+                         ui.label(review_reason(reason));
+                     }
+-                    ui.label("The original declaration and reference are kept until you change them.");
++                    ui.label(pcbcraft_chrome::i18n::tr_label("The original declaration and reference are kept until you change them."));
+                     if split_review(&draft.report) {
+-                        ui.label("After checking it, choose Save working voltage to record the review.");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("After checking it, choose Save working voltage to record the review."));
+                     }
+                 });
+             }
+         }
+         if dirty {
+-            ui.label(shell::dim("Unsaved working voltage"));
++            ui.label(shell::dim(pcbcraft_chrome::i18n::tr_label("Unsaved working voltage")));
+         }
+     });
+     discard
+--- a/crates/app/src/project_files.rs
++++ b/crates/app/src/project_files.rs
+@@ -600,7 +600,7 @@
+                             "Project archived. Original folder moved to Trash.".to_owned()
+                         }
+                         Err(error) => {
+-                            let notice = format!("Archive saved. Original folder kept. {error}");
++                            let notice = pcbcraft_chrome::i18n::format("dynamic.archive_saved_original_kept_26312cb", &[("error", &error)]);
+                             finished.status = "failed";
+                             finished.error = Some(notice.clone());
+                             notice
+--- a/crates/app/src/render_workspace/native.rs
++++ b/crates/app/src/render_workspace/native.rs
+@@ -221,7 +221,7 @@
+                 let _ = tx.send(result);
+                 background.repaint();
+             })
+-            .map_err(|error| format!("Could not start 3D rendering. {error}"))?;
++            .map_err(|error| pcbcraft_chrome::i18n::format("dynamic.could_not_start_3d_c98d646", &[("error", &format!("{}", error))]))?;
+         self.pending = Some(PreviewJob { request, receiver: rx, progress });
+         Ok(true)
+     }
+--- a/crates/app/src/render_workspace/raytrace.rs
++++ b/crates/app/src/render_workspace/raytrace.rs
+@@ -158,7 +158,7 @@
+                 let _ = sender.send(result);
+                 background.repaint();
+             })
+-            .map_err(|error| format!("Could not start ray tracing. {error}"))?;
++            .map_err(|error| pcbcraft_chrome::i18n::format("dynamic.could_not_start_ray_tracing_afcaa4b", &[("error", &format!("{}", error))]))?;
+         self.pending = Some(Pending { request, cancel, receiver, progress });
+         Ok(())
+     }
+--- a/crates/app/src/sheet_split.rs
++++ b/crates/app/src/sheet_split.rs
+@@ -72,7 +72,16 @@
+ 
+ /// "1 symbol", "3 wires": counts in the summary line.
+ fn count(n: usize, one: &str, many: &str) -> String {
+-    format!("{n} {}", if n == 1 { one } else { many })
++    let n = n.to_string();
++    match (one, many) {
++        ("symbol", "symbols") => pcbcraft_chrome::i18n::format("dynamic.count_symbols_da5592c", &[("n", &n)]),
++        ("wire", "wires") => pcbcraft_chrome::i18n::format("dynamic.count_wires_a0c5a81", &[("n", &n)]),
++        ("junction", "junctions") => pcbcraft_chrome::i18n::format("dynamic.count_junctions_1c727b0", &[("n", &n)]),
++        ("net label", "net labels") => pcbcraft_chrome::i18n::format("dynamic.count_net_labels_67a3887", &[("n", &n)]),
++        ("selected wire stays", "selected wires stay") => pcbcraft_chrome::i18n::format("dynamic.count_selected_wires_c92d011", &[("n", &n)]),
++        ("selected no-connect marker stays", "selected no-connect markers stay") => pcbcraft_chrome::i18n::format("dynamic.count_selected_no_connects_c93232c", &[("n", &n)]),
++        _ => pcbcraft_chrome::i18n::format("dynamic.count_items_a695f0f", &[("n", &n), ("label", pcbcraft_chrome::i18n::tr_label(if n == "1" { one } else { many }).as_ref())]),
++    }
+ }
+ 
+ impl PcbApp {
+@@ -97,14 +106,14 @@
+             return;
+         }
+         let mut number = project.sheets().len() + 1;
+-        while project.sheets().any(|sheet| sheet.name.eq_ignore_ascii_case(&format!("Sheet {number}"))) {
++        while project.sheets().any(|sheet| sheet.name.eq_ignore_ascii_case(&pcbcraft_chrome::i18n::format("dynamic.sheet_name_ee4b554", &[("number", &number.to_string())]))) {
+             number += 1;
+         }
+         self.dialog = Dialog::SplitSheet(Box::new(Edit {
+             source,
+             sheet: project.sheet_target(),
+             items,
+-            name: format!("Sheet {number}"),
++            name: pcbcraft_chrome::i18n::format("dynamic.sheet_name_ee4b554", &[("number", &number.to_string())]),
+             preview: Ok(Plan::default()),
+             previewed: None,
+             error: None,
+@@ -139,7 +148,7 @@
+         self.refresh_split_preview(&mut edit);
+         let (mut submit, mut cancel) = (false, false);
+         let closing = shell::dialog(ctx, "split_sheet_dialog", "Move to New Sheet", |ui| {
+-            let label = ui.label("Name");
++            let label = ui.label(pcbcraft_chrome::i18n::tr_label("Name"));
+             let field = ui.add(egui::TextEdit::singleline(&mut edit.name).desired_width(f32::INFINITY)).labelled_by(label.id);
+             if !edit.focused {
+                 field.request_focus();
+@@ -148,7 +157,7 @@
+             submit = field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+             match &edit.preview {
+                 Err(reason) if reason.is_empty() => {
+-                    ui.label("Type a name for the new sheet.");
++                    ui.label(pcbcraft_chrome::i18n::tr_label("Type a name for the new sheet."));
+                 }
+                 Err(reason) => {
+                     ui.label(shell::error(reason.as_str()));
+@@ -165,33 +174,33 @@
+                     .map(|(n, one, many)| count(n, one, many))
+                     .collect();
+                     if !moved.is_empty() {
+-                        ui.label(format!("Moves {} to a new sheet; a sheet symbol takes its place here.", moved.join(", ")));
++                        ui.label(pcbcraft_chrome::i18n::format("dynamic.move_to_sheet_summary_c0338d8", &[("items", &moved.join(", "))]));
+                     }
+                     if !plan.staying_wires.is_empty() {
+                         let wires = count(plan.staying_wires.len(), "selected wire stays", "selected wires stay");
+-                        ui.label(format!("{wires} on this sheet; a wire moves only with an end that moves."));
++                        ui.label(pcbcraft_chrome::i18n::format("dynamic.staying_wires_5da1f6a", &[("wires", &wires)]));
+                     }
+                     if !plan.staying_no_connects.is_empty() {
+                         let markers = count(plan.staying_no_connects.len(), "selected no-connect marker stays", "selected no-connect markers stay");
+-                        ui.label(format!("{markers} on this sheet."));
++                        ui.label(pcbcraft_chrome::i18n::format("dynamic.staying_no_connects_04eb1a1", &[("markers", &markers)]));
+                     }
+                     if plan.ports.is_empty() {
+-                        ui.label("No net crosses the new sheet's edge, so it needs no ports.");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("No net crosses the new sheet's edge, so it needs no ports."));
+                     } else {
+-                        ui.strong(format!("Ports ({})", plan.ports.len()));
++                        ui.strong(pcbcraft_chrome::i18n::format("dynamic.ports_count_6eb6a22", &[("count", &plan.ports.len().to_string())]));
+                         for port in &plan.ports {
+-                            let note = if port.generated { " (generated name)" } else { "" };
+-                            ui.label(format!("{} · {}{note}", port.name, crate::hierarchy::direction_name(port.direction)));
++                            let note = if port.generated { pcbcraft_chrome::i18n::tr_label(" (generated name)") } else { "".into() };
++                            ui.label(pcbcraft_chrome::i18n::format("dynamic.port_summary_ed32bf9", &[("name", port.name.as_str()), ("direction", crate::hierarchy::direction_name(port.direction)), ("note", note.as_ref())]));
+                         }
+                     }
+                     if !plan.global_nets.is_empty() {
+-                        ui.strong("Connected by name, no port needed");
++                        ui.strong(pcbcraft_chrome::i18n::tr_label("Connected by name, no port needed"));
+                         for net in &plan.global_nets {
+                             ui.label(net.name.as_str());
+                         }
+                     }
+                     for part in &plan.split_part_instances {
+-                        ui.label(format!("{} keeps other units on this sheet; its units will be on two sheets.", part.reference));
++                        ui.label(pcbcraft_chrome::i18n::format("dynamic.split_part_retains_units_239c877", &[("reference", &part.reference)]));
+                     }
+                 }
+             }
+--- a/crates/app/src/tests/board_views.rs
++++ b/crates/app/src/tests/board_views.rs
+@@ -1460,7 +1460,7 @@
+                 app.frame(ui);
+                 if let Some(at) = shown.get() {
+                     egui::Window::new("Overlay").fixed_pos(at).show(ui.ctx(), |ui| {
+-                        ui.label("Overlay text");
++                        ui.label(pcbcraft_chrome::i18n::tr_label("Overlay text"));
+                     });
+                 }
+             },
+--- a/crates/app/src/tests/split_editors.rs
++++ b/crates/app/src/tests/split_editors.rs
+@@ -1211,7 +1211,7 @@
+             app.frame(ui);
+             if app.views.is_split() {
+                 egui::Window::new("Overlay").fixed_pos(egui::pos2(950.0, 380.0)).show(ui.ctx(), |ui| {
+-                    ui.label("Overlay text");
++                    ui.label(pcbcraft_chrome::i18n::tr_label("Overlay text"));
+                 });
+             }
+         },
+--- a/crates/chrome/assets/shared-ui/en.json
++++ b/crates/chrome/assets/shared-ui/en.json
+@@ -492,5 +492,86 @@
+   "fragment.resize_width_left": "width from left",
+   "fragment.resize_width": "width",
+   "fragment.not_recorded": "Not recorded",
+-  "fragment.invalid_library_documents": "Invalid library documents"
++  "fragment.invalid_library_documents": "Invalid library documents",
++  "dynamic.version_nightly_bd3a51a": "{version} nightly ({revision})",
++  "dynamic.product_version_6b32629": "PCBZ {version}",
++  "dynamic.library_instance_8369914": "{reference} ({id})",
++  "dynamic.library_revision_change_5886b32": "{reference}: {library}/{id} r{from} → r{to}",
++  "dynamic.net_owner_85ba683": "Net · {label}",
++  "dynamic.former_net_d49a877": "Former net · {id}",
++  "dynamic.class_owner_486aadc": "Class · {label}",
++  "dynamic.retained_net_c5a33ac": "Retained net · {id}",
++  "dynamic.requirement_source_d989165": "Requirement source: {source}",
++  "dynamic.verification_status_2809103": "Verification: {verification}",
++  "dynamic.edit_request_expired_7379b35": "{subject} request expired or disconnected",
++  "dynamic.edit_already_preparing_d4ba81f": "{subject} is already preparing; retry after it completes",
++  "dynamic.edit_canceled_stale_2171a68": "{subject} canceled, disconnected or stale",
++  "dynamic.edit_canceled_changed_eea7ded": "{subject} canceled or project changed",
++  "dynamic.edit_canceled_77816e2": "{subject} canceled",
++  "dynamic.edit_expired_before_publication_e3d26df": "{subject} request expired or disconnected before publication",
++  "dynamic.archive_saved_original_kept_26312cb": "Archive saved. Original folder kept. {error}",
++  "dynamic.could_not_start_3d_c98d646": "Could not start 3D rendering. {error}",
++  "dynamic.could_not_start_ray_tracing_afcaa4b": "Could not start ray tracing. {error}",
++  "dynamic.count_symbols_da5592c": "{n} symbols",
++  "dynamic.count_wires_a0c5a81": "{n} wires",
++  "dynamic.count_junctions_1c727b0": "{n} junctions",
++  "dynamic.count_net_labels_67a3887": "{n} net labels",
++  "dynamic.count_selected_wires_c92d011": "{n} selected wires",
++  "dynamic.count_selected_no_connects_c93232c": "{n} selected no-connect markers",
++  "dynamic.count_items_a695f0f": "{n} {label}",
++  "dynamic.sheet_name_ee4b554": "Sheet {number}",
++  "dynamic.move_to_sheet_summary_c0338d8": "Moves {items} to a new sheet; a sheet symbol takes its place here.",
++  "dynamic.staying_wires_5da1f6a": "{wires} on this sheet; a wire moves only with an end that moves.",
++  "dynamic.staying_no_connects_04eb1a1": "{markers} on this sheet.",
++  "dynamic.ports_count_6eb6a22": "Ports ({count})",
++  "dynamic.port_summary_ed32bf9": "{name} · {direction}{note}",
++  "dynamic.split_part_retains_units_239c877": "{reference} keeps other units on this sheet; its units will be on two sheets.",
++  "This project has no PCB.": "This project has no PCB.",
++  "Save the current edits to a compressed .pc and switch to that archive.": "Save the current edits to a compressed .pc and switch to that archive.",
++  "Library revisions adopted": "Library revisions adopted",
++  "Undo the later edits first to undo this adoption.": "Undo the later edits first to undo this adoption.",
++  "Undo adoption": "Undo adoption",
++  "Available library revisions": "Available library revisions",
++  "Choose instances to review their non-geometric updates.": "Choose instances to review their non-geometric updates.",
++  "No supported updates from loaded sources.": "No supported updates from loaded sources.",
++  "Preview selected updates": "Preview selected updates",
++  "Review selected updates": "Review selected updates",
++  "Apply reviewed updates": "Apply reviewed updates",
++  "No saved nets or classes": "No saved nets or classes",
++  "The original declaration and reference are kept until you change them.": "The original declaration and reference are kept until you change them.",
++  "After checking it, choose Save working voltage to record the review.": "After checking it, choose Save working voltage to record the review.",
++  "Unsaved working voltage": "Unsaved working voltage",
++  "Entered on this net": "Entered on this net",
++  "Entered on this class": "Entered on this class",
++  "Not declared": "Not declared",
++  "Unverified: no ERC, DRC or solver checks this value yet": "Unverified: no ERC, DRC or solver checks this value yet",
++  "Footprint revision": "Footprint revision",
++  "Copper edit": "Copper edit",
++  "An edit": "An edit",
++  "A copper edit": "A copper edit",
++  "Copper preparation": "Copper preparation",
++  "Name": "Name",
++  "Type a name for the new sheet.": "Type a name for the new sheet.",
++  "No net crosses the new sheet's edge, so it needs no ports.": "No net crosses the new sheet's edge, so it needs no ports.",
++  "Connected by name, no port needed": "Connected by name, no port needed",
++  " (generated name)": " (generated name)",
++  "Move to New Sheet": "Move to New Sheet",
++  "Move to Sheet": "Move to Sheet",
++  "PCB is up to date.": "PCB is up to date.",
++  "Overlay text": "Overlay text",
++  "Choose net or class": "Choose net or class",
++  "Declared on": "Declared on",
++  "Revert working voltage changes": "Revert working voltage changes",
++  "No net or class selected": "No net or class selected",
++  "Requirement": "Requirement",
++  "Declare working voltage": "Declare working voltage",
++  "Working voltage value": "Working voltage value",
++  "Voltage basis": "Voltage basis",
++  "Voltage reference": "Voltage reference",
++  "Status": "Status",
++  "Source": "Source",
++  "Checked": "Checked",
++  "Review": "Review",
++  "Needs review": "Needs review",
++  "Save working voltage": "Save working voltage"
+ }
+--- a/crates/chrome/assets/shared-ui/zh.json
++++ b/crates/chrome/assets/shared-ui/zh.json
+@@ -1435,5 +1435,83 @@
+  "Technical details": "技术详情",
+  "Technical properties": "技术属性",
+  "Measurement conditions": "测量条件",
+- "fragment.invalid_library_documents": "库文档无效"
++ "fragment.invalid_library_documents": "库文档无效",
++  "dynamic.version_nightly_bd3a51a": "{version} 夜间版（{revision}）",
++  "dynamic.product_version_6b32629": "PCBZ 版本 {version}",
++  "dynamic.library_instance_8369914": "{reference}（{id}）",
++  "dynamic.library_revision_change_5886b32": "{reference}：{library}/{id} r{from} → r{to}",
++  "dynamic.net_owner_85ba683": "网络 · {label}",
++  "dynamic.former_net_d49a877": "原网络 · {id}",
++  "dynamic.class_owner_486aadc": "网络类 · {label}",
++  "dynamic.retained_net_c5a33ac": "保留网络 · {id}",
++  "dynamic.requirement_source_d989165": "要求来源：{source}",
++  "dynamic.verification_status_2809103": "验证：{verification}",
++  "dynamic.edit_request_expired_7379b35": "{subject}请求已过期或连接已断开",
++  "dynamic.edit_already_preparing_d4ba81f": "{subject}正在准备；请完成后重试",
++  "dynamic.edit_canceled_stale_2171a68": "{subject}已取消、连接断开或状态已过期",
++  "dynamic.edit_canceled_changed_eea7ded": "{subject}已取消或工程已改变",
++  "dynamic.edit_canceled_77816e2": "{subject}已取消",
++  "dynamic.edit_expired_before_publication_e3d26df": "{subject}请求在发布前已过期或连接已断开",
++  "dynamic.archive_saved_original_kept_26312cb": "归档已保存，原文件夹已保留。{error}",
++  "dynamic.could_not_start_3d_c98d646": "无法启动 3D 渲染。{error}",
++  "dynamic.could_not_start_ray_tracing_afcaa4b": "无法启动光线追踪。{error}",
++  "dynamic.count_symbols_da5592c": "{n} 个符号",
++  "dynamic.count_wires_a0c5a81": "{n} 条导线",
++  "dynamic.count_junctions_1c727b0": "{n} 个连接点",
++  "dynamic.count_net_labels_67a3887": "{n} 个网络标签",
++  "dynamic.count_selected_wires_c92d011": "{n} 条所选导线",
++  "dynamic.count_selected_no_connects_c93232c": "{n} 个所选不连接标记",
++  "dynamic.count_items_a695f0f": "{n} 个{label}",
++  "dynamic.sheet_name_ee4b554": "图纸 {number}",
++  "dynamic.move_to_sheet_summary_c0338d8": "将 {items} 移到新图纸；原位置保留一个图纸符号。",
++  "dynamic.staying_wires_5da1f6a": "{wires}保留在本图纸；只有端点随之移动时，导线才会移动。",
++  "dynamic.staying_no_connects_04eb1a1": "{markers}保留在本图纸。",
++  "dynamic.ports_count_6eb6a22": "端口（{count}）",
++  "dynamic.port_summary_ed32bf9": "端口 {name} · {direction}{note}",
++  "dynamic.split_part_retains_units_239c877": "{reference} 的其他单元保留在本图纸；其单元将位于不同图纸。",
++  "This project has no PCB.": "此工程没有 PCB。",
++  "Save the current edits to a compressed .pc and switch to that archive.": "将当前编辑保存为压缩的 .pc，并切换到该归档。",
++  "Library revisions adopted": "已采用元件库修订",
++  "Undo the later edits first to undo this adoption.": "要先撤销后续编辑，才能撤销此次采用。",
++  "Undo adoption": "撤销采用",
++  "Available library revisions": "可用的元件库修订",
++  "Choose instances to review their non-geometric updates.": "选择实例以检查非几何更新。",
++  "No supported updates from loaded sources.": "已加载的源中没有可支持的更新。",
++  "Preview selected updates": "预览所选更新",
++  "Review selected updates": "检查所选更新",
++  "Apply reviewed updates": "应用已检查的更新",
++  "No saved nets or classes": "没有已保存的网络或网络类",
++  "The original declaration and reference are kept until you change them.": "在更改前，原声明和引用会保留。",
++  "After checking it, choose Save working voltage to record the review.": "检查后，选择“保存工作电压”以记录本次复核。",
++  "Unsaved working voltage": "工作电压尚未保存",
++  "Entered on this net": "在此网络上输入",
++  "Entered on this class": "在此网络类上输入",
++  "Not declared": "未声明",
++  "Unverified: no ERC, DRC or solver checks this value yet": "未验证：ERC、DRC 或求解器尚未检查此值",
++  "Footprint revision": "封装修订",
++  "Copper edit": "铜层编辑",
++  "An edit": "一项编辑",
++  "A copper edit": "一项铜层编辑",
++  "Copper preparation": "铜层准备",
++  "Type a name for the new sheet.": "输入新图纸的名称。",
++  "No net crosses the new sheet's edge, so it needs no ports.": "没有网络跨越新图纸边缘，因此不需要端口。",
++  "Connected by name, no port needed": "按名称连接，无需端口",
++  " (generated name)": "（生成名称）",
++  "Move to New Sheet": "移到新图纸",
++  "Move to Sheet": "移到图纸",
++  "PCB is up to date.": "PCB 已是最新。",
++  "Overlay text": "覆盖层文本",
++  "Choose net or class": "选择网络或网络类",
++  "Declared on": "声明位置",
++  "Revert working voltage changes": "还原工作电压更改",
++  "No net or class selected": "未选择网络或网络类",
++  "Requirement": "要求",
++  "Declare working voltage": "声明工作电压",
++  "Working voltage value": "工作电压值",
++  "Voltage basis": "电压基准",
++  "Voltage reference": "电压引用",
++  "Checked": "检查状态",
++  "Review": "复核",
++  "Needs review": "需要复核",
++  "Save working voltage": "保存工作电压"
+ }
+--- a/crates/chrome/src/render_workspace.rs
++++ b/crates/chrome/src/render_workspace.rs
+@@ -41,7 +41,7 @@
+     crate::catalog::property_form_enabled(ctx, "browse_render_board", "Browse Boards", 360.0, "Open", can_open, |ui| {
+         egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
+             if boards.is_empty() {
+-                ui.label("This project has no PCB.");
++                ui.label(crate::i18n::tr_label("This project has no PCB."));
+             }
+             for &(id, name) in boards {
+                 let row = TreeRow {

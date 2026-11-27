@@ -8,11 +8,9 @@
 # files: crates/app/src/lib.rs (the host flag and the four gated sites), embedded.rs / worker_app.rs (their constructors
 # mark the build). Additive and guarded; a normal desktop build is unchanged.
 
-diff --git a/crates/app/src/embedded.rs b/crates/app/src/embedded.rs
-index 33b43d1..21b58ba 100644
 --- a/crates/app/src/embedded.rs
 +++ b/crates/app/src/embedded.rs
-@@ -18,6 +18,7 @@ impl PcbApp {
+@@ -18,6 +18,7 @@
      /// preferences, Home until `project` (a `.pc` archive, a project folder or its `project.json`)
      /// has opened through the ordinary file worker on the first drawn frame.
      pub fn new_embedded(ctx: &egui::Context, project: Option<std::path::PathBuf>) -> Self {
@@ -20,11 +18,9 @@ index 33b43d1..21b58ba 100644
          pcbcraft_chrome::install(ctx);
          // Detached editor windows become windows inside the host's surface (egui's embedded
          // viewports): there is no operating system to give them real ones.
-diff --git a/crates/app/src/lib.rs b/crates/app/src/lib.rs
-index d1620b7..6d96536 100644
 --- a/crates/app/src/lib.rs
 +++ b/crates/app/src/lib.rs
-@@ -116,6 +116,30 @@ use project_files::SaveFormat;
+@@ -118,6 +118,30 @@
  
  const VERSION: &str = env!("CARGO_PKG_VERSION");
  const BUG_REPORT_URL: &str = "https://github.com/tangency-labs/pcbcraft/issues/new";
@@ -55,7 +51,7 @@ index d1620b7..6d96536 100644
  const PREFERENCES_KEY: &str = "pcbcraft.preferences";
  #[cfg(not(target_arch = "wasm32"))]
  const RECENT_PROJECTS_KEY: &str = "pcbcraft.recent_projects";
-@@ -169,7 +193,7 @@ fn help_menu(ui: &mut Ui) -> Option<Help> {
+@@ -171,7 +195,7 @@
      if MenuItem::new("Keyboard Shortcuts").icon(MenuIcon::Keyboard).show(ui) {
          pick = Some(Help::Shortcuts);
      }
@@ -64,16 +60,16 @@ index d1620b7..6d96536 100644
          pick = Some(Help::Report);
      }
      #[cfg(not(target_arch = "wasm32"))]
-@@ -201,7 +225,7 @@ fn utilities(ui: &mut Ui, width: f32, assistant: Option<(bool, bool)>) -> Utilit
+@@ -211,7 +235,7 @@
      if width >= 950.0 {
-         ui.label(dim(format!("v{VERSION}")));
+         ui.label(dim(format!("v{}", display_version())));
          ui.add_space(Tokens::get().space_8);
 -        if menu::labeled_action(ui, MenuIcon::Bug, "Report a bug").clicked() {
 +        if !host_build() && menu::labeled_action(ui, MenuIcon::Bug, "Report a bug").clicked() {
              ui.ctx().open_url(egui::OpenUrl::new_tab(BUG_REPORT_URL));
          }
      }
-@@ -981,7 +1005,11 @@ impl PcbApp {
+@@ -1041,7 +1065,11 @@
          match pick {
              Help::About => self.dialog = Dialog::About,
              Help::Shortcuts => self.dialog = Dialog::Preferences(preferences::PreferencesWindow::at_shortcuts(self.preferences)),
@@ -86,7 +82,7 @@ index d1620b7..6d96536 100644
              #[cfg(not(target_arch = "wasm32"))]
              Help::Connect => self.dialog = Dialog::LocalMcp { error: None, copied: false },
          }
-@@ -2586,7 +2614,9 @@ impl PcbApp {
+@@ -2687,7 +2715,9 @@
                      ui.label(dim("MIT OR Apache-2.0. Third-party notices are in ATTRIBUTION.md."));
                      workspace::ribbon_licenses(ui);
                      pcbcraft_chrome::fonts::licenses(ui);
@@ -97,11 +93,9 @@ index d1620b7..6d96536 100644
                      close = pcbcraft_chrome::controls::button(ui, "Close").clicked();
                  });
                  if !(closing || close) {
-diff --git a/crates/app/src/worker_app.rs b/crates/app/src/worker_app.rs
-index 5fec4a1..70debb3 100644
 --- a/crates/app/src/worker_app.rs
 +++ b/crates/app/src/worker_app.rs
-@@ -15,6 +15,7 @@ impl PcbApp {
+@@ -15,6 +15,7 @@
      /// preferences, and Home until the host page pushes project bytes through `pcbz_host_open`.
      pub fn new_worker(ctx: &egui::Context) -> Self {
          crate::host::set_host_page();

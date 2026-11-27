@@ -91,6 +91,9 @@
     "Courtyard outline · {cy_id}": 1,
     "Vertex {} {axis} (mm)": 1
   },
+  "crates/app/src/library_editors/editing.rs": {
+    "run {}": 1
+  },
   "crates/app/src/library_editors/form.rs": {
     "{} {e}": 1,
     "{}: {e}": 1
@@ -114,7 +117,8 @@
   },
   "crates/app/src/library_workspace/tests.rs": {
     "Fit {label}": 1,
-    "Zoom in {label}": 1
+    "Zoom in {label}": 1,
+    "name: {name} → GUI renamed symbol": 1
   },
   "crates/app/src/live_control.rs": {
     "Finish the current dialog or file operation in the editor before running `{}`": 1
@@ -131,6 +135,9 @@
     "{properties}: {}": 1,
     "{} · r{}": 1,
     "{}: {error}": 1
+  },
+  "crates/app/src/net_class_editor/tests.rs": {
+    "Former net · {}": 2
   },
   "crates/app/src/net_labels.rs": {
     "X: {e}": 1,
@@ -296,9 +303,12 @@
   "crates/app/src/tests/board_via_nets.rs": {
     "Choose net {option}": 1
   },
+  "crates/app/src/tests/board_update.rs": {
+    "Schematic canvas {}": 1
+  },
   "crates/app/src/tests/board_views.rs": {
     "Close view {path}": 2,
-    "PCB canvas {}": 1
+    "PCB canvas {}": 3
   },
   "crates/app/src/tests/designator_locks.rs": {
     "Field {index}": 1
@@ -352,7 +362,8 @@
     "Open {editor} beside current view": 1
   },
   "crates/app/src/tests/split_editors.rs": {
-    "Schematic canvas {}": 1
+    "Schematic canvas {}": 1,
+    "{name} {}": 1
   },
   "crates/app/src/tests/symbol_overlap.rs": {
     "Select {}": 2
@@ -367,6 +378,14 @@
     "Resize was not accepted: {requested}": 1,
     "Targets were not measured at {width}×{height}: {at}": 1,
     "Window did not reach {width}×{height}: {window}": 1
+  },
+  "crates/app/src/ui_automation/tests/native_detached.rs": {
+    "Detached drags did not edit both documents: {after}": 1,
+    "Command+{key} in window 0 left {now}, expected {expected}": 1,
+    "Timed out waiting for {what}": 1,
+    "focus on window {window}": 1,
+    "a window opened by {id}": 1,
+    "The item is not uncovered in window {window}: {point}": 1
   },
   "crates/app/src/window_commands.rs": {
     "`{id}` has no parameter `no_such_parameter`": 1,
