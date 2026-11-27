@@ -7,7 +7,7 @@
      }
      if rows.is_empty() {
 -        rows.push(ReportRow::new(form::Kind::Info, "PCB is up to date.".into(), [], None));
-+        rows.push(ReportRow::new(form::Kind::Info, pcbcraft_chrome::i18n::tr_label("PCB is up to date.").into_owned(), [], None));
++        rows.push(ReportRow::new(form::Kind::Info, pcbcraft_chrome::i18n::tr_label("PCB is up to date.").to_owned(), [], None));
      }
      rows
  }

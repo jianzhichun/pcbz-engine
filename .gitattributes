@@ -1,2 +1,2 @@
-# The upstream checkout enforces LF for its tracked English JSON on every OS.
-patches/0026-english-message-catalog.patch text eol=lf
+# Patch context must retain the upstream checkout's LF bytes on every OS.
+patches/*.patch text eol=lf

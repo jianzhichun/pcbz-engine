@@ -804,7 +804,7 @@
          }
 -        let highlighted = self.views.board_paint_highlight(id, &self.session);
 -        let label = if self.views.is_split() { format!("PCB canvas {}", id.0 + 1) } else { "PCB canvas".to_owned() };
-+        let highlighted = self.views.board_highlight_for(id, &self.session);
++        let highlighted = self.views.board_paint_highlight(id, &self.session);
 +        let label = if self.views.is_split() { pcbcraft_chrome::i18n::format("dynamic.pcb_canvas_4a019c8", &[("arg1", &format!("{}", id.0 + 1))]) } else { pcbcraft_chrome::i18n::tr_label("PCB canvas").to_owned() };
          if self.board_move_ready(ui.ctx(), id, enabled)
              && let Some(widget) = self.views.view(id).map(|v| v.widget_id())
@@ -853,7 +853,7 @@
                          && !egui::Popup::is_any_open(ui.ctx());
 -                    let highlight = self.views.schematic_paint_highlight(id, &self.session);
 -                    let label = format!("Schematic canvas {}", id.0 + 1);
-+                    let highlight = self.views.highlight_for(id, &self.session);
++                    let highlight = self.views.schematic_paint_highlight(id, &self.session);
 +                    let label = pcbcraft_chrome::i18n::format("dynamic.schematic_canvas_3a73ff7", &[("arg1", &format!("{}", id.0 + 1))]);
                      let Some(view) = self.views.view_mut(id) else {
                          return;
