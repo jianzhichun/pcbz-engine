@@ -69,21 +69,18 @@ jobs:
       - name: Harness dependencies (playwright-core against the runner's Chrome, pngjs)
         working-directory: web-harness
         run: npm install --no-audit --no-fund --no-package-lock
-      - name: Pinned CLI from the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p cli
-          gh release download engine-a581d47aa-2 -R jianzhichun/pcbz-engine -p '*linux-x64.tar.gz' -D cli
-          tar -xzf cli/*.tar.gz -C cli
-          find cli -name pcbcraft-cli -type f -exec chmod +x {} \;
+      - name: Build the CLI that reopens this build's saves
+        working-directory: upstream
+        # The project format can advance. A CLI from an older release is not a valid reader for
+        # this build's save, and a same-tag download would race the independent engine workflow.
+        run: cargo build --locked --release -p pcbcraft-cli
       - name: 'Headless proof: load, edit, save, reopen with the CLI'
         run: |
-          CLI=$(find cli -name pcbcraft-cli -type f | head -1)
+          CLI=upstream/target/release/pcbcraft-cli
           node web-harness/run.mjs --dist upstream/dist/web --project upstream/examples/sensor-node.pc --out proof --cli "$CLI"
       - name: 'Worker proof: OffscreenCanvas frames, CJK pixels, save through the plugin routes'
         run: |
-          CLI=$(find cli -name pcbcraft-cli -type f | head -1)
+          CLI=upstream/target/release/pcbcraft-cli
           node web-harness/worker-run.mjs --dist upstream/dist/web --project upstream/examples/sensor-node.pc --out proof --cli "$CLI"
       - name: Brotli the wasm (the compressed form is what ships; design 1.4)
         run: node web-harness/brotli-dist.mjs --dist upstream/dist/web | tee proof/wasm-brotli.json
